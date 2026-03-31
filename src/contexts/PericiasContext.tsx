@@ -4,38 +4,39 @@ import { Pericia } from '@/lib/types'
 const MOCK_PERICIAS: Pericia[] = [
   {
     id: 'PER-2023-001',
-    titulo: 'Vistoria Estrutural - Edifício A',
-    descricao: 'Análise de fissuras e recalque na fundação do bloco principal.',
-    dataSolicitacao: '2023-10-01',
-    dataLimite: '2023-10-15',
-    responsavel: 'Eng. Carlos Andrade',
+    codigoInterno: 'INT-001',
+    numeroProcesso: '0001234-56.2023.8.26.0001',
+    juiz: 'Dr. Roberto Alves',
+    vara: 'Cível',
+    cidade: 'São Paulo',
+    dataNomeacao: '2023-10-01',
+    dataPericia: '2023-10-10',
+    dataEntregaLaudo: '2023-10-25',
+    honorarios: 5000,
+    endereco: 'Rua Exemplo, 123',
+    observacoes: 'Vistoria Estrutural - Edifício A. Análise de fissuras.',
+    linkNuvem: 'https://drive.google.com/drive/folders/1',
+    checklist: [
+      { id: '1', texto: 'Ler processo', concluido: true },
+      { id: '2', texto: 'Agendar vistoria', concluido: true },
+    ],
     status: 'Concluído',
   },
   {
     id: 'PER-2023-002',
-    titulo: 'Análise de Infiltração - Condomínio B',
-    descricao: 'Mapeamento de umidade na fachada sul.',
-    dataSolicitacao: '2023-10-05',
-    dataLimite: '2023-10-20',
-    responsavel: 'Eng. Ana Silva',
-    status: 'Em Andamento',
-  },
-  {
-    id: 'PER-2023-003',
-    titulo: 'Laudo Cautelar - Obra Vizinha',
-    descricao: 'Vistoria prévia dos imóveis lindeiros à nova construção.',
-    dataSolicitacao: '2023-10-10',
-    dataLimite: '2023-10-12',
-    responsavel: 'Eng. Carlos Andrade',
-    status: 'Pendente',
-  },
-  {
-    id: 'PER-2023-004',
-    titulo: 'Avaliação de Sinistro - Galpão Logístico',
-    descricao: 'Verificação de danos estruturais após incêndio no setor B.',
-    dataSolicitacao: '2023-10-12',
-    dataLimite: '2023-10-30',
-    responsavel: 'Eng. Roberto Mendes',
+    codigoInterno: 'INT-002',
+    numeroProcesso: '0009876-54.2023.8.26.0002',
+    juiz: 'Dra. Maria Clara',
+    vara: 'Cível',
+    cidade: 'Campinas',
+    dataNomeacao: '2023-10-05',
+    dataPericia: '2023-10-15',
+    dataEntregaLaudo: '2023-10-30',
+    honorarios: 7500,
+    endereco: 'Av. Teste, 987',
+    observacoes: 'Análise de Infiltração - Condomínio B.',
+    linkNuvem: 'https://1drv.ms/f/s!Example2',
+    checklist: [{ id: '1', texto: 'Solicitar documentos', concluido: false }],
     status: 'Em Andamento',
   },
 ]
@@ -52,7 +53,7 @@ export function PericiasProvider({ children }: { children: React.ReactNode }) {
 
   const addPericia = (novaPericia: Omit<Pericia, 'id' | 'status'>) => {
     const id = `PER-${new Date().getFullYear()}-${String(pericias.length + 1).padStart(3, '0')}`
-    setPericias((prev) => [{ ...novaPericia, id, status: 'Pendente' }, ...prev])
+    setPericias((prev) => [{ ...novaPericia, id, status: 'Pendente' } as Pericia, ...prev])
   }
 
   return React.createElement(

@@ -9,12 +9,30 @@ export interface User {
 
 export type PericiaStatus = 'Pendente' | 'Em Andamento' | 'Concluído'
 
+export interface ChecklistItem {
+  id: string
+  texto: string
+  concluido: boolean
+}
+
 export interface Pericia {
   id: string
-  titulo: string
-  descricao: string
-  dataSolicitacao: string
-  dataLimite: string
-  responsavel: string
+  codigoInterno: string
+  numeroProcesso: string
+  juiz?: string
+  advogadoAutora?: string
+  advogadoRe?: string
+  assistenteTecnicoAutora?: string
+  assistenteTecnicoRe?: string
+  vara: string
+  cidade?: string
+  dataNomeacao: string
+  dataPericia: string
+  dataEntregaLaudo: string
+  honorarios?: number
+  endereco?: string
+  observacoes?: string
+  linkNuvem?: string
+  checklist: ChecklistItem[]
   status: PericiaStatus
 }

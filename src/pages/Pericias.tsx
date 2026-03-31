@@ -37,8 +37,8 @@ export default function Pericias() {
 
   const filteredPericias = pericias.filter(
     (p) =>
-      p.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.responsavel.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.codigoInterno.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.numeroProcesso.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.id.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
@@ -78,7 +78,7 @@ export default function Pericias() {
               Nova Perícia
             </Button>
           </SheetTrigger>
-          <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetContent className="w-full sm:max-w-2xl md:max-w-4xl overflow-y-auto">
             <SheetHeader>
               <SheetTitle>Cadastrar Nova Perícia</SheetTitle>
               <SheetDescription>
@@ -99,7 +99,7 @@ export default function Pericias() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Buscar por ID, título ou engenheiro..."
+                  placeholder="Buscar por ID, Cód. Interno ou Processo..."
                   className="pl-8"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -116,9 +116,10 @@ export default function Pericias() {
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="w-[100px] pl-4 sm:pl-6">ID</TableHead>
-                <TableHead>Título</TableHead>
-                <TableHead className="hidden md:table-cell">Data Solicit.</TableHead>
-                <TableHead className="hidden lg:table-cell">Responsável</TableHead>
+                <TableHead>Cód. Interno</TableHead>
+                <TableHead className="hidden md:table-cell">Processo</TableHead>
+                <TableHead className="hidden lg:table-cell">Vara</TableHead>
+                <TableHead>Data Perícia</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right pr-4 sm:pr-6">Ações</TableHead>
               </TableRow>
@@ -126,7 +127,7 @@ export default function Pericias() {
             <TableBody>
               {filteredPericias.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                     Nenhuma perícia encontrada.
                   </TableCell>
                 </TableRow>
@@ -138,15 +139,15 @@ export default function Pericias() {
                   >
                     <TableCell className="font-medium pl-4 sm:pl-6">{pericia.id}</TableCell>
                     <TableCell>
-                      <div className="font-medium">{pericia.titulo}</div>
-                      <div className="text-xs text-muted-foreground hidden sm:block truncate max-w-[200px] xl:max-w-[300px]">
-                        {pericia.descricao}
-                      </div>
+                      <div className="font-medium">{pericia.codigoInterno}</div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground">
-                      {new Date(pericia.dataSolicitacao).toLocaleDateString('pt-BR')}
+                      {pericia.numeroProcesso}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">{pericia.responsavel}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{pericia.vara}</TableCell>
+                    <TableCell>
+                      {new Date(pericia.dataPericia).toLocaleDateString('pt-BR')}
+                    </TableCell>
                     <TableCell>{getStatusBadge(pericia.status)}</TableCell>
                     <TableCell className="text-right pr-4 sm:pr-6">
                       <DropdownMenu>
