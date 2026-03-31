@@ -1,0 +1,88 @@
+import { useLocation } from 'react-router-dom'
+import { Menu, Search, LogOut, User as UserIcon } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+
+export function AppHeader() {
+  const { user, logout } = useAuth()
+  const location = useLocation()
+
+  const getPageTitle = () => {
+    if (location.pathname.includes('/dashboard')) return 'Dashboard'
+    if (location.pathname.includes('/pericias')) return 'Cadastro de Perícias'
+    return 'Visão Geral'
+  }
+
+  return (
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-background px-4 shadow-sm">
+      <div className="flex items-center gap-4">
+        <SidebarTrigger />
+        <div className="hidden md:flex items-center text-sm text-muted-foreground">
+          <span>Início</span>
+          <span className="mx-2">/</span>
+          <span className="font-medium text-foreground">{getPageTitle()}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <div className="relative hidden sm:block">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Buscar..."
+            className="w-64 rounded-full bg-muted/50 pl-8 focus-visible:bg-background"
+          />
+        </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              <Avatar className="h-10 w-10 border border-primary/10">
+                <AvatarFallback className="bg-primary/5 text-primary">
+                  {user?.name.charAt(0) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{user?.name}</p>
+                <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                <div className="mt-2">
+                  <Badge variant="secondary" className="capitalize">
+                    {user?.role.replace('_', ' ')}
+                  </Badge>
+                </div>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <UserIcon className="mr-2 h-4 w-4" />
+              <span>Meu Perfil</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={logout}
+              className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Sair do sistema</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </header>
+  )
+}
