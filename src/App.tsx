@@ -10,6 +10,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Index from './pages/Index'
 import Dashboard from './pages/Dashboard'
 import Pericias from './pages/Pericias'
+import Calendario from './pages/Calendario'
 import NotFound from './pages/NotFound'
 
 const App = () => (
@@ -27,6 +28,7 @@ const App = () => (
               <Route element={<Layout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/pericias" element={<Pericias />} />
+                <Route path="/calendario" element={<Calendario />} />
               </Route>
             </Route>
 
