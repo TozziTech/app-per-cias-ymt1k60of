@@ -9,7 +9,75 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      pericias: {
+        Row: {
+          advogado_autora: string | null
+          advogado_re: string | null
+          assistente_autora: string | null
+          assistente_re: string | null
+          checklist: Json | null
+          cidade: string | null
+          codigo_interno: string | null
+          created_at: string
+          data_entrega_laudo: string | null
+          data_nomeacao: string | null
+          data_pericia: string | null
+          endereco: string | null
+          honorarios: number | null
+          id: string
+          juiz: string | null
+          link_nuvem: string | null
+          numero_processo: string | null
+          observacoes: string | null
+          updated_at: string
+          vara: string | null
+        }
+        Insert: {
+          advogado_autora?: string | null
+          advogado_re?: string | null
+          assistente_autora?: string | null
+          assistente_re?: string | null
+          checklist?: Json | null
+          cidade?: string | null
+          codigo_interno?: string | null
+          created_at?: string
+          data_entrega_laudo?: string | null
+          data_nomeacao?: string | null
+          data_pericia?: string | null
+          endereco?: string | null
+          honorarios?: number | null
+          id?: string
+          juiz?: string | null
+          link_nuvem?: string | null
+          numero_processo?: string | null
+          observacoes?: string | null
+          updated_at?: string
+          vara?: string | null
+        }
+        Update: {
+          advogado_autora?: string | null
+          advogado_re?: string | null
+          assistente_autora?: string | null
+          assistente_re?: string | null
+          checklist?: Json | null
+          cidade?: string | null
+          codigo_interno?: string | null
+          created_at?: string
+          data_entrega_laudo?: string | null
+          data_nomeacao?: string | null
+          data_pericia?: string | null
+          endereco?: string | null
+          honorarios?: number | null
+          id?: string
+          juiz?: string | null
+          link_nuvem?: string | null
+          numero_processo?: string | null
+          observacoes?: string | null
+          updated_at?: string
+          vara?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -153,3 +221,44 @@ export const Constants = {
 // IMPORTANT: The TypeScript types above map UUID, TEXT, VARCHAR all to "string".
 // Use the COLUMN TYPES section below to know the real PostgreSQL type for each column.
 // Always use the correct PostgreSQL type when writing SQL migrations.
+
+// --- COLUMN TYPES (actual PostgreSQL types) ---
+// Use this to know the real database type when writing migrations.
+// "string" in TypeScript types above may be uuid, text, varchar, timestamptz, etc.
+// Table: pericias
+//   id: uuid (not null, default: gen_random_uuid())
+//   codigo_interno: text (nullable)
+//   numero_processo: text (nullable)
+//   vara: text (nullable)
+//   cidade: text (nullable)
+//   data_nomeacao: timestamp with time zone (nullable)
+//   data_pericia: timestamp with time zone (nullable)
+//   data_entrega_laudo: timestamp with time zone (nullable)
+//   juiz: text (nullable)
+//   advogado_autora: text (nullable)
+//   advogado_re: text (nullable)
+//   assistente_autora: text (nullable)
+//   assistente_re: text (nullable)
+//   honorarios: numeric (nullable)
+//   endereco: text (nullable)
+//   observacoes: text (nullable)
+//   checklist: jsonb (nullable, default: '[]'::jsonb)
+//   link_nuvem: text (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
+
+// --- CONSTRAINTS ---
+// Table: pericias
+//   PRIMARY KEY pericias_pkey: PRIMARY KEY (id)
+
+// --- ROW LEVEL SECURITY POLICIES ---
+// Table: pericias
+//   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_insert" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_update" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true

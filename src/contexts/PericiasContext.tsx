@@ -43,7 +43,7 @@ const MOCK_PERICIAS: Pericia[] = [
 
 interface PericiasContextType {
   pericias: Pericia[]
-  addPericia: (pericia: Omit<Pericia, 'id' | 'status'>) => void
+  addPericia: (pericia: Omit<Pericia, 'id'>) => void
 }
 
 const PericiasContext = createContext<PericiasContextType | undefined>(undefined)
@@ -51,9 +51,9 @@ const PericiasContext = createContext<PericiasContextType | undefined>(undefined
 export function PericiasProvider({ children }: { children: React.ReactNode }) {
   const [pericias, setPericias] = useState<Pericia[]>(MOCK_PERICIAS)
 
-  const addPericia = (novaPericia: Omit<Pericia, 'id' | 'status'>) => {
+  const addPericia = (novaPericia: Omit<Pericia, 'id'>) => {
     const id = `PER-${new Date().getFullYear()}-${String(pericias.length + 1).padStart(3, '0')}`
-    setPericias((prev) => [{ ...novaPericia, id, status: 'Pendente' } as Pericia, ...prev])
+    setPericias((prev) => [{ ...novaPericia, id } as Pericia, ...prev])
   }
 
   return React.createElement(

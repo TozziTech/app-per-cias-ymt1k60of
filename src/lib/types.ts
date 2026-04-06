@@ -7,7 +7,12 @@ export interface User {
   role: UserRole
 }
 
-export type PericiaStatus = 'Pendente' | 'Em Andamento' | 'Concluído'
+export type PericiaStatus =
+  | 'Pendente'
+  | 'Agendado'
+  | 'Em Andamento'
+  | 'Laudo Entregue'
+  | 'Concluído'
 
 export interface ChecklistItem {
   id: string

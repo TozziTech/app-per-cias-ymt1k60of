@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast'
 import { CustomInput, CustomSelect, CustomDatePicker, ChecklistSection } from './FormFields'
 
 const formSchema = z.object({
+  status: z.string().optional().default('Agendado'),
   codigoInterno: z.string().min(1, 'Código Interno é obrigatório'),
   numeroProcesso: z.string().min(1, 'Número do Processo é obrigatório'),
   juiz: z.string().optional(),
@@ -56,6 +57,7 @@ export function PericiaForm({ onSuccess }: { onSuccess: () => void }) {
       observacoes: '',
       linkNuvem: '',
       checklist: [],
+      status: 'Agendado',
     },
   })
 
@@ -66,6 +68,7 @@ export function PericiaForm({ onSuccess }: { onSuccess: () => void }) {
       dataPericia: format(values.dataPericia, 'yyyy-MM-dd'),
       dataEntregaLaudo: format(values.dataEntregaLaudo, 'yyyy-MM-dd'),
       honorarios: values.honorarios ? parseFloat(values.honorarios.replace(',', '.')) : undefined,
+      status: (values.status || 'Agendado') as any,
     })
 
     toast({ title: 'Sucesso', description: 'Nova perícia cadastrada com sucesso.' })
@@ -85,6 +88,12 @@ export function PericiaForm({ onSuccess }: { onSuccess: () => void }) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6 pt-4 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CustomSelect
+            control={form.control}
+            name="status"
+            label="Status"
+            options={['Agendado', 'Em Andamento', 'Laudo Entregue', 'Concluído', 'Pendente']}
+          />
           <CustomInput control={form.control} name="codigoInterno" label="Código Interno*" />
           <CustomInput control={form.control} name="numeroProcesso" label="Número do Processo*" />
           <CustomSelect

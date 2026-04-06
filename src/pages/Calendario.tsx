@@ -19,6 +19,8 @@ import {
   AlertTriangle,
   FileText,
   Loader2,
+  Clock,
+  BellRing,
 } from 'lucide-react'
 
 import { supabase } from '@/lib/supabase/client'
@@ -35,6 +37,13 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 type EventType = 'nomeacao' | 'pericia' | 'entrega'
 
@@ -52,21 +61,23 @@ const fallbackData = [
     id: 'mock-1',
     numero_processo: '1002345-67.2023.8.26.0100',
     data_nomeacao: new Date().toISOString(),
-    data_pericia: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString(),
+    data_pericia: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString(),
     data_entrega_laudo: new Date(new Date().setDate(new Date().getDate() + 20)).toISOString(),
     vara: '1ª Vara Cível',
     cidade: 'São Paulo',
     observacoes: 'Perícia agendada com as partes. Requer acesso ao local.',
+    status: 'Agendado',
   },
   {
     id: 'mock-2',
     numero_processo: '0011223-44.2023.5.02.0001',
     data_nomeacao: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString(),
     data_pericia: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString(),
-    data_entrega_laudo: new Date(new Date().setDate(new Date().getDate() + 15)).toISOString(),
+    data_entrega_laudo: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString(),
     vara: '2ª Vara do Trabalho',
     cidade: 'Rio de Janeiro',
     observacoes: 'Aguardando envio de documentação complementar.',
+    status: 'Em Andamento',
   },
 ]
 
@@ -83,6 +94,7 @@ export default function Calendario() {
   const [loading, setLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [filterType, setFilterType] = useState<EventType | 'all'>('all')
 
   useEffect(() => {
     const fetchPericias = async () => {
@@ -147,8 +159,18 @@ export default function Calendario() {
         })
       }
     })
-    return evts
-  }, [pericias])
+    return evts.filter((e) => filterType === 'all' || e.type === filterType)
+  }, [pericias, filterType])
+
+  const isUrgent = (date: Date, status: string) => {
+    if (status === 'Concluído' || status === 'Laudo Entregue') return false
+    const now = new Date()
+    const dateCopy = new Date(date)
+    dateCopy.setHours(23, 59, 59, 999)
+    const diffTime = dateCopy.getTime() - now.getTime()
+    const diffHours = diffTime / (1000 * 3600)
+    return diffHours >= 0 && diffHours <= 48
+  }
 
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1))
   const prevMonth = () => setCurrentDate(subMonths(currentDate, 1))
@@ -194,46 +216,72 @@ export default function Calendario() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={today}>
-            Hoje
-          </Button>
-          <div className="flex items-center border rounded-md overflow-hidden bg-background">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-none hover:bg-slate-100 dark:hover:bg-slate-800"
-              onClick={prevMonth}
-            >
-              <ChevronLeft className="h-4 w-4" />
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4">
+          <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="Filtrar eventos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Eventos</SelectItem>
+              <SelectItem value="nomeacao">Apenas Nomeações</SelectItem>
+              <SelectItem value="pericia">Visitas Técnicas</SelectItem>
+              <SelectItem value="entrega">Prazos de Laudo</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={today}>
+              Hoje
             </Button>
-            <div className="w-36 text-center font-medium text-sm capitalize">
-              {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+            <div className="flex items-center border rounded-md overflow-hidden bg-background">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-none hover:bg-slate-100 dark:hover:bg-slate-800"
+                onClick={prevMonth}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="w-36 text-center font-medium text-sm capitalize">
+                {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-none hover:bg-slate-100 dark:hover:bg-slate-800"
+                onClick={nextMonth}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-none hover:bg-slate-100 dark:hover:bg-slate-800"
-              onClick={nextMonth}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 text-sm mb-2">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-purple-500 shadow-sm"></div>
-          <span className="font-medium text-slate-700 dark:text-slate-300">Nomeações</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></div>
-          <span className="font-medium text-slate-700 dark:text-slate-300">Visitas Técnicas</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
-          <span className="font-medium text-slate-700 dark:text-slate-300">Prazos de Laudo</span>
+      <div className="flex flex-wrap items-center gap-4 text-sm mb-2">
+        {(filterType === 'all' || filterType === 'nomeacao') && (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-purple-500 shadow-sm"></div>
+            <span className="font-medium text-slate-700 dark:text-slate-300">Nomeações</span>
+          </div>
+        )}
+        {(filterType === 'all' || filterType === 'pericia') && (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></div>
+            <span className="font-medium text-slate-700 dark:text-slate-300">Visitas Técnicas</span>
+          </div>
+        )}
+        {(filterType === 'all' || filterType === 'entrega') && (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
+            <span className="font-medium text-slate-700 dark:text-slate-300">Prazos de Laudo</span>
+          </div>
+        )}
+        <div className="flex items-center gap-2 ml-auto">
+          <BellRing className="w-4 h-4 text-amber-500" />
+          <span className="font-medium text-slate-700 dark:text-slate-300 text-xs">
+            Vence em &lt; 48h
+          </span>
         </div>
       </div>
 
@@ -294,23 +342,33 @@ export default function Calendario() {
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    {dayEvents.slice(0, 3).map((e) => (
-                      <div
-                        key={e.id}
-                        className={cn(
-                          'text-[11px] px-1.5 py-1 rounded-sm truncate font-medium flex items-center shadow-sm',
-                          e.type === 'pericia'
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50'
-                            : e.type === 'entrega'
-                              ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800/50'
-                              : 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50',
-                        )}
-                        title={`${e.title}: ${e.processo}`}
-                      >
-                        {getEventIcon(e.type)}
-                        <span className="truncate">{e.processo}</span>
-                      </div>
-                    ))}
+                    {dayEvents.slice(0, 3).map((e) => {
+                      const urgent = isUrgent(e.date, e.originalData.status)
+                      return (
+                        <div
+                          key={e.id}
+                          className={cn(
+                            'text-[11px] px-1.5 py-1 rounded-sm truncate font-medium flex items-center justify-between shadow-sm relative overflow-hidden group/event',
+                            e.type === 'pericia'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50'
+                              : e.type === 'entrega'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800/50'
+                                : 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50',
+                            urgent &&
+                              'ring-1 ring-amber-400 dark:ring-amber-500 ring-offset-1 dark:ring-offset-slate-950',
+                          )}
+                          title={`${e.title}: ${e.processo}${urgent ? ' (Vence em < 48h)' : ''}`}
+                        >
+                          <div className="flex items-center truncate">
+                            {getEventIcon(e.type)}
+                            <span className="truncate">{e.processo}</span>
+                          </div>
+                          {urgent && (
+                            <BellRing className="w-3 h-3 text-amber-600 dark:text-amber-400 flex-shrink-0 ml-1 animate-pulse" />
+                          )}
+                        </div>
+                      )
+                    })}
                     {dayEvents.length > 3 && (
                       <div className="text-[10px] text-slate-500 font-medium pl-1 mt-1">
                         +{dayEvents.length - 3} mais
@@ -340,21 +398,41 @@ export default function Calendario() {
                 {getEventsForDay(selectedDate).map((e) => (
                   <div
                     key={e.id}
-                    className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3 bg-slate-50/50 dark:bg-slate-900/50 shadow-sm"
+                    className={cn(
+                      'p-4 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3 bg-slate-50/50 dark:bg-slate-900/50 shadow-sm relative',
+                      isUrgent(e.date, e.originalData.status) &&
+                        'border-amber-300 dark:border-amber-700 bg-amber-50/30 dark:bg-amber-900/10',
+                    )}
                   >
                     <div className="flex items-center justify-between">
-                      <Badge
-                        className={cn(
-                          'text-xs px-2 py-0.5 font-semibold shadow-sm',
-                          e.type === 'pericia'
-                            ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                            : e.type === 'entrega'
-                              ? 'bg-red-500 hover:bg-red-600 text-white'
-                              : 'bg-purple-500 hover:bg-purple-600 text-white',
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          className={cn(
+                            'text-xs px-2 py-0.5 font-semibold shadow-sm',
+                            e.type === 'pericia'
+                              ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                              : e.type === 'entrega'
+                                ? 'bg-red-500 hover:bg-red-600 text-white'
+                                : 'bg-purple-500 hover:bg-purple-600 text-white',
+                          )}
+                        >
+                          {e.title}
+                        </Badge>
+                        {isUrgent(e.date, e.originalData.status) && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950"
+                          >
+                            <Clock className="w-3 h-3 mr-1" /> Vence em &lt; 48h
+                          </Badge>
                         )}
-                      >
-                        {e.title}
-                      </Badge>
+                      </div>
+
+                      {e.originalData.status && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {e.originalData.status}
+                        </Badge>
+                      )}
                     </div>
                     <div>
                       <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-1">
