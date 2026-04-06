@@ -21,9 +21,11 @@ import {
   Loader2,
   Clock,
   BellRing,
+  CalendarPlus,
 } from 'lucide-react'
 
 import { supabase } from '@/lib/supabase/client'
+import { downloadIcs } from '@/lib/ics'
 import { cn } from '@/lib/utils'
 
 import { Button } from '@/components/ui/button'
@@ -428,11 +430,30 @@ export default function Calendario() {
                         )}
                       </div>
 
-                      {e.originalData.status && (
-                        <Badge variant="secondary" className="text-[10px]">
-                          {e.originalData.status}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {e.originalData.status && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {e.originalData.status}
+                          </Badge>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+                          title="Adicionar à Agenda"
+                          onClick={() => {
+                            downloadIcs({
+                              title: `${e.title} - Proc: ${e.processo}`,
+                              description: `Processo: ${e.processo}\nStatus: ${e.originalData.status || ''}\nVara: ${e.originalData.vara || ''}\nObservações: ${e.originalData.observacoes || ''}`,
+                              location: e.originalData.endereco || e.originalData.cidade || '',
+                              startDate: e.date,
+                              allDay: true,
+                            })
+                          }}
+                        >
+                          <CalendarPlus className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div>
                       <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-1">

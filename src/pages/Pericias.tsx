@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Search, Plus, Filter, MoreHorizontal, Eye, Edit } from 'lucide-react'
+import { Search, Plus, Filter, MoreHorizontal, Eye, Edit, CalendarPlus } from 'lucide-react'
 
 import { usePericias } from '@/contexts/PericiasContext'
+import { downloadIcs } from '@/lib/ics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu'
 import { PericiaForm } from '@/components/PericiaForm'
 
@@ -41,6 +46,39 @@ export default function Pericias() {
       p.numeroProcesso.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.id.toLowerCase().includes(searchTerm.toLowerCase()),
   )
+
+  const parseDateSafe = (d: string | Date | undefined | null): Date | null => {
+    if (!d) return null
+    const parsed = new Date(d)
+    if (isNaN(parsed.getTime())) return null
+    return new Date(parsed.getTime() + parsed.getTimezoneOffset() * 60000)
+  }
+
+  const handleExport = (pericia: any, type: 'nomeacao' | 'pericia' | 'entrega') => {
+    let dateField
+    let titlePrefix
+    if (type === 'nomeacao') {
+      dateField = pericia.dataNomeacao || pericia.data_nomeacao
+      titlePrefix = 'Nomeação'
+    } else if (type === 'pericia') {
+      dateField = pericia.dataPericia || pericia.data_pericia
+      titlePrefix = 'Visita Técnica'
+    } else {
+      dateField = pericia.dataEntregaLaudo || pericia.data_entrega_laudo
+      titlePrefix = 'Prazo do Laudo'
+    }
+
+    const parsedDate = parseDateSafe(dateField)
+    if (!parsedDate) return
+
+    downloadIcs({
+      title: `${titlePrefix} - Proc: ${pericia.numeroProcesso || pericia.numero_processo || pericia.codigoInterno || pericia.codigo_interno || 'Sem Número'}`,
+      description: `Processo: ${pericia.numeroProcesso || pericia.numero_processo || ''}\nStatus: ${pericia.status || ''}\nVara: ${pericia.vara || ''}\nObservações: ${pericia.observacoes || ''}`,
+      location: pericia.endereco || pericia.cidade || '',
+      startDate: parsedDate,
+      allDay: true,
+    })
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -166,6 +204,38 @@ export default function Pericias() {
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Editar</span>
                           </DropdownMenuItem>
+
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                              <CalendarPlus className="mr-2 h-4 w-4" />
+                              <span>Adicionar à Agenda</span>
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuPortal>
+                              <DropdownMenuSubContent>
+                                {(pericia.dataNomeacao || pericia.data_nomeacao) && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleExport(pericia, 'nomeacao')}
+                                  >
+                                    Nomeação
+                                  </DropdownMenuItem>
+                                )}
+                                {(pericia.dataPericia || pericia.data_pericia) && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleExport(pericia, 'pericia')}
+                                  >
+                                    Visita Técnica
+                                  </DropdownMenuItem>
+                                )}
+                                {(pericia.dataEntregaLaudo || pericia.data_entrega_laudo) && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleExport(pericia, 'entrega')}
+                                  >
+                                    Prazo do Laudo
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                          </DropdownMenuSub>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
