@@ -29,6 +29,7 @@ export type Database = {
           link_nuvem: string | null
           numero_processo: string | null
           observacoes: string | null
+          status: string | null
           updated_at: string
           vara: string | null
         }
@@ -51,6 +52,7 @@ export type Database = {
           link_nuvem?: string | null
           numero_processo?: string | null
           observacoes?: string | null
+          status?: string | null
           updated_at?: string
           vara?: string | null
         }
@@ -73,6 +75,7 @@ export type Database = {
           link_nuvem?: string | null
           numero_processo?: string | null
           observacoes?: string | null
+          status?: string | null
           updated_at?: string
           vara?: string | null
         }
@@ -246,6 +249,7 @@ export const Constants = {
 //   link_nuvem: text (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
+//   status: text (nullable, default: 'Agendado'::text)
 
 // --- CONSTRAINTS ---
 // Table: pericias

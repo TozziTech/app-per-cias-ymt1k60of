@@ -9,6 +9,7 @@ import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import Index from './pages/Index'
 import Dashboard from './pages/Dashboard'
+import Financeiro from './pages/Financeiro'
 import Pericias from './pages/Pericias'
 import Calendario from './pages/Calendario'
 import NotFound from './pages/NotFound'
@@ -27,6 +28,7 @@ const App = () => (
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/financeiro" element={<Financeiro />} />
                 <Route path="/pericias" element={<Pericias />} />
                 <Route path="/calendario" element={<Calendario />} />
               </Route>

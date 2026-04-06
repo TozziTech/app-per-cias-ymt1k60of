@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, FileText, Calendar, Settings, Building } from 'lucide-react'
+import { LayoutDashboard, FileText, Calendar, Settings, Building, DollarSign } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +14,7 @@ import {
 
 const navItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Financeiro', url: '/financeiro', icon: DollarSign },
   { title: 'Cadastro de Perícias', url: '/pericias', icon: FileText },
   { title: 'Calendário', url: '/calendario', icon: Calendar },
   { title: 'Configurações', url: '#', icon: Settings },
