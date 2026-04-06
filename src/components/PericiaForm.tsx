@@ -7,7 +7,13 @@ import { usePericias } from '@/contexts/PericiasContext'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
-import { CustomInput, CustomSelect, CustomDatePicker, ChecklistSection } from './FormFields'
+import {
+  CustomInput,
+  CustomSelect,
+  CustomDatePicker,
+  ChecklistSection,
+  CustomCheckbox,
+} from './FormFields'
 
 const formSchema = z.object({
   status: z.string().optional().default('Agendado'),
@@ -27,6 +33,15 @@ const formSchema = z.object({
   endereco: z.string().optional(),
   observacoes: z.string().optional(),
   linkNuvem: z.string().url('Deve ser URL válida').or(z.literal('')).optional(),
+  justicaGratuita: z.boolean().default(false),
+  peritoAssociado: z.string().optional(),
+  descricaoImpugnacao: z.string().optional(),
+  dataImpugnacao: z.date().optional(),
+  diasImpugnacao: z.string().optional(),
+  prazoEntrega: z.date().optional(),
+  entregaImpugnacao: z.date().optional(),
+  limitesEsclarecimentos: z.string().optional(),
+  entregaEsclarecimentos: z.date().optional(),
   checklist: z.array(
     z.object({
       id: z.string(),
@@ -58,22 +73,48 @@ export function PericiaForm({ onSuccess }: { onSuccess: () => void }) {
       linkNuvem: '',
       checklist: [],
       status: 'Agendado',
+      justicaGratuita: false,
+      peritoAssociado: '',
+      descricaoImpugnacao: '',
+      dataImpugnacao: undefined,
+      diasImpugnacao: '',
+      prazoEntrega: undefined,
+      entregaImpugnacao: undefined,
+      limitesEsclarecimentos: '',
+      entregaEsclarecimentos: undefined,
     },
   })
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    addPericia({
-      ...values,
-      dataNomeacao: format(values.dataNomeacao, 'yyyy-MM-dd'),
-      dataPericia: format(values.dataPericia, 'yyyy-MM-dd'),
-      dataEntregaLaudo: format(values.dataEntregaLaudo, 'yyyy-MM-dd'),
-      honorarios: values.honorarios ? parseFloat(values.honorarios.replace(',', '.')) : undefined,
-      status: (values.status || 'Agendado') as any,
-    })
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      await addPericia({
+        ...values,
+        dataNomeacao: values.dataNomeacao ? format(values.dataNomeacao, 'yyyy-MM-dd') : '',
+        dataPericia: values.dataPericia ? format(values.dataPericia, 'yyyy-MM-dd') : '',
+        dataEntregaLaudo: values.dataEntregaLaudo
+          ? format(values.dataEntregaLaudo, 'yyyy-MM-dd')
+          : '',
+        dataImpugnacao: values.dataImpugnacao
+          ? format(values.dataImpugnacao, 'yyyy-MM-dd')
+          : undefined,
+        prazoEntrega: values.prazoEntrega ? format(values.prazoEntrega, 'yyyy-MM-dd') : undefined,
+        entregaImpugnacao: values.entregaImpugnacao
+          ? format(values.entregaImpugnacao, 'yyyy-MM-dd')
+          : undefined,
+        entregaEsclarecimentos: values.entregaEsclarecimentos
+          ? format(values.entregaEsclarecimentos, 'yyyy-MM-dd')
+          : undefined,
+        honorarios: values.honorarios ? parseFloat(values.honorarios.replace(',', '.')) : undefined,
+        diasImpugnacao: values.diasImpugnacao ? parseInt(values.diasImpugnacao, 10) : undefined,
+        status: (values.status || 'Agendado') as any,
+      })
 
-    toast({ title: 'Sucesso', description: 'Nova perícia cadastrada com sucesso.' })
-    form.reset()
-    onSuccess()
+      toast({ title: 'Sucesso', description: 'Nova perícia cadastrada com sucesso.' })
+      form.reset()
+      onSuccess()
+    } catch (error) {
+      // Error is handled in the context
+    }
   }
 
   const onError = () => {
@@ -136,6 +177,44 @@ export function PericiaForm({ onSuccess }: { onSuccess: () => void }) {
             control={form.control}
             name="assistenteTecnicoRe"
             label="Assistente Técnico Ré"
+          />
+          <CustomInput control={form.control} name="peritoAssociado" label="Perito Associado" />
+          <CustomCheckbox control={form.control} name="justicaGratuita" label="Justiça Gratuita" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+          <h3 className="md:col-span-2 font-semibold text-lg">Impugnação e Esclarecimentos</h3>
+          <CustomInput
+            control={form.control}
+            name="descricaoImpugnacao"
+            label="Descrição da Impugnação"
+          />
+          <CustomDatePicker
+            control={form.control}
+            name="dataImpugnacao"
+            label="Data da Impugnação"
+          />
+          <CustomInput
+            control={form.control}
+            name="diasImpugnacao"
+            label="Dias Impugnação"
+            type="number"
+          />
+          <CustomDatePicker control={form.control} name="prazoEntrega" label="Prazo de Entrega" />
+          <CustomDatePicker
+            control={form.control}
+            name="entregaImpugnacao"
+            label="Entrega da Impugnação"
+          />
+          <CustomInput
+            control={form.control}
+            name="limitesEsclarecimentos"
+            label="Limites Esclarecimentos"
+          />
+          <CustomDatePicker
+            control={form.control}
+            name="entregaEsclarecimentos"
+            label="Entrega Esclarecimentos"
           />
         </div>
 

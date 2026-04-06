@@ -1,64 +1,67 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 import { Pericia } from '@/lib/types'
-
-const MOCK_PERICIAS: Pericia[] = [
-  {
-    id: 'PER-2023-001',
-    codigoInterno: 'INT-001',
-    numeroProcesso: '0001234-56.2023.8.26.0001',
-    juiz: 'Dr. Roberto Alves',
-    vara: 'Cível',
-    cidade: 'São Paulo',
-    dataNomeacao: '2023-10-01',
-    dataPericia: '2023-10-10',
-    dataEntregaLaudo: '2023-10-25',
-    honorarios: 5000,
-    endereco: 'Rua Exemplo, 123',
-    observacoes: 'Vistoria Estrutural - Edifício A. Análise de fissuras.',
-    linkNuvem: 'https://drive.google.com/drive/folders/1',
-    checklist: [
-      { id: '1', texto: 'Ler processo', concluido: true },
-      { id: '2', texto: 'Agendar vistoria', concluido: true },
-    ],
-    status: 'Concluído',
-  },
-  {
-    id: 'PER-2023-002',
-    codigoInterno: 'INT-002',
-    numeroProcesso: '0009876-54.2023.8.26.0002',
-    juiz: 'Dra. Maria Clara',
-    vara: 'Cível',
-    cidade: 'Campinas',
-    dataNomeacao: '2023-10-05',
-    dataPericia: '2023-10-15',
-    dataEntregaLaudo: '2023-10-30',
-    honorarios: 7500,
-    endereco: 'Av. Teste, 987',
-    observacoes: 'Análise de Infiltração - Condomínio B.',
-    linkNuvem: 'https://1drv.ms/f/s!Example2',
-    checklist: [{ id: '1', texto: 'Solicitar documentos', concluido: false }],
-    status: 'Em Andamento',
-  },
-]
+import { getPericias, createPericia } from '@/services/pericias'
+import { useToast } from '@/hooks/use-toast'
+import { supabase } from '@/lib/supabase/client'
 
 interface PericiasContextType {
   pericias: Pericia[]
-  addPericia: (pericia: Omit<Pericia, 'id'>) => void
+  addPericia: (pericia: Omit<Pericia, 'id'>) => Promise<void>
+  loading: boolean
+  refresh: () => Promise<void>
 }
 
 const PericiasContext = createContext<PericiasContextType | undefined>(undefined)
 
 export function PericiasProvider({ children }: { children: React.ReactNode }) {
-  const [pericias, setPericias] = useState<Pericia[]>(MOCK_PERICIAS)
+  const [pericias, setPericias] = useState<Pericia[]>([])
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  const addPericia = (novaPericia: Omit<Pericia, 'id'>) => {
-    const id = `PER-${new Date().getFullYear()}-${String(pericias.length + 1).padStart(3, '0')}`
-    setPericias((prev) => [{ ...novaPericia, id } as Pericia, ...prev])
+  const refresh = async () => {
+    try {
+      setLoading(true)
+      const data = await getPericias()
+      setPericias(data)
+    } catch (error) {
+      console.error('Failed to fetch pericias:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      refresh()
+    })
+
+    refresh()
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const addPericia = async (novaPericia: Omit<Pericia, 'id'>) => {
+    try {
+      const created = await createPericia(novaPericia)
+      setPericias((prev) => [created, ...prev])
+    } catch (error: any) {
+      console.error(error)
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao criar perícia',
+        variant: 'destructive',
+      })
+      throw new Error(error.message || 'Erro ao criar perícia')
+    }
   }
 
   return React.createElement(
     PericiasContext.Provider,
-    { value: { pericias, addPericia } },
+    { value: { pericias, addPericia, loading, refresh } },
     children,
   )
 }

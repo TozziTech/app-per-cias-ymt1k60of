@@ -35,10 +35,14 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { PericiaForm } from '@/components/PericiaForm'
 
+import { Pericia } from '@/lib/types'
+
 export default function Pericias() {
   const { pericias } = usePericias()
   const [searchTerm, setSearchTerm] = useState('')
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [selectedPericia, setSelectedPericia] = useState<Pericia | null>(null)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
 
   const filteredPericias = pericias.filter(
     (p) =>
@@ -99,6 +103,17 @@ export default function Pericias() {
       default:
         return <Badge>{status}</Badge>
     }
+  }
+
+  const handleRowClick = (pericia: Pericia) => {
+    setSelectedPericia(pericia)
+    setIsDetailsOpen(true)
+  }
+
+  const renderDate = (d?: string | Date | null) => {
+    if (!d) return '-'
+    const parsed = parseDateSafe(d)
+    return parsed ? parsed.toLocaleDateString('pt-BR') : '-'
   }
 
   return (
@@ -174,6 +189,7 @@ export default function Pericias() {
                   <TableRow
                     key={pericia.id}
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleRowClick(pericia)}
                   >
                     <TableCell className="font-medium pl-4 sm:pl-6">{pericia.id}</TableCell>
                     <TableCell>
@@ -187,7 +203,10 @@ export default function Pericias() {
                       {new Date(pericia.dataPericia).toLocaleDateString('pt-BR')}
                     </TableCell>
                     <TableCell>{getStatusBadge(pericia.status)}</TableCell>
-                    <TableCell className="text-right pr-4 sm:pr-6">
+                    <TableCell
+                      className="text-right pr-4 sm:pr-6"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -246,6 +265,179 @@ export default function Pericias() {
           </Table>
         </CardContent>
       </Card>
+
+      <Sheet open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <SheetContent className="w-full sm:max-w-md md:max-w-2xl overflow-y-auto" side="right">
+          <SheetHeader>
+            <SheetTitle>Detalhes da Perícia</SheetTitle>
+            <SheetDescription>Informações completas do processo e andamento.</SheetDescription>
+          </SheetHeader>
+
+          {selectedPericia && (
+            <div className="mt-6 space-y-6 pb-12">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">{selectedPericia.codigoInterno}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedPericia.numeroProcesso}</p>
+                </div>
+                {getStatusBadge(selectedPericia.status)}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Vara</p>
+                  <p className="font-medium">{selectedPericia.vara || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Cidade</p>
+                  <p className="font-medium">{selectedPericia.cidade || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Juiz</p>
+                  <p className="font-medium">{selectedPericia.juiz || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Honorários</p>
+                  <p className="font-medium">
+                    {selectedPericia.honorarios
+                      ? `R$ ${selectedPericia.honorarios.toFixed(2)}`
+                      : '-'}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-muted-foreground">Endereço</p>
+                  <p className="font-medium">{selectedPericia.endereco || '-'}</p>
+                </div>
+              </div>
+
+              <div className="border-t pt-4 grid grid-cols-2 gap-4 text-sm">
+                <h4 className="col-span-2 font-medium">Datas Principais</h4>
+                <div>
+                  <p className="text-muted-foreground">Nomeação</p>
+                  <p className="font-medium">{renderDate(selectedPericia.dataNomeacao)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Perícia (Vistoria)</p>
+                  <p className="font-medium">{renderDate(selectedPericia.dataPericia)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Entrega Laudo</p>
+                  <p className="font-medium">{renderDate(selectedPericia.dataEntregaLaudo)}</p>
+                </div>
+              </div>
+
+              <div className="border-t pt-4 grid grid-cols-2 gap-4 text-sm">
+                <h4 className="col-span-2 font-medium">Envolvidos</h4>
+                <div className="col-span-2">
+                  <p className="text-muted-foreground">Justiça Gratuita?</p>
+                  <p className="font-medium">{selectedPericia.justicaGratuita ? 'Sim' : 'Não'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Advogado Autora</p>
+                  <p className="font-medium">{selectedPericia.advogadoAutora || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Advogado Ré</p>
+                  <p className="font-medium">{selectedPericia.advogadoRe || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Ass. Téc. Autora</p>
+                  <p className="font-medium">{selectedPericia.assistenteTecnicoAutora || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Ass. Téc. Ré</p>
+                  <p className="font-medium">{selectedPericia.assistenteTecnicoRe || '-'}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-muted-foreground">Perito Associado</p>
+                  <p className="font-medium">{selectedPericia.peritoAssociado || '-'}</p>
+                </div>
+              </div>
+
+              <div className="border-t pt-4 grid grid-cols-2 gap-4 text-sm">
+                <h4 className="col-span-2 font-medium">Impugnação e Esclarecimentos</h4>
+                <div className="col-span-2">
+                  <p className="text-muted-foreground">Descrição Impugnação</p>
+                  <p className="font-medium">{selectedPericia.descricaoImpugnacao || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Data Impugnação</p>
+                  <p className="font-medium">{renderDate(selectedPericia.dataImpugnacao)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Dias Impugnação</p>
+                  <p className="font-medium">{selectedPericia.diasImpugnacao || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Prazo de Entrega</p>
+                  <p className="font-medium">{renderDate(selectedPericia.prazoEntrega)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Entrega Impugnação</p>
+                  <p className="font-medium">{renderDate(selectedPericia.entregaImpugnacao)}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-muted-foreground">Limites Esclarecimentos</p>
+                  <p className="font-medium">{selectedPericia.limitesEsclarecimentos || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Entrega Esclarecimentos</p>
+                  <p className="font-medium">
+                    {renderDate(selectedPericia.entregaEsclarecimentos)}
+                  </p>
+                </div>
+              </div>
+
+              {(selectedPericia.observacoes || selectedPericia.linkNuvem) && (
+                <div className="border-t pt-4 text-sm space-y-4">
+                  <h4 className="font-medium">Outros Detalhes</h4>
+                  {selectedPericia.observacoes && (
+                    <div>
+                      <p className="text-muted-foreground">Observações</p>
+                      <p className="font-medium">{selectedPericia.observacoes}</p>
+                    </div>
+                  )}
+                  {selectedPericia.linkNuvem && (
+                    <div>
+                      <p className="text-muted-foreground">Link Nuvem</p>
+                      <a
+                        href={selectedPericia.linkNuvem}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-500 hover:underline"
+                      >
+                        Acessar Arquivos
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedPericia.checklist && selectedPericia.checklist.length > 0 && (
+                <div className="border-t pt-4 text-sm">
+                  <h4 className="font-medium mb-3">Checklist</h4>
+                  <ul className="space-y-2">
+                    {selectedPericia.checklist.map((item) => (
+                      <li key={item.id} className="flex items-center gap-2">
+                        <div
+                          className={`h-4 w-4 rounded-sm border flex items-center justify-center ${item.concluido ? 'bg-primary border-primary' : 'border-input'}`}
+                        >
+                          {item.concluido && <div className="h-2 w-2 bg-white rounded-sm" />}
+                        </div>
+                        <span
+                          className={item.concluido ? 'line-through text-muted-foreground' : ''}
+                        >
+                          {item.texto}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

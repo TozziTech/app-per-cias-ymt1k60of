@@ -40,4 +40,13 @@ export interface Pericia {
   linkNuvem?: string
   checklist: ChecklistItem[]
   status: PericiaStatus
+  justicaGratuita?: boolean
+  peritoAssociado?: string
+  descricaoImpugnacao?: string
+  dataImpugnacao?: string
+  diasImpugnacao?: number
+  prazoEntrega?: string
+  entregaImpugnacao?: string
+  limitesEsclarecimentos?: string
+  entregaEsclarecimentos?: string
 }
