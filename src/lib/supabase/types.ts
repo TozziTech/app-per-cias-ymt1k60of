@@ -20,15 +20,24 @@ export type Database = {
           codigo_interno: string | null
           created_at: string
           data_entrega_laudo: string | null
+          data_impugnacao: string | null
           data_nomeacao: string | null
           data_pericia: string | null
+          descricao_impugnacao: string | null
+          dias_impugnacao: number | null
           endereco: string | null
+          entrega_esclarecimentos: string | null
+          entrega_impugnacao: string | null
           honorarios: number | null
           id: string
           juiz: string | null
+          justica_gratuita: boolean | null
+          limites_esclarecimentos: string | null
           link_nuvem: string | null
           numero_processo: string | null
           observacoes: string | null
+          perito_associado: string | null
+          prazo_entrega: string | null
           status: string | null
           updated_at: string
           vara: string | null
@@ -43,15 +52,24 @@ export type Database = {
           codigo_interno?: string | null
           created_at?: string
           data_entrega_laudo?: string | null
+          data_impugnacao?: string | null
           data_nomeacao?: string | null
           data_pericia?: string | null
+          descricao_impugnacao?: string | null
+          dias_impugnacao?: number | null
           endereco?: string | null
+          entrega_esclarecimentos?: string | null
+          entrega_impugnacao?: string | null
           honorarios?: number | null
           id?: string
           juiz?: string | null
+          justica_gratuita?: boolean | null
+          limites_esclarecimentos?: string | null
           link_nuvem?: string | null
           numero_processo?: string | null
           observacoes?: string | null
+          perito_associado?: string | null
+          prazo_entrega?: string | null
           status?: string | null
           updated_at?: string
           vara?: string | null
@@ -66,15 +84,24 @@ export type Database = {
           codigo_interno?: string | null
           created_at?: string
           data_entrega_laudo?: string | null
+          data_impugnacao?: string | null
           data_nomeacao?: string | null
           data_pericia?: string | null
+          descricao_impugnacao?: string | null
+          dias_impugnacao?: number | null
           endereco?: string | null
+          entrega_esclarecimentos?: string | null
+          entrega_impugnacao?: string | null
           honorarios?: number | null
           id?: string
           juiz?: string | null
+          justica_gratuita?: boolean | null
+          limites_esclarecimentos?: string | null
           link_nuvem?: string | null
           numero_processo?: string | null
           observacoes?: string | null
+          perito_associado?: string | null
+          prazo_entrega?: string | null
           status?: string | null
           updated_at?: string
           vara?: string | null
@@ -250,6 +277,15 @@ export const Constants = {
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
 //   status: text (nullable, default: 'Agendado'::text)
+//   justica_gratuita: boolean (nullable, default: false)
+//   perito_associado: text (nullable)
+//   descricao_impugnacao: text (nullable)
+//   data_impugnacao: timestamp with time zone (nullable)
+//   dias_impugnacao: integer (nullable)
+//   prazo_entrega: timestamp with time zone (nullable)
+//   entrega_impugnacao: timestamp with time zone (nullable)
+//   limites_esclarecimentos: text (nullable)
+//   entrega_esclarecimentos: timestamp with time zone (nullable)
 
 // --- CONSTRAINTS ---
 // Table: pericias

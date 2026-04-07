@@ -1,56 +1,42 @@
-import { useMemo } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
-import { usePericias } from '@/contexts/PericiasContext'
+import { useState, useMemo } from 'react'
+import { useLancamentos } from '@/hooks/use-lancamentos'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DollarSign, TrendingUp, Clock, Wallet, CheckCircle, Activity } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Wallet, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Bar, BarChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
-import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { LancamentoForm } from '@/components/Financeiro/LancamentoForm'
+import { LancamentosTable } from '@/components/Financeiro/LancamentosTable'
+import { Lancamento } from '@/lib/types'
 
 export default function Financeiro() {
-  const { user } = useAuth()
-  const { pericias } = usePericias()
+  const { lancamentos, loading, addLancamento, updateLancamento, deleteLancamento } =
+    useLancamentos()
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingLancamento, setEditingLancamento] = useState<Lancamento | undefined>(undefined)
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
-  }
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
 
   const kpis = useMemo(() => {
-    let recebido = 0
+    let receitas = 0
+    let despesas = 0
     let aReceber = 0
-    let emAndamento = 0
+    let aPagar = 0
 
-    pericias.forEach((p) => {
-      const valor = p.honorarios || 0
-      const status = p.status?.toLowerCase() || ''
-
-      if (status === 'recebido') {
-        recebido += valor
-      } else if (status === 'laudo entregue') {
-        aReceber += valor
+    lancamentos.forEach((l) => {
+      const valor = Number(l.valor) || 0
+      if (l.tipo === 'receita') {
+        if (l.status === 'recebido' || l.status === 'pago') receitas += valor
+        else aReceber += valor
       } else {
-        emAndamento += valor
+        if (l.status === 'pago' || l.status === 'recebido') despesas += valor
+        else aPagar += valor
       }
     })
 
-    return { recebido, aReceber, emAndamento, total: recebido + aReceber + emAndamento }
-  }, [pericias])
-
-  const recentTransactions = useMemo(() => {
-    return [...pericias]
-      .filter(
-        (p) =>
-          (p.status?.toLowerCase() === 'recebido' ||
-            p.status?.toLowerCase() === 'laudo entregue') &&
-          p.honorarios,
-      )
-      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-      .slice(0, 5)
-  }, [pericias])
+    return { receitas, despesas, saldo: receitas - despesas, aReceber, aPagar }
+  }, [lancamentos])
 
   const chartData = useMemo(() => {
     const months = [
@@ -67,109 +53,122 @@ export default function Financeiro() {
       'Nov',
       'Dez',
     ]
-    const data = months.map((m) => ({ month: m, recebido: 0, aReceber: 0 }))
+    const data = months.map((m) => ({ month: m, receitas: 0, despesas: 0 }))
 
-    pericias.forEach((p) => {
-      const dateStr = p.data_pericia || p.created_at
-      if (dateStr) {
-        const date = new Date(dateStr)
-        if (!isNaN(date.getTime())) {
-          const monthIndex = date.getMonth()
-          const valor = p.honorarios || 0
-          const status = p.status?.toLowerCase() || ''
-
-          if (status === 'recebido') {
-            data[monthIndex].recebido += valor
-          } else if (status === 'laudo entregue') {
-            data[monthIndex].aReceber += valor
-          }
-        }
+    lancamentos.forEach((l) => {
+      const date = new Date(l.data)
+      if (!isNaN(date.getTime()) && (l.status === 'recebido' || l.status === 'pago')) {
+        const idx = date.getMonth()
+        if (l.tipo === 'receita') data[idx].receitas += Number(l.valor) || 0
+        else data[idx].despesas += Number(l.valor) || 0
       }
     })
 
     const currentMonth = new Date().getMonth()
     const startIndex = (currentMonth - 5 + 12) % 12
-
     const result = []
     for (let i = 0; i < 6; i++) {
-      const index = (startIndex + i) % 12
-      result.push(data[index])
+      result.push(data[(startIndex + i) % 12])
     }
-
     return result
-  }, [pericias])
+  }, [lancamentos])
+
+  const handleEdit = (lancamento: Lancamento) => {
+    setEditingLancamento(lancamento)
+    setIsFormOpen(true)
+  }
+
+  const handleOpenNew = () => {
+    setEditingLancamento(undefined)
+    setIsFormOpen(true)
+  }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard Financeiro</h1>
-        <p className="text-muted-foreground">
-          Visão geral dos honorários e recebimentos das suas perícias.
-        </p>
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Fluxo de Caixa</h1>
+          <p className="text-muted-foreground">
+            Gerencie suas receitas e despesas vinculadas aos processos.
+          </p>
+        </div>
+        <Button onClick={handleOpenNew} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Novo Lançamento
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="shadow-sm border-blue-100">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Saldo Atual</CardTitle>
+            <Wallet className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div
+              className={`text-2xl font-bold ${kpis.saldo >= 0 ? 'text-blue-600' : 'text-rose-600'}`}
+            >
+              {formatCurrency(kpis.saldo)}
+            </div>
+            <p className="text-xs text-muted-foreground">Receitas - Despesas</p>
+          </CardContent>
+        </Card>
+
         <Card className="shadow-sm border-emerald-100">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Recebido</CardTitle>
-            <Wallet className="h-4 w-4 text-emerald-600" />
+            <CardTitle className="text-sm font-medium">Total de Receitas</CardTitle>
+            <TrendingUp className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-600">
-              {formatCurrency(kpis.recebido)}
+              {formatCurrency(kpis.receitas)}
             </div>
-            <p className="text-xs text-muted-foreground">Honorários já liquidados</p>
+            <p className="text-xs text-muted-foreground">
+              + {formatCurrency(kpis.aReceber)} a receber
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-blue-100">
+        <Card className="shadow-sm border-rose-100">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">A Receber</CardTitle>
-            <DollarSign className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-sm font-medium">Total de Despesas</CardTitle>
+            <TrendingDown className="h-4 w-4 text-rose-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{formatCurrency(kpis.aReceber)}</div>
-            <p className="text-xs text-muted-foreground">Status: Laudo Entregue</p>
+            <div className="text-2xl font-bold text-rose-600">{formatCurrency(kpis.despesas)}</div>
+            <p className="text-xs text-muted-foreground">+ {formatCurrency(kpis.aPagar)} a pagar</p>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Previsto (Em Andamento)</CardTitle>
-            <TrendingUp className="h-4 w-4 text-amber-500" />
+            <CardTitle className="text-sm font-medium">Provisão Futura</CardTitle>
+            <DollarSign className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-500">
-              {formatCurrency(kpis.emAndamento)}
+              {formatCurrency(kpis.aReceber - kpis.aPagar)}
             </div>
-            <p className="text-xs text-muted-foreground">Perícias pendentes ou agendadas</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Volume Total</CardTitle>
-            <Activity className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(kpis.total)}</div>
-            <p className="text-xs text-muted-foreground">Soma de todos os processos ativos</p>
+            <p className="text-xs text-muted-foreground">A Receber - A Pagar</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4 shadow-sm">
+        <Card className="col-span-full shadow-sm">
           <CardHeader>
-            <CardTitle>Receitas por Mês</CardTitle>
+            <CardTitle>Balanço Mensal</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
             <ChartContainer
               config={{
-                recebido: { label: 'Recebido', color: 'hsl(var(--primary))' },
-                aReceber: { label: 'A Receber', color: 'hsl(var(--chart-2))' },
+                receitas: {
+                  label: 'Receitas',
+                  color: 'hsl(var(--emerald-500, 142.1 76.2% 36.3%))',
+                },
+                despesas: { label: 'Despesas', color: 'hsl(var(--rose-500, 346.8 77.2% 49.8%))' },
               }}
-              className="h-[300px] w-full"
+              className="h-[250px] w-full"
             >
               <BarChart data={chartData} margin={{ top: 5, right: 10, left: 30, bottom: 0 }}>
                 <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
@@ -177,85 +176,40 @@ export default function Financeiro() {
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value) => `R$ ${value}`}
+                  tickFormatter={(v) => `R$ ${v}`}
                   width={80}
                 />
                 <Tooltip content={<ChartTooltipContent />} />
-                <Bar
-                  dataKey="recebido"
-                  stackId="a"
-                  fill="var(--color-recebido)"
-                  radius={[0, 0, 4, 4]}
-                />
-                <Bar
-                  dataKey="aReceber"
-                  stackId="a"
-                  fill="var(--color-aReceber)"
-                  radius={[4, 4, 0, 0]}
-                />
+                <Bar dataKey="receitas" fill="var(--color-receitas)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="despesas" fill="var(--color-despesas)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
-
-        <Card className="col-span-3 shadow-sm">
-          <CardHeader>
-            <CardTitle>Últimos Movimentos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {recentTransactions.length > 0 ? (
-                recentTransactions.map((pericia) => (
-                  <div key={pericia.id} className="flex items-center">
-                    <div
-                      className={cn(
-                        'mr-4 flex h-9 w-9 items-center justify-center rounded-full border',
-                        pericia.status?.toLowerCase() === 'recebido'
-                          ? 'bg-emerald-50 border-emerald-100'
-                          : 'bg-blue-50 border-blue-100',
-                      )}
-                    >
-                      {pericia.status?.toLowerCase() === 'recebido' ? (
-                        <CheckCircle className="h-4 w-4 text-emerald-600" />
-                      ) : (
-                        <Clock className="h-4 w-4 text-blue-600" />
-                      )}
-                    </div>
-                    <div className="flex-1 space-y-1 overflow-hidden">
-                      <p className="text-sm font-medium leading-none truncate">
-                        {pericia.numero_processo || 'Processo sem número'}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {pericia.vara || 'Vara não informada'}
-                      </p>
-                    </div>
-                    <div className="ml-2 text-right">
-                      <div className="font-medium text-sm">
-                        {formatCurrency(pericia.honorarios || 0)}
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          'mt-1 text-[10px] h-4 leading-none py-0.5 px-1.5',
-                          pericia.status?.toLowerCase() === 'recebido'
-                            ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                            : 'border-blue-300 bg-blue-50 text-blue-700',
-                        )}
-                      >
-                        {pericia.status}
-                      </Badge>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="flex h-32 items-center justify-center text-sm text-muted-foreground border border-dashed rounded-md">
-                  Nenhum honorário finalizado recentemente.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      <div className="mt-8">
+        <LancamentosTable
+          lancamentos={lancamentos}
+          isLoading={loading}
+          onEdit={handleEdit}
+          onDelete={deleteLancamento}
+        />
+      </div>
+
+      <LancamentoForm
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        lancamento={editingLancamento}
+        onSave={async (data) => {
+          if (editingLancamento) {
+            await updateLancamento(editingLancamento.id, data)
+          } else {
+            await addLancamento(data)
+          }
+          setIsFormOpen(false)
+        }}
+      />
     </div>
   )
 }

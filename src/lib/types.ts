@@ -20,6 +20,27 @@ export interface ChecklistItem {
   concluido: boolean
 }
 
+export type LancamentoTipo = 'receita' | 'despesa'
+export type LancamentoStatus = 'pendente' | 'pago' | 'recebido'
+
+export interface Lancamento {
+  id: string
+  data: string
+  tipo: LancamentoTipo
+  categoria: string
+  descricao: string
+  valor: number
+  pericia_id?: string | null
+  status: LancamentoStatus
+  created_at?: string
+  updated_at?: string
+  pericia?: {
+    id: string
+    numero_processo: string
+    vara: string
+  }
+}
+
 export interface Pericia {
   id: string
   codigoInterno: string
