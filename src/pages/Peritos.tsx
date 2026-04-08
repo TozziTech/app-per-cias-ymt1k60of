@@ -77,12 +77,6 @@ export default function Peritos() {
           >
             Ativas
           </button>
-          <button
-            onClick={() => setTab('Arquivadas')}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${tab === 'Arquivadas' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-foreground'}`}
-          >
-            Arquivadas
-          </button>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -170,9 +164,6 @@ export default function Peritos() {
             >
               <div className="flex justify-between items-start">
                 <h3 className="text-xl font-semibold text-foreground">{perito.nome}</h3>
-                <span className="px-3 py-1 text-[11px] rounded-full border border-primary text-primary font-medium tracking-wide">
-                  {perito.status === 'Ativo' ? 'Em Execução' : perito.status}
-                </span>
               </div>
 
               <div className="space-y-2 text-sm text-muted-foreground mt-1">
@@ -180,40 +171,9 @@ export default function Peritos() {
                   <MapPin className="w-4 h-4" />
                   <span>{perito.endereco || 'Local não informado'}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>
-                    Início:{' '}
-                    {perito.data_inicio ? format(new Date(perito.data_inicio), 'dd/MM/yyyy') : '--'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 mt-3">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Gasto ({pct}%)</span>
-                  <span className="font-medium text-foreground">
-                    {formattedDespesas} / {formattedOrcamento}
-                  </span>
-                </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-foreground rounded-full transition-all duration-500"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
               </div>
 
               <div className="flex items-center justify-between mt-3 pt-4 border-t border-border/50 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-secondary/50"
-                  onClick={() => navigate(`/peritos/${perito.id}`)}
-                >
-                  <Layers className="w-4 h-4 mr-2" /> Cronograma
-                </Button>
-
                 <div className="flex items-center gap-2 ml-auto">
                   <Button
                     variant="outline"
