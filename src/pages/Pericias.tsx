@@ -82,6 +82,21 @@ import { supabase } from '@/lib/supabase/client'
 
 import { Pericia } from '@/lib/types'
 
+const PETICOES_PADRAO = [
+  'Petição Pedido de Honorários',
+  'Petição de Aceite',
+  'Petição de Agendamento da Perícia',
+  'Petição de Recusa',
+  'Petição Pedido de Documentação',
+  'Petição de Liberação de Honorários Antecipado',
+  'Petição de Prorrogação de Prazo',
+  'Petição de Liberação de Honorários',
+  'Petição de Entrega de Laudo Pericial',
+  'Petição de Manifestação sobre Assistente Técnico',
+  'Petição de Esclarecimentos (Manifestação à Impugnação)',
+  'Petição de Reiteração de Pedido',
+]
+
 export default function Pericias() {
   const { pericias, updatePericia, deletePericia } = usePericias()
   const [searchTerm, setSearchTerm] = useState('')
@@ -101,6 +116,7 @@ export default function Pericias() {
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [newTaskText, setNewTaskText] = useState('')
   const [newPeticaoText, setNewPeticaoText] = useState('')
+  const [selectedPeticaoType, setSelectedPeticaoType] = useState<string>('')
   const [editingPeticaoId, setEditingPeticaoId] = useState<string | null>(null)
   const [editingPeticaoText, setEditingPeticaoText] = useState('')
   const [periciaToDelete, setPericiaToDelete] = useState<Pericia | null>(null)
@@ -421,14 +437,17 @@ export default function Pericias() {
   }
 
   const handleAddPeticao = async () => {
-    if (!newPeticaoText.trim() || !selectedPericia) return
-    const newPeticao = { id: crypto.randomUUID(), texto: newPeticaoText.trim(), concluido: false }
+    const textToAdd = selectedPeticaoType === 'Outra' ? newPeticaoText.trim() : selectedPeticaoType
+    if (!textToAdd || !selectedPeticaoType || !selectedPericia) return
+
+    const newPeticao = { id: crypto.randomUUID(), texto: textToAdd, concluido: false }
     const newPeticoes = [...(selectedPericia.peticoes || []), newPeticao]
 
     try {
       await updatePericia(selectedPericia.id, { peticoes: newPeticoes })
       setSelectedPericia((prev) => (prev ? { ...prev, peticoes: newPeticoes } : prev))
       setNewPeticaoText('')
+      setSelectedPeticaoType('')
       fetchLogs(selectedPericia.id)
     } catch (e) {
       toast({ title: 'Erro', description: 'Falha ao adicionar petição.', variant: 'destructive' })
@@ -1499,28 +1518,56 @@ export default function Pericias() {
                         </p>
                       )}
                     </ul>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Input
-                        placeholder="Nova petição..."
-                        value={newPeticaoText}
-                        onChange={(e) => setNewPeticaoText(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            handleAddPeticao()
+                    <div className="flex flex-col gap-2 mt-2">
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={selectedPeticaoType}
+                          onValueChange={(val) => {
+                            setSelectedPeticaoType(val)
+                            if (val !== 'Outra') setNewPeticaoText('')
+                          }}
+                        >
+                          <SelectTrigger className="h-8 flex-1 text-sm">
+                            <SelectValue placeholder="Selecione o tipo de petição..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PETICOES_PADRAO.map((peticao) => (
+                              <SelectItem key={peticao} value={peticao}>
+                                {peticao}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="Outra">Outra (Personalizada)...</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={handleAddPeticao}
+                          className="shrink-0 h-8"
+                          disabled={
+                            !selectedPeticaoType ||
+                            (selectedPeticaoType === 'Outra' && !newPeticaoText.trim())
                           }
-                        }}
-                        className="h-8 text-sm"
-                      />
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={handleAddPeticao}
-                        className="shrink-0 h-8"
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Adicionar
-                      </Button>
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Adicionar
+                        </Button>
+                      </div>
+                      {selectedPeticaoType === 'Outra' && (
+                        <Input
+                          placeholder="Digite o nome da petição..."
+                          value={newPeticaoText}
+                          onChange={(e) => setNewPeticaoText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              handleAddPeticao()
+                            }
+                          }}
+                          className="h-8 text-sm"
+                          autoFocus
+                        />
+                      )}
                     </div>
                   </div>
                 </div>

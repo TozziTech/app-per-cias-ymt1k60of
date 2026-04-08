@@ -55,15 +55,11 @@ export function PericiasProvider({ children }: { children: React.ReactNode }) {
   const addPericia = async (novaPericia: Omit<Pericia, 'id'>) => {
     try {
       const defaultPeticoes = [
-        { id: crypto.randomUUID(), texto: 'Petição de Honorários', concluido: false },
-        { id: crypto.randomUUID(), texto: 'Contestação/Proposta de Honorários', concluido: false },
-        { id: crypto.randomUUID(), texto: 'Petição de Prorrogação de Prazo', concluido: false },
+        { id: crypto.randomUUID(), texto: 'Petição Pedido de Honorários', concluido: false },
+        { id: crypto.randomUUID(), texto: 'Petição de Aceite', concluido: false },
         { id: crypto.randomUUID(), texto: 'Petição de Agendamento da Perícia', concluido: false },
-        {
-          id: crypto.randomUUID(),
-          texto: 'Petição de Solicitação de Documentos',
-          concluido: false,
-        },
+        { id: crypto.randomUUID(), texto: 'Petição Pedido de Documentação', concluido: false },
+        { id: crypto.randomUUID(), texto: 'Petição de Prorrogação de Prazo', concluido: false },
       ]
 
       const periciaToCreate = {
