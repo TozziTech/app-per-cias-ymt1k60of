@@ -84,6 +84,7 @@ export interface Pericia {
   status: PericiaStatus
   justicaGratuita?: boolean
   peritoAssociado?: string
+  perito_id?: string | null
   descricaoImpugnacao?: string
   dataImpugnacao?: string
   diasImpugnacao?: number

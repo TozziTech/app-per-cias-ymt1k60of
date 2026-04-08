@@ -331,42 +331,72 @@ export type Database = {
       }
       peritos: {
         Row: {
+          agencia: string | null
+          banco: string | null
+          chave_pix: string | null
+          codigo_id: string | null
+          conta: string | null
+          cpf: string | null
+          crea: string | null
           created_at: string
           data_inicio: string | null
+          data_nascimento: string | null
           email: string | null
           endereco: string | null
           especialidade: string | null
           id: string
           nome: string
-          orcamento_previsto: number | null
+          observacoes: string | null
+          rg: string | null
           status: string | null
           telefone: string | null
+          telefone_alternativo: string | null
           updated_at: string
         }
         Insert: {
+          agencia?: string | null
+          banco?: string | null
+          chave_pix?: string | null
+          codigo_id?: string | null
+          conta?: string | null
+          cpf?: string | null
+          crea?: string | null
           created_at?: string
           data_inicio?: string | null
+          data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
           especialidade?: string | null
           id?: string
           nome: string
-          orcamento_previsto?: number | null
+          observacoes?: string | null
+          rg?: string | null
           status?: string | null
           telefone?: string | null
+          telefone_alternativo?: string | null
           updated_at?: string
         }
         Update: {
+          agencia?: string | null
+          banco?: string | null
+          chave_pix?: string | null
+          codigo_id?: string | null
+          conta?: string | null
+          cpf?: string | null
+          crea?: string | null
           created_at?: string
           data_inicio?: string | null
+          data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
           especialidade?: string | null
           id?: string
           nome?: string
-          orcamento_previsto?: number | null
+          observacoes?: string | null
+          rg?: string | null
           status?: string | null
           telefone?: string | null
+          telefone_alternativo?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -639,9 +669,19 @@ export const Constants = {
 //   especialidade: text (nullable)
 //   status: text (nullable, default: 'Ativo'::text)
 //   data_inicio: date (nullable, default: CURRENT_DATE)
-//   orcamento_previsto: numeric (nullable, default: 0)
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
+//   cpf: text (nullable)
+//   rg: text (nullable)
+//   data_nascimento: date (nullable)
+//   crea: text (nullable)
+//   telefone_alternativo: text (nullable)
+//   chave_pix: text (nullable)
+//   banco: text (nullable)
+//   agencia: text (nullable)
+//   conta: text (nullable)
+//   codigo_id: text (nullable)
+//   observacoes: text (nullable)
 // Table: profiles
 //   id: uuid (not null)
 //   email: text (not null)

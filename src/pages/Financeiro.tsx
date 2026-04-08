@@ -8,6 +8,8 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 import { LancamentoForm } from '@/components/Financeiro/LancamentoForm'
 import { LancamentosTable } from '@/components/Financeiro/LancamentosTable'
 import { Lancamento } from '@/lib/types'
+import { exportToCsv } from '@/lib/export'
+import { Download } from 'lucide-react'
 
 export default function Financeiro() {
   const { lancamentos, loading, addLancamentos, updateLancamento, deleteLancamento } =
@@ -83,6 +85,22 @@ export default function Financeiro() {
     setIsFormOpen(true)
   }
 
+  const handleExportExcel = () => {
+    exportToCsv(
+      'fluxo_caixa.csv',
+      lancamentos.map((l) => ({
+        Data: new Date(l.data).toLocaleDateString('pt-BR'),
+        Tipo: l.tipo === 'receita' ? 'Receita' : 'Despesa',
+        Categoria: l.categoria,
+        Descrição: l.descricao,
+        Valor: l.valor,
+        Status: l.status,
+        Processo: l.pericia?.numero_processo || '-',
+        Responsável: l.responsavel?.name || '-',
+      })),
+    )
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -92,10 +110,16 @@ export default function Financeiro() {
             Gerencie suas receitas e despesas vinculadas aos processos.
           </p>
         </div>
-        <Button onClick={handleOpenNew} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Lançamento
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportExcel} className="shadow-sm">
+            <Download className="mr-2 h-4 w-4" />
+            Exportar
+          </Button>
+          <Button onClick={handleOpenNew} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo Lançamento
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

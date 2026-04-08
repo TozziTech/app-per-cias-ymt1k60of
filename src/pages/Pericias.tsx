@@ -58,6 +58,7 @@ import {
 } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PericiaForm } from '@/components/PericiaForm'
+import { exportToCsv } from '@/lib/export'
 
 import { Pericia } from '@/lib/types'
 
@@ -66,6 +67,7 @@ export default function Pericias() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('todos')
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [periciaToEdit, setPericiaToEdit] = useState<Pericia | null>(null)
   const [selectedPericia, setSelectedPericia] = useState<Pericia | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const { user } = useAuth()
@@ -153,6 +155,31 @@ export default function Pericias() {
       startDate: parsedDate,
       allDay: true,
     })
+  }
+
+  const handleExportExcel = () => {
+    exportToCsv(
+      'pericias.csv',
+      filteredPericias.map((p) => ({
+        'Código Interno': p.codigoInterno,
+        Processo: p.numeroProcesso,
+        Vara: p.vara,
+        Cidade: p.cidade,
+        'Data Nomeação': p.dataNomeacao ? new Date(p.dataNomeacao).toLocaleDateString('pt-BR') : '',
+        'Data Perícia': p.dataPericia ? new Date(p.dataPericia).toLocaleDateString('pt-BR') : '',
+        'Data Entrega Laudo': p.dataEntregaLaudo
+          ? new Date(p.dataEntregaLaudo).toLocaleDateString('pt-BR')
+          : '',
+        Status: p.status,
+        Juiz: p.juiz,
+        'Adv Autora': p.advogadoAutora,
+        'Adv Ré': p.advogadoRe,
+        'Ass Autora': p.assistenteTecnicoAutora,
+        'Ass Ré': p.assistenteTecnicoRe,
+        Honorários: p.honorarios,
+        'Justiça Gratuita': p.justicaGratuita ? 'Sim' : 'Não',
+      })),
+    )
   }
 
   const getStatusBadge = (status: string) => {
@@ -316,23 +343,40 @@ export default function Pericias() {
           <p className="text-muted-foreground">Gerencie os laudos e vistorias de engenharia.</p>
         </div>
 
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetTrigger asChild>
-            <Button className="shadow-sm">
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Perícia
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="w-full sm:max-w-2xl md:max-w-4xl overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>Cadastrar Nova Perícia</SheetTitle>
-              <SheetDescription>
-                Preencha os detalhes do novo caso. Clique em salvar quando terminar.
-              </SheetDescription>
-            </SheetHeader>
-            <PericiaForm onSuccess={() => setIsSheetOpen(false)} />
-          </SheetContent>
-        </Sheet>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportExcel} className="shadow-sm">
+            <Download className="mr-2 h-4 w-4" />
+            Exportar
+          </Button>
+          <Sheet
+            open={isSheetOpen}
+            onOpenChange={(open) => {
+              setIsSheetOpen(open)
+              if (!open) setPericiaToEdit(null)
+            }}
+          >
+            <SheetTrigger asChild>
+              <Button className="shadow-sm" onClick={() => setPericiaToEdit(null)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Perícia
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="w-full sm:max-w-2xl md:max-w-4xl overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>
+                  {periciaToEdit ? 'Editar Perícia' : 'Cadastrar Nova Perícia'}
+                </SheetTitle>
+                <SheetDescription>
+                  {periciaToEdit
+                    ? 'Atualize os detalhes do caso.'
+                    : 'Preencha os detalhes do novo caso.'}{' '}
+                  Clique em salvar quando terminar.
+                </SheetDescription>
+              </SheetHeader>
+              <PericiaForm pericia={periciaToEdit} onSuccess={() => setIsSheetOpen(false)} />
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
 
       <Card className="shadow-sm">
@@ -454,7 +498,15 @@ export default function Pericias() {
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setPericiaToEdit(pericia)
+                                setIsSheetOpen(true)
+                              }}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>

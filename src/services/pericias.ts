@@ -31,6 +31,7 @@ const mapToDb = (p: Partial<Pericia>) => {
     entrega_impugnacao: p.entregaImpugnacao || null,
     limites_esclarecimentos: p.limitesEsclarecimentos,
     entrega_esclarecimentos: p.entregaEsclarecimentos || null,
+    perito_id: p.perito_id || null,
   }
 }
 
@@ -64,6 +65,7 @@ const mapFromDb = (row: any): Pericia => {
     entregaImpugnacao: row.entrega_impugnacao || '',
     limitesEsclarecimentos: row.limites_esclarecimentos || '',
     entregaEsclarecimentos: row.entrega_esclarecimentos || '',
+    perito_id: row.perito_id || null,
     anexos: row.pericia_anexos || [],
   }
 }
@@ -215,6 +217,18 @@ export const getAnexoUrl = async (filePath: string) => {
 
 export const createPericia = async (pericia: Omit<Pericia, 'id'>) => {
   const { data, error } = await supabase.from('pericias').insert(mapToDb(pericia)).select().single()
+
+  if (error) throw error
+  return mapFromDb(data)
+}
+
+export const updatePericia = async (id: string, pericia: Partial<Pericia>) => {
+  const { data, error } = await supabase
+    .from('pericias')
+    .update(mapToDb(pericia))
+    .eq('id', id)
+    .select()
+    .single()
 
   if (error) throw error
   return mapFromDb(data)

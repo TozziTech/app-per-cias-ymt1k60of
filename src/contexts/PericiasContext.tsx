@@ -1,12 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { Pericia } from '@/lib/types'
-import { getPericias, createPericia } from '@/services/pericias'
+import {
+  getPericias,
+  createPericia,
+  updatePericia as updatePericiaService,
+} from '@/services/pericias'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 
 interface PericiasContextType {
   pericias: Pericia[]
   addPericia: (pericia: Omit<Pericia, 'id'>) => Promise<void>
+  updatePericia: (id: string, pericia: Partial<Pericia>) => Promise<void>
   loading: boolean
   refresh: () => Promise<void>
 }
@@ -59,9 +64,24 @@ export function PericiasProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const updatePericia = async (id: string, dados: Partial<Pericia>) => {
+    try {
+      const updated = await updatePericiaService(id, dados)
+      setPericias((prev) => prev.map((p) => (p.id === id ? updated : p)))
+    } catch (error: any) {
+      console.error(error)
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao atualizar perícia',
+        variant: 'destructive',
+      })
+      throw new Error(error.message || 'Erro ao atualizar perícia')
+    }
+  }
+
   return React.createElement(
     PericiasContext.Provider,
-    { value: { pericias, addPericia, loading, refresh } },
+    { value: { pericias, addPericia, updatePericia, loading, refresh } },
     children,
   )
 }
