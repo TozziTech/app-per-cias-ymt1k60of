@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Pencil, Trash2, ArrowUpCircle, ArrowDownCircle, Search } from 'lucide-react'
+import { Pencil, Trash2, ArrowUpCircle, ArrowDownCircle, Search, Download } from 'lucide-react'
 import { Lancamento } from '@/lib/types'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -81,22 +81,58 @@ export function LancamentosTable({
     })
   }, [lancamentos, filterTipo, filterMonth, search])
 
+  const handleExportCSV = () => {
+    if (!filtered.length) return
+
+    const headers = [
+      'Data',
+      'Tipo',
+      'Categoria',
+      'Descrição',
+      'Valor',
+      'Status',
+      'Processo (Perícia)',
+    ]
+    const csvContent = [
+      headers.join(';'),
+      ...filtered.map((l) => {
+        const date = format(new Date(l.data), 'dd/MM/yyyy')
+        const tipo = l.tipo
+        const categoria = l.categoria
+        const descricao = `"${l.descricao.replace(/"/g, '""')}"`
+        const valor = l.valor.toString().replace('.', ',')
+        const status = l.status
+        const processo = l.pericia?.numero_processo ? `"${l.pericia.numero_processo}"` : ''
+        return [date, tipo, categoria, descricao, valor, status, processo].join(';')
+      }),
+    ].join('\n')
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `lancamentos_${format(new Date(), 'yyyy-MM-dd')}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <Card className="shadow-sm">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
+      <CardHeader className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4">
         <CardTitle>Histórico de Movimentações</CardTitle>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 w-full sm:w-[200px]"
+              className="pl-8 w-full sm:w-[180px]"
             />
           </div>
           <Select value={filterMonth} onValueChange={setFilterMonth}>
-            <SelectTrigger className="w-full sm:w-[160px]">
+            <SelectTrigger className="w-full sm:w-[150px]">
               <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent>
@@ -118,6 +154,15 @@ export function LancamentosTable({
               <SelectItem value="despesa">Despesas</SelectItem>
             </SelectContent>
           </Select>
+          <Button
+            variant="outline"
+            onClick={handleExportCSV}
+            className="gap-2 w-full sm:w-auto"
+            title="Exportar para CSV"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Exportar</span>
+          </Button>
         </div>
       </CardHeader>
       <CardContent>

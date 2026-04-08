@@ -2,6 +2,13 @@ import { useState } from 'react'
 import { Search, Plus, Filter, MoreHorizontal, Eye, Edit, CalendarPlus } from 'lucide-react'
 
 import { usePericias } from '@/contexts/PericiasContext'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { downloadIcs } from '@/lib/ics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -40,16 +47,21 @@ import { Pericia } from '@/lib/types'
 export default function Pericias() {
   const { pericias } = usePericias()
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('todos')
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [selectedPericia, setSelectedPericia] = useState<Pericia | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
 
-  const filteredPericias = pericias.filter(
-    (p) =>
+  const filteredPericias = pericias.filter((p) => {
+    const matchSearch =
       p.codigoInterno.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.numeroProcesso.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.id.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+      p.id.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchStatus = statusFilter === 'todos' || p.status === statusFilter
+
+    return matchSearch && matchStatus
+  })
 
   const parseDateSafe = (d: string | Date | undefined | null): Date | null => {
     if (!d) return null
@@ -147,20 +159,29 @@ export default function Pericias() {
         <CardHeader className="p-4 sm:px-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <CardTitle className="text-lg font-medium hidden sm:block">Registros</CardTitle>
-            <div className="flex w-full sm:w-auto items-center gap-2">
-              <div className="relative flex-1 sm:w-64">
+            <div className="flex w-full sm:w-auto flex-col sm:flex-row items-center gap-2">
+              <div className="relative flex-1 w-full sm:w-72">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Buscar por ID, Cód. Interno ou Processo..."
+                  placeholder="Buscar ID, Processo..."
                   className="pl-8"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button variant="outline" size="icon" title="Filtrar">
-                <Filter className="h-4 w-4" />
-              </Button>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[160px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os Status</SelectItem>
+                  <SelectItem value="Agendado">Agendado</SelectItem>
+                  <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+                  <SelectItem value="Pendente">Pendente</SelectItem>
+                  <SelectItem value="Concluído">Concluído</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>

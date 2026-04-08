@@ -9,6 +9,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          entity_id: string
+          entity_type: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       lancamentos: {
         Row: {
           categoria: string
@@ -332,6 +362,14 @@ export const Constants = {
 // --- COLUMN TYPES (actual PostgreSQL types) ---
 // Use this to know the real database type when writing migrations.
 // "string" in TypeScript types above may be uuid, text, varchar, timestamptz, etc.
+// Table: activity_logs
+//   id: uuid (not null, default: gen_random_uuid())
+//   user_id: uuid (nullable)
+//   action: text (not null)
+//   entity_type: text (not null)
+//   entity_id: uuid (not null)
+//   details: jsonb (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: lancamentos
 //   id: uuid (not null, default: gen_random_uuid())
 //   data: timestamp with time zone (not null)
@@ -384,6 +422,9 @@ export const Constants = {
 //   avatar_url: text (nullable)
 
 // --- CONSTRAINTS ---
+// Table: activity_logs
+//   PRIMARY KEY activity_logs_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY activity_logs_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL
 // Table: lancamentos
 //   FOREIGN KEY lancamentos_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE SET NULL
 //   PRIMARY KEY lancamentos_pkey: PRIMARY KEY (id)
@@ -396,6 +437,11 @@ export const Constants = {
 //   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
 
 // --- ROW LEVEL SECURITY POLICIES ---
+// Table: activity_logs
+//   Policy "authenticated_insert_logs" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select_logs" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
 // Table: lancamentos
 //   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -441,3 +487,66 @@ export const Constants = {
 //   END;
 //   $function$
 //
+// FUNCTION log_lancamento_activity()
+//   CREATE OR REPLACE FUNCTION public.log_lancamento_activity()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   DECLARE
+//       current_user_id UUID;
+//   BEGIN
+//       current_user_id := auth.uid();
+//
+//       IF TG_OP = 'INSERT' THEN
+//           INSERT INTO public.activity_logs (user_id, action, entity_type, entity_id, details)
+//           VALUES (current_user_id, 'criou', 'lançamento', NEW.id, jsonb_build_object('descricao', NEW.descricao, 'valor', NEW.valor));
+//       ELSIF TG_OP = 'UPDATE' THEN
+//           IF NEW IS DISTINCT FROM OLD THEN
+//               INSERT INTO public.activity_logs (user_id, action, entity_type, entity_id, details)
+//               VALUES (current_user_id, 'atualizou', 'lançamento', NEW.id, jsonb_build_object('descricao', NEW.descricao, 'valor', NEW.valor));
+//           END IF;
+//       ELSIF TG_OP = 'DELETE' THEN
+//           INSERT INTO public.activity_logs (user_id, action, entity_type, entity_id, details)
+//           VALUES (current_user_id, 'excluiu', 'lançamento', OLD.id, jsonb_build_object('descricao', OLD.descricao, 'valor', OLD.valor));
+//       END IF;
+//
+//       RETURN COALESCE(NEW, OLD);
+//   END;
+//   $function$
+//
+// FUNCTION log_pericia_activity()
+//   CREATE OR REPLACE FUNCTION public.log_pericia_activity()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   DECLARE
+//       current_user_id UUID;
+//   BEGIN
+//       current_user_id := auth.uid();
+//
+//       IF TG_OP = 'INSERT' THEN
+//           INSERT INTO public.activity_logs (user_id, action, entity_type, entity_id, details)
+//           VALUES (current_user_id, 'criou', 'perícia', NEW.id, jsonb_build_object('numero_processo', NEW.numero_processo));
+//       ELSIF TG_OP = 'UPDATE' THEN
+//           -- Only log if it's an actual update to avoid trigger spam
+//           IF NEW IS DISTINCT FROM OLD THEN
+//               INSERT INTO public.activity_logs (user_id, action, entity_type, entity_id, details)
+//               VALUES (current_user_id, 'atualizou', 'perícia', NEW.id, jsonb_build_object('numero_processo', NEW.numero_processo, 'status', NEW.status));
+//           END IF;
+//       ELSIF TG_OP = 'DELETE' THEN
+//           INSERT INTO public.activity_logs (user_id, action, entity_type, entity_id, details)
+//           VALUES (current_user_id, 'excluiu', 'perícia', OLD.id, jsonb_build_object('numero_processo', OLD.numero_processo));
+//       END IF;
+//
+//       RETURN COALESCE(NEW, OLD);
+//   END;
+//   $function$
+//
+
+// --- TRIGGERS ---
+// Table: lancamentos
+//   lancamentos_activity_trigger: CREATE TRIGGER lancamentos_activity_trigger AFTER INSERT OR DELETE OR UPDATE ON public.lancamentos FOR EACH ROW EXECUTE FUNCTION log_lancamento_activity()
+// Table: pericias
+//   pericias_activity_trigger: CREATE TRIGGER pericias_activity_trigger AFTER INSERT OR DELETE OR UPDATE ON public.pericias FOR EACH ROW EXECUTE FUNCTION log_pericia_activity()
