@@ -28,6 +28,9 @@ import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Badge } from '@/components/ui/badge'
 import { TaskCard } from '@/components/TaskCard'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ChatTarefa } from '@/components/ChatTarefa'
+import { TarefaRelatorio } from '@/components/TarefaRelatorio'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -187,178 +190,210 @@ export default function Tarefas() {
             <DialogHeader>
               <DialogTitle>{editing ? 'Editar Tarefa' : 'Nova Tarefa'}</DialogTitle>
             </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="titulo"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Título</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="descricao"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Descrição</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} rows={3} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="pericia_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Processo Vinculado</FormLabel>
-                        <Select
-                          onValueChange={(val) => field.onChange(val === 'none' ? undefined : val)}
-                          value={field.value || 'none'}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">Nenhum (Tarefa Avulsa)</SelectItem>
-                            {pericias.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.numero_processo || 'Sem número'}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Pendente">Pendente</SelectItem>
-                            <SelectItem value="Em Andamento">Em Andamento</SelectItem>
-                            <SelectItem value="Concluída">Concluída</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="responsavel_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Responsável (Gestor)</FormLabel>
-                        <Select
-                          onValueChange={(val) => field.onChange(val === 'none' ? undefined : val)}
-                          value={field.value || 'none'}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">Nenhum</SelectItem>
-                            {profiles.map((r) => (
-                              <SelectItem key={r.id} value={r.id}>
-                                {r.name || 'Sem nome'}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="perito_associado_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Perito Associado (Executor)</FormLabel>
-                        <Select
-                          onValueChange={(val) => field.onChange(val === 'none' ? undefined : val)}
-                          value={field.value || 'none'}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">Nenhum</SelectItem>
-                            {profiles.map((r) => (
-                              <SelectItem key={r.id} value={r.id}>
-                                {r.name || 'Sem nome'}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="data_entrega"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="mb-2">Data de Entrega</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
+            <Tabs defaultValue="detalhes" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-4">
+                <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+                <TabsTrigger value="chat" disabled={!editing}>
+                  Chat Interno
+                </TabsTrigger>
+                <TabsTrigger value="relatorio" disabled={!editing}>
+                  Relatório
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="detalhes" className="mt-0">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="titulo"
+                        render={({ field }) => (
+                          <FormItem className="md:col-span-2">
+                            <FormLabel>Título</FormLabel>
                             <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  'w-full pl-3 text-left font-normal',
-                                  !field.value && 'text-muted-foreground',
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, 'dd/MM/yyyy')
-                                ) : (
-                                  <span>Selecione</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
+                              <Input {...field} />
                             </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              locale={ptBR}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="flex justify-end pt-4">
-                  <Button type="submit">Salvar Tarefa</Button>
-                </div>
-              </form>
-            </Form>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="descricao"
+                        render={({ field }) => (
+                          <FormItem className="md:col-span-2">
+                            <FormLabel>Descrição</FormLabel>
+                            <FormControl>
+                              <Textarea {...field} rows={3} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="pericia_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Processo Vinculado</FormLabel>
+                            <Select
+                              onValueChange={(val) =>
+                                field.onChange(val === 'none' ? undefined : val)
+                              }
+                              value={field.value || 'none'}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">Nenhum (Tarefa Avulsa)</SelectItem>
+                                {pericias.map((p) => (
+                                  <SelectItem key={p.id} value={p.id}>
+                                    {p.numero_processo || 'Sem número'}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Status</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Pendente">Pendente</SelectItem>
+                                <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+                                <SelectItem value="Concluída">Concluída</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="responsavel_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Responsável (Gestor)</FormLabel>
+                            <Select
+                              onValueChange={(val) =>
+                                field.onChange(val === 'none' ? undefined : val)
+                              }
+                              value={field.value || 'none'}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">Nenhum</SelectItem>
+                                {profiles.map((r) => (
+                                  <SelectItem key={r.id} value={r.id}>
+                                    {r.name || 'Sem nome'}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="perito_associado_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Perito Associado (Executor)</FormLabel>
+                            <Select
+                              onValueChange={(val) =>
+                                field.onChange(val === 'none' ? undefined : val)
+                              }
+                              value={field.value || 'none'}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">Nenhum</SelectItem>
+                                {profiles.map((r) => (
+                                  <SelectItem key={r.id} value={r.id}>
+                                    {r.name || 'Sem nome'}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="data_entrega"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel className="mb-2">Data de Entrega</FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant="outline"
+                                    className={cn(
+                                      'w-full pl-3 text-left font-normal',
+                                      !field.value && 'text-muted-foreground',
+                                    )}
+                                  >
+                                    {field.value ? (
+                                      format(field.value, 'dd/MM/yyyy')
+                                    ) : (
+                                      <span>Selecione</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  locale={ptBR}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="flex justify-end pt-4">
+                      <Button type="submit">Salvar Tarefa</Button>
+                    </div>
+                  </form>
+                </Form>
+              </TabsContent>
+
+              {editing && (
+                <TabsContent value="chat" className="mt-0">
+                  <ChatTarefa tarefaId={editing.id} />
+                </TabsContent>
+              )}
+
+              {editing && (
+                <TabsContent value="relatorio" className="mt-0">
+                  <TarefaRelatorio tarefaId={editing.id} />
+                </TabsContent>
+              )}
+            </Tabs>
           </DialogContent>
         </Dialog>
       </div>

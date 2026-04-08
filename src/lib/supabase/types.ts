@@ -524,6 +524,7 @@ export type Database = {
           finalizado: boolean | null
           id: string
           pericia_id: string | null
+          perito_associado_id: string | null
           responsavel_id: string | null
           status: string | null
           titulo: string
@@ -536,6 +537,7 @@ export type Database = {
           finalizado?: boolean | null
           id?: string
           pericia_id?: string | null
+          perito_associado_id?: string | null
           responsavel_id?: string | null
           status?: string | null
           titulo: string
@@ -548,6 +550,7 @@ export type Database = {
           finalizado?: boolean | null
           id?: string
           pericia_id?: string | null
+          perito_associado_id?: string | null
           responsavel_id?: string | null
           status?: string | null
           titulo?: string
@@ -559,6 +562,13 @@ export type Database = {
             columns: ['pericia_id']
             isOneToOne: false
             referencedRelation: 'pericias'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'tarefas_perito_associado_id_fkey'
+            columns: ['perito_associado_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
@@ -859,6 +869,7 @@ export const Constants = {
 //   finalizado: boolean (nullable, default: false)
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
+//   perito_associado_id: uuid (nullable)
 
 // --- CONSTRAINTS ---
 // Table: activity_logs
@@ -895,6 +906,7 @@ export const Constants = {
 //   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
 // Table: tarefas
 //   FOREIGN KEY tarefas_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE SET NULL
+//   FOREIGN KEY tarefas_perito_associado_id_fkey: FOREIGN KEY (perito_associado_id) REFERENCES profiles(id) ON DELETE SET NULL
 //   PRIMARY KEY tarefas_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY tarefas_responsavel_id_fkey: FOREIGN KEY (responsavel_id) REFERENCES profiles(id) ON DELETE SET NULL
 
