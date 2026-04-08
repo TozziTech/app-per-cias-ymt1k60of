@@ -37,7 +37,7 @@ const formSchema = z.object({
   endereco: z.string().optional(),
   observacoes: z.string().optional(),
   linkNuvem: z.string().url('Deve ser URL válida').or(z.literal('')).optional(),
-  contato_perito_id: z.string().optional().nullable(),
+  perito_id: z.string().optional().nullable(),
   peritoAssociado: z.string().optional(),
   descricaoImpugnacao: z.string().optional(),
   dataImpugnacao: z.date().optional().nullable(),
@@ -68,13 +68,13 @@ export function PericiaForm({
 
   useEffect(() => {
     supabase
-      .from('contatos')
-      .select('id, nome, tipo')
+      .from('peritos')
+      .select('id, nome, especialidade')
       .order('nome')
       .then(({ data }) => {
         if (data) {
           setPeritos(
-            data.filter((c) => c.tipo === 'Perito' || c.tipo === 'Advogado' || c.tipo === 'Outros'),
+            data.map((p) => ({ id: p.id, nome: p.nome, tipo: p.especialidade || 'Perito' })),
           )
         }
       })
@@ -105,7 +105,7 @@ export function PericiaForm({
       observacoes: '',
       linkNuvem: '',
       checklist: [],
-      contato_perito_id: '',
+      perito_id: '',
       peritoAssociado: '',
       descricaoImpugnacao: '',
       diasImpugnacao: '',
@@ -134,7 +134,7 @@ export function PericiaForm({
         endereco: pericia.endereco || '',
         observacoes: pericia.observacoes || '',
         linkNuvem: pericia.linkNuvem || '',
-        contato_perito_id: pericia.contato_perito_id || '',
+        perito_id: pericia.perito_id || '',
         peritoAssociado: pericia.peritoAssociado || '',
         descricaoImpugnacao: pericia.descricaoImpugnacao || '',
         dataImpugnacao: parseDateSafe(pericia.dataImpugnacao),
@@ -170,7 +170,9 @@ export function PericiaForm({
         honorarios: values.honorarios ? parseFloat(values.honorarios.replace(',', '.')) : undefined,
         diasImpugnacao: values.diasImpugnacao ? parseInt(values.diasImpugnacao, 10) : undefined,
         status: (values.status || 'Agendado') as any,
-        contato_perito_id: values.contato_perito_id || null,
+        perito_id: values.perito_id || null,
+        peritoAssociado:
+          peritos.find((p) => p.id === values.perito_id)?.nome || values.peritoAssociado,
       }
 
       if (pericia) {
@@ -260,13 +262,13 @@ export function PericiaForm({
               Perito / Profissional Associado
             </label>
             <select
-              {...form.register('contato_perito_id')}
+              {...form.register('perito_id')}
               className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <option value="">Selecione da lista de contatos...</option>
+              <option value="">Selecione do módulo de peritos...</option>
               {peritos.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.nome} ({p.tipo})
+                  {p.nome} {p.tipo ? `(${p.tipo})` : ''}
                 </option>
               ))}
             </select>

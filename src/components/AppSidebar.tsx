@@ -52,8 +52,8 @@ export function AppSidebar() {
                       to={item.url}
                       className={({ isActive }) =>
                         isActive
-                          ? 'bg-primary/10 text-primary font-medium'
-                          : 'text-slate-600 dark:text-slate-400 hover:bg-muted hover:text-foreground font-medium'
+                          ? 'bg-zinc-200/60 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium'
                       }
                     >
                       <item.icon className="h-4 w-4" />

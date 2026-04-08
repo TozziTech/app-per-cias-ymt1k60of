@@ -561,10 +561,10 @@ export default function Pericias() {
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="pl-4 sm:pl-6">Cód. Interno</TableHead>
-                <TableHead className="hidden md:table-cell">Processo</TableHead>
-                <TableHead className="hidden lg:table-cell">Vara</TableHead>
+                <TableHead className="hidden lg:table-cell">Processo</TableHead>
+                <TableHead className="hidden xl:table-cell">Vara</TableHead>
                 <TableHead className="hidden md:table-cell">Cidade</TableHead>
-                <TableHead className="hidden xl:table-cell">Perito Assoc.</TableHead>
+                <TableHead className="hidden sm:table-cell">Perito Assoc.</TableHead>
                 <TableHead>Data Perícia</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right pr-4 sm:pr-6">Ações</TableHead>
@@ -587,12 +587,12 @@ export default function Pericias() {
                     <TableCell className="pl-4 sm:pl-6">
                       <div className="font-medium">{pericia.codigoInterno}</div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground">
+                    <TableCell className="hidden lg:table-cell text-muted-foreground">
                       {pericia.numeroProcesso}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">{pericia.vara}</TableCell>
+                    <TableCell className="hidden xl:table-cell">{pericia.vara}</TableCell>
                     <TableCell className="hidden md:table-cell">{pericia.cidade || '-'}</TableCell>
-                    <TableCell className="hidden xl:table-cell text-muted-foreground truncate max-w-[120px]">
+                    <TableCell className="hidden sm:table-cell text-muted-foreground truncate max-w-[150px]">
                       {pericia.peritoAssociado || '-'}
                     </TableCell>
                     <TableCell>{renderDate(pericia.dataPericia)}</TableCell>
