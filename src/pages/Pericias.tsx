@@ -1,7 +1,23 @@
-import { useState } from 'react'
-import { Search, Plus, Filter, MoreHorizontal, Eye, Edit, CalendarPlus } from 'lucide-react'
+import { useState, useRef } from 'react'
+import {
+  Search,
+  Plus,
+  Filter,
+  MoreHorizontal,
+  Eye,
+  Edit,
+  CalendarPlus,
+  Upload,
+  FileIcon,
+  Trash2,
+  Download,
+  Loader2,
+} from 'lucide-react'
 
 import { usePericias } from '@/contexts/PericiasContext'
+import { useAuth } from '@/contexts/AuthContext'
+import { useToast } from '@/hooks/use-toast'
+import { uploadAnexo, deleteAnexo, getAnexoUrl } from '@/services/pericias'
 import {
   Select,
   SelectContent,
@@ -51,6 +67,10 @@ export default function Pericias() {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [selectedPericia, setSelectedPericia] = useState<Pericia | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const filteredPericias = pericias.filter((p) => {
     const matchSearch =
@@ -120,6 +140,74 @@ export default function Pericias() {
   const handleRowClick = (pericia: Pericia) => {
     setSelectedPericia(pericia)
     setIsDetailsOpen(true)
+  }
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !selectedPericia) return
+
+    try {
+      setIsUploading(true)
+      const novoAnexo = await uploadAnexo(selectedPericia.id, file, user?.id)
+      setSelectedPericia((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          anexos: [novoAnexo, ...(prev.anexos || [])],
+        }
+      })
+      toast({ title: 'Sucesso', description: 'Arquivo anexado com sucesso.' })
+    } catch (error) {
+      toast({ title: 'Erro', description: 'Falha ao enviar arquivo.', variant: 'destructive' })
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleDeleteAnexo = async (anexoId: string, filePath: string) => {
+    if (!confirm('Deseja realmente excluir este anexo?')) return
+
+    try {
+      await deleteAnexo(anexoId, filePath)
+      setSelectedPericia((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          anexos: prev.anexos?.filter((a) => a.id !== anexoId),
+        }
+      })
+      toast({ title: 'Sucesso', description: 'Anexo removido.' })
+    } catch (error) {
+      toast({ title: 'Erro', description: 'Falha ao remover arquivo.', variant: 'destructive' })
+    }
+  }
+
+  const handleDownloadAnexo = async (filePath: string, fileName: string) => {
+    try {
+      const url = await getAnexoUrl(filePath)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileName
+      link.target = '_blank'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Falha ao gerar link de download.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
   const renderDate = (d?: string | Date | null) => {
@@ -433,6 +521,81 @@ export default function Pericias() {
                   )}
                 </div>
               )}
+
+              <div className="border-t pt-4 text-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Anexos de Documentos</h4>
+                  <div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-2" />
+                      )}
+                      Anexar Arquivo
+                    </Button>
+                  </div>
+                </div>
+
+                {!selectedPericia.anexos || selectedPericia.anexos.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4 border rounded-md border-dashed">
+                    Nenhum arquivo anexado.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedPericia.anexos.map((anexo) => (
+                      <div
+                        key={anexo.id}
+                        className="flex items-center justify-between p-3 border rounded-md bg-muted/30"
+                      >
+                        <div className="flex items-center space-x-3 overflow-hidden">
+                          <FileIcon className="h-8 w-8 text-primary shrink-0" />
+                          <div className="truncate">
+                            <p className="font-medium truncate" title={anexo.file_name}>
+                              {anexo.file_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatFileSize(anexo.size)} •{' '}
+                              {new Date(anexo.created_at).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Baixar"
+                            onClick={() => handleDownloadAnexo(anexo.file_path, anexo.file_name)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Excluir"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteAnexo(anexo.id, anexo.file_path)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {selectedPericia.checklist && selectedPericia.checklist.length > 0 && (
                 <div className="border-t pt-4 text-sm">

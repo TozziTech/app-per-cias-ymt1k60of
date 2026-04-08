@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import { Pericia } from '@/lib/types'
+import { Pericia, PericiaAnexo } from '@/lib/types'
 import { Json } from '@/lib/supabase/types'
 
 const mapToDb = (p: Partial<Pericia>) => {
@@ -64,17 +64,75 @@ const mapFromDb = (row: any): Pericia => {
     entregaImpugnacao: row.entrega_impugnacao || '',
     limitesEsclarecimentos: row.limites_esclarecimentos || '',
     entregaEsclarecimentos: row.entrega_esclarecimentos || '',
+    anexos: row.pericia_anexos || [],
   }
 }
 
 export const getPericias = async () => {
   const { data, error } = await supabase
     .from('pericias')
-    .select('*')
+    .select('*, pericia_anexos(*)')
     .order('created_at', { ascending: false })
 
   if (error) throw error
   return (data || []).map(mapFromDb)
+}
+
+export const getPericiaAnexos = async (periciaId: string) => {
+  const { data, error } = await supabase
+    .from('pericia_anexos')
+    .select('*')
+    .eq('pericia_id', periciaId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data as PericiaAnexo[]
+}
+
+export const uploadAnexo = async (periciaId: string, file: File, userId?: string) => {
+  const fileExt = file.name.split('.').pop()
+  const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
+  const filePath = `${periciaId}/${fileName}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('pericias_anexos')
+    .upload(filePath, file)
+
+  if (uploadError) throw uploadError
+
+  const { data, error: dbError } = await supabase
+    .from('pericia_anexos')
+    .insert({
+      pericia_id: periciaId,
+      file_name: file.name,
+      file_path: filePath,
+      content_type: file.type,
+      size: file.size,
+      created_by: userId || null,
+    })
+    .select()
+    .single()
+
+  if (dbError) throw dbError
+  return data as PericiaAnexo
+}
+
+export const deleteAnexo = async (anexoId: string, filePath: string) => {
+  const { error: storageError } = await supabase.storage.from('pericias_anexos').remove([filePath])
+
+  if (storageError) throw storageError
+
+  const { error: dbError } = await supabase.from('pericia_anexos').delete().eq('id', anexoId)
+
+  if (dbError) throw dbError
+}
+
+export const getAnexoUrl = async (filePath: string) => {
+  const { data, error } = await supabase.storage
+    .from('pericias_anexos')
+    .createSignedUrl(filePath, 3600) // 1 hour
+
+  if (error) throw error
+  return data.signedUrl
 }
 
 export const createPericia = async (pericia: Omit<Pericia, 'id'>) => {

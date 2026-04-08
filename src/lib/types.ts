@@ -41,6 +41,17 @@ export interface Lancamento {
   }
 }
 
+export interface PericiaAnexo {
+  id: string
+  pericia_id: string
+  file_name: string
+  file_path: string
+  content_type: string
+  size: number
+  created_at: string
+  created_by?: string | null
+}
+
 export interface Pericia {
   id: string
   codigoInterno: string
@@ -70,4 +81,5 @@ export interface Pericia {
   entregaImpugnacao?: string
   limitesEsclarecimentos?: string
   entregaEsclarecimentos?: string
+  anexos?: PericiaAnexo[]
 }
