@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Clock,
   Printer,
+  Check,
 } from 'lucide-react'
 import { differenceInCalendarDays } from 'date-fns'
 
@@ -71,7 +72,7 @@ import { supabase } from '@/lib/supabase/client'
 import { Pericia } from '@/lib/types'
 
 export default function Pericias() {
-  const { pericias } = usePericias()
+  const { pericias, updatePericia } = usePericias()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('todos')
   const [isSheetOpen, setIsSheetOpen] = useState(false)
@@ -84,6 +85,7 @@ export default function Pericias() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [logs, setLogs] = useState<any[]>([])
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
+  const [newTaskText, setNewTaskText] = useState('')
 
   const fetchLogs = async (periciaId: string) => {
     setIsLoadingLogs(true)
@@ -331,6 +333,46 @@ export default function Pericias() {
         description: 'Falha ao gerar link de visualização.',
         variant: 'destructive',
       })
+    }
+  }
+
+  const handleToggleChecklist = async (itemId: string, concluido: boolean) => {
+    if (!selectedPericia) return
+    const newChecklist = selectedPericia.checklist.map((i) =>
+      i.id === itemId ? { ...i, concluido } : i,
+    )
+
+    try {
+      await updatePericia(selectedPericia.id, { checklist: newChecklist })
+      setSelectedPericia((prev) => (prev ? { ...prev, checklist: newChecklist } : prev))
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao atualizar tarefa.', variant: 'destructive' })
+    }
+  }
+
+  const handleAddTask = async () => {
+    if (!newTaskText.trim() || !selectedPericia) return
+    const newTask = { id: crypto.randomUUID(), texto: newTaskText.trim(), concluido: false }
+    const newChecklist = [...(selectedPericia.checklist || []), newTask]
+
+    try {
+      await updatePericia(selectedPericia.id, { checklist: newChecklist })
+      setSelectedPericia((prev) => (prev ? { ...prev, checklist: newChecklist } : prev))
+      setNewTaskText('')
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao adicionar tarefa.', variant: 'destructive' })
+    }
+  }
+
+  const handleRemoveTask = async (itemId: string) => {
+    if (!selectedPericia) return
+    const newChecklist = selectedPericia.checklist.filter((i) => i.id !== itemId)
+
+    try {
+      await updatePericia(selectedPericia.id, { checklist: newChecklist })
+      setSelectedPericia((prev) => (prev ? { ...prev, checklist: newChecklist } : prev))
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao remover tarefa.', variant: 'destructive' })
     }
   }
 
@@ -1136,27 +1178,65 @@ export default function Pericias() {
                   )}
                 </div>
 
-                {selectedPericia.checklist && selectedPericia.checklist.length > 0 && (
-                  <div className="border-t pt-4 text-sm">
-                    <h4 className="font-medium mb-3">Checklist</h4>
+                <div className="border-t pt-4 text-sm">
+                  <h4 className="font-medium mb-3">Workflow de Tarefas</h4>
+                  <div className="space-y-3">
                     <ul className="space-y-2">
-                      {selectedPericia.checklist.map((item) => (
-                        <li key={item.id} className="flex items-center gap-2">
-                          <div
-                            className={`h-4 w-4 rounded-sm border flex items-center justify-center ${item.concluido ? 'bg-primary border-primary' : 'border-input'}`}
+                      {(selectedPericia.checklist || []).map((item) => (
+                        <li key={item.id} className="flex items-start gap-2 group">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleChecklist(item.id, !item.concluido)}
+                            className={`mt-0.5 h-5 w-5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${item.concluido ? 'bg-primary border-primary text-primary-foreground' : 'border-input hover:border-primary'}`}
                           >
-                            {item.concluido && <div className="h-2 w-2 bg-white rounded-sm" />}
-                          </div>
+                            {item.concluido && <Check className="h-3.5 w-3.5" />}
+                          </button>
                           <span
-                            className={item.concluido ? 'line-through text-muted-foreground' : ''}
+                            className={`flex-1 leading-snug pt-0.5 ${item.concluido ? 'line-through text-muted-foreground' : ''}`}
                           >
                             {item.texto}
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTask(item.id)}
+                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity shrink-0 pt-0.5"
+                            title="Remover Tarefa"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </li>
                       ))}
+                      {(!selectedPericia.checklist || selectedPericia.checklist.length === 0) && (
+                        <p className="text-muted-foreground text-sm py-2">
+                          Nenhuma tarefa cadastrada.
+                        </p>
+                      )}
                     </ul>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        placeholder="Nova subtarefa..."
+                        value={newTaskText}
+                        onChange={(e) => setNewTaskText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            handleAddTask()
+                          }
+                        }}
+                        className="h-8 text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={handleAddTask}
+                        className="shrink-0 h-8"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Adicionar
+                      </Button>
+                    </div>
                   </div>
-                )}
+                </div>
               </TabsContent>
 
               <TabsContent value="historico" className="space-y-6 mt-0">

@@ -260,6 +260,7 @@ export type Database = {
           perito_id: string | null
           prazo_entrega: string | null
           status: string | null
+          status_pagamento: string | null
           updated_at: string
           vara: string | null
         }
@@ -294,6 +295,7 @@ export type Database = {
           perito_id?: string | null
           prazo_entrega?: string | null
           status?: string | null
+          status_pagamento?: string | null
           updated_at?: string
           vara?: string | null
         }
@@ -328,6 +330,7 @@ export type Database = {
           perito_id?: string | null
           prazo_entrega?: string | null
           status?: string | null
+          status_pagamento?: string | null
           updated_at?: string
           vara?: string | null
         }
@@ -698,6 +701,7 @@ export const Constants = {
 //   entrega_esclarecimentos: timestamp with time zone (nullable)
 //   perito_id: uuid (nullable)
 //   contato_perito_id: uuid (nullable)
+//   status_pagamento: text (nullable, default: 'Pendente'::text)
 // Table: peritos
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)

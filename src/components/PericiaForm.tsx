@@ -104,7 +104,12 @@ export function PericiaForm({
       endereco: '',
       observacoes: '',
       linkNuvem: '',
-      checklist: [],
+      checklist: pericia?.checklist || [
+        { id: crypto.randomUUID(), texto: 'Análise Técnica Preliminar', concluido: false },
+        { id: crypto.randomUUID(), texto: 'Visita Local (Vistoria)', concluido: false },
+        { id: crypto.randomUUID(), texto: 'Redação do Laudo', concluido: false },
+        { id: crypto.randomUUID(), texto: 'Entrega do Laudo', concluido: false },
+      ],
       perito_id: '',
       peritoAssociado: '',
       descricaoImpugnacao: '',
