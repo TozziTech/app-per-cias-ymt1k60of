@@ -88,7 +88,7 @@ export default function PortalPerito() {
         .eq('id', session.user.id)
         .single()
 
-      const data = await getMyPericias(session.user.email, profile?.name)
+      const data = await getMyPericias(session.user.id)
       setPericias(data)
 
       const { data: tarefasData } = await supabase
