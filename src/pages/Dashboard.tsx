@@ -2,7 +2,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { usePericias } from '@/contexts/PericiasContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Activity, AlertTriangle, CheckCircle2, Clock, FileText } from 'lucide-react'
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, XAxis, YAxis, Tooltip } from 'recharts'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 import { Badge } from '@/components/ui/badge'
 
@@ -19,11 +19,23 @@ export default function Dashboard() {
   const { user } = useAuth()
   const { pericias } = usePericias()
 
+  const isAdmin = user?.role === 'admin' || user?.role === 'administrador'
+
+  // Filter pericias for the specific user if not admin
+  const dashboardPericias = isAdmin
+    ? pericias
+    : pericias.filter(
+        (p) =>
+          p.perito_associado &&
+          user?.name &&
+          p.perito_associado.toLowerCase().includes(user.name.toLowerCase()),
+      )
+
   const stats = {
-    total: pericias.length,
-    pendentes: pericias.filter((p) => p.status === 'Pendente').length,
-    emAndamento: pericias.filter((p) => p.status === 'Em Andamento').length,
-    concluidas: pericias.filter((p) => p.status === 'Concluído').length,
+    total: dashboardPericias.length,
+    pendentes: dashboardPericias.filter((p) => p.status === 'Pendente').length,
+    emAndamento: dashboardPericias.filter((p) => p.status === 'Em Andamento').length,
+    concluidas: dashboardPericias.filter((p) => p.status === 'Concluído').length,
   }
 
   const getStatusBadge = (status: string) => {
@@ -54,9 +66,9 @@ export default function Dashboard() {
         <p className="text-muted-foreground">
           Bem-vindo,{' '}
           <span className="font-semibold text-foreground capitalize">
-            {user?.role.replace('_', ' ')}
+            {user?.role?.replace('_', ' ') || 'Usuário'}
           </span>
-          . Aqui está o resumo das suas atividades.
+          . Aqui está o resumo das {isAdmin ? 'suas atividades' : 'suas perícias'}.
         </p>
       </div>
 
@@ -78,27 +90,27 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pendentes}</div>
-            <p className="text-xs text-muted-foreground">Aguardando atribuição</p>
+            <p className="text-xs text-muted-foreground">Aguardando ação</p>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Concluídas este Mês</CardTitle>
+            <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.concluidas}</div>
-            <p className="text-xs text-muted-foreground">+15% em relação ao mês anterior</p>
+            <p className="text-xs text-muted-foreground">Total finalizado</p>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Alertas</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <CardTitle className="text-sm font-medium">Total de Perícias</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">2</div>
-            <p className="text-xs text-muted-foreground">Prazos vencendo esta semana</p>
+            <div className="text-2xl font-bold text-primary">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">Registros ativos</p>
           </CardContent>
         </Card>
       </div>
@@ -130,24 +142,36 @@ export default function Dashboard() {
 
         <Card className="col-span-3 shadow-sm">
           <CardHeader>
-            <CardTitle>Atividade Recente</CardTitle>
+            <CardTitle>
+              {isAdmin ? 'Atividade Recente (Geral)' : 'Minhas Perícias Recentes'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {pericias.slice(0, 4).map((pericia) => (
-                <div key={pericia.id} className="flex items-center">
-                  <div className="mr-4 flex h-9 w-9 items-center justify-center rounded-full bg-muted">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
+              {dashboardPericias.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Nenhuma perícia encontrada.
+                </p>
+              ) : (
+                dashboardPericias.slice(0, 4).map((pericia) => (
+                  <div key={pericia.id} className="flex items-center">
+                    <div className="mr-4 flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {pericia.numero_processo || 'Processo sem número'}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                        {pericia.perito_associado || 'Sem responsável'}
+                      </p>
+                    </div>
+                    <div className="ml-auto font-medium">
+                      {getStatusBadge(pericia.status || 'Pendente')}
+                    </div>
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium leading-none">{pericia.titulo}</p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                      {pericia.responsavel}
-                    </p>
-                  </div>
-                  <div className="ml-auto font-medium">{getStatusBadge(pericia.status)}</div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

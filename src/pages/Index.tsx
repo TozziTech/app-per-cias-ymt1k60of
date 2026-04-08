@@ -31,17 +31,29 @@ const loginSchema = z.object({
   password: z.string().min(6, { message: 'A senha deve ter no mínimo 6 caracteres' }),
 })
 
+const recoverySchema = z.object({
+  email: z.string().email({ message: 'E-mail inválido' }),
+})
+
 export default function Index() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, resetPassword } = useAuth()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [isRecovering, setIsRecovering] = useState(false)
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
       password: '',
+    },
+  })
+
+  const recoveryForm = useForm<z.infer<typeof recoverySchema>>({
+    resolver: zodResolver(recoverySchema),
+    defaultValues: {
+      email: '',
     },
   })
 
@@ -75,6 +87,19 @@ export default function Index() {
     }
   }
 
+  const onRecover = async (values: z.infer<typeof recoverySchema>) => {
+    setIsLoading(true)
+    const { error } = await resetPassword(values.email)
+    setIsLoading(false)
+
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro', description: error.message })
+    } else {
+      toast({ title: 'E-mail enviado!', description: 'Verifique sua caixa de entrada.' })
+      setIsRecovering(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-md animate-fade-in-up">
@@ -88,71 +113,115 @@ export default function Index() {
 
         <Card className="shadow-lg border-primary/10">
           <CardHeader className="space-y-1 pb-6">
-            <CardTitle className="text-2xl text-center">Bem-vindo</CardTitle>
+            <CardTitle className="text-2xl text-center">
+              {isRecovering ? 'Recuperar Senha' : 'Bem-vindo'}
+            </CardTitle>
             <CardDescription className="text-center">
-              Acesse sua conta para continuar
+              {isRecovering
+                ? 'Digite seu e-mail para receber as instruções'
+                : 'Acesse sua conta para continuar'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>E-mail</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input placeholder="admin@app.com" className="pl-9" {...field} />
+            {isRecovering ? (
+              <Form {...recoveryForm}>
+                <form onSubmit={recoveryForm.handleSubmit(onRecover)} className="space-y-4">
+                  <FormField
+                    control={recoveryForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>E-mail</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input placeholder="admin@app.com" className="pl-9" {...field} />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full mt-6" disabled={isLoading}>
+                    {isLoading ? 'Enviando...' : 'Enviar instruções'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => setIsRecovering(false)}
+                  >
+                    Voltar para o login
+                  </Button>
+                </form>
+              </Form>
+            ) : (
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>E-mail</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input placeholder="admin@app.com" className="pl-9" {...field} />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <FormLabel>Senha</FormLabel>
+                          <button
+                            type="button"
+                            onClick={() => setIsRecovering(true)}
+                            className="text-sm font-medium text-primary hover:underline"
+                          >
+                            Esqueceu a senha?
+                          </button>
                         </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center justify-between">
-                        <FormLabel>Senha</FormLabel>
-                        <a href="#" className="text-sm font-medium text-primary hover:underline">
-                          Esqueceu a senha?
-                        </a>
-                      </div>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            type="password"
-                            placeholder="••••••••"
-                            className="pl-9"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full mt-6" disabled={isLoading}>
-                  {isLoading ? 'Autenticando...' : 'Entrar'}
-                </Button>
-              </form>
-            </Form>
+                        <FormControl>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              type="password"
+                              placeholder="••••••••"
+                              className="pl-9"
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full mt-6" disabled={isLoading}>
+                    {isLoading ? 'Autenticando...' : 'Entrar'}
+                  </Button>
+                </form>
+              </Form>
+            )}
           </CardContent>
-          <CardFooter className="flex justify-center border-t p-4 bg-muted/20">
-            <p className="text-sm text-muted-foreground text-center">
-              Dica: Contas de teste
-              <br />
-              <strong>admin@app.com</strong> (Senha: admin123)
-              <br />
-              <strong>eng@app.com</strong> (Senha: engenheiro123)
-            </p>
-          </CardFooter>
+          {!isRecovering && (
+            <CardFooter className="flex justify-center border-t p-4 bg-muted/20">
+              <p className="text-sm text-muted-foreground text-center">
+                Dica: Contas de teste
+                <br />
+                <strong>admin@app.com</strong> (Senha: admin123)
+                <br />
+                <strong>eng@app.com</strong> (Senha: engenheiro123)
+              </p>
+            </CardFooter>
+          )}
         </Card>
       </div>
     </div>

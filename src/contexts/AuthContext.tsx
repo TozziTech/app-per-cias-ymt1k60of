@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { Session, User as SupabaseUser } from '@supabase/supabase-js'
+import { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 
 export interface AppUser {
@@ -7,6 +7,7 @@ export interface AppUser {
   email: string
   name?: string
   role?: string
+  avatar_url?: string
 }
 
 interface AuthContextType {
@@ -14,6 +15,9 @@ interface AuthContextType {
   session: Session | null
   login: (email: string, password: string) => Promise<{ error: any }>
   logout: () => Promise<{ error: any }>
+  resetPassword: (email: string) => Promise<{ error: any }>
+  updatePassword: (password: string) => Promise<{ error: any }>
+  updateProfile: (updates: Partial<AppUser>) => Promise<{ error: any }>
   isAuthenticated: boolean
   loading: boolean
 }
@@ -29,7 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, newSession) => {
-      // FORBIDDEN: no async/await inside this callback — sync only
       setSession(newSession)
       if (!newSession) {
         setUser(null)
@@ -63,9 +66,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: session.user.email || '',
             name: data.name,
             role: data.role,
+            avatar_url: data.avatar_url,
           })
         } else {
-          // Fallback if profile not found/created yet
           setUser({
             id: session.user.id,
             email: session.user.email || '',
@@ -91,9 +94,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error }
   }
 
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/perfil`,
+    })
+    return { error }
+  }
+
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password })
+    return { error }
+  }
+
+  const updateProfile = async (updates: Partial<AppUser>) => {
+    if (!user) return { error: new Error('Usuário não autenticado') }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        name: updates.name,
+        role: updates.role,
+        avatar_url: updates.avatar_url,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id)
+
+    if (!error) {
+      setUser({ ...user, ...updates })
+    }
+
+    return { error }
+  }
+
   return React.createElement(
     AuthContext.Provider,
-    { value: { user, session, login, logout, isAuthenticated: !!session, loading } },
+    {
+      value: {
+        user,
+        session,
+        login,
+        logout,
+        resetPassword,
+        updatePassword,
+        updateProfile,
+        isAuthenticated: !!session,
+        loading,
+      },
+    },
     children,
   )
 }

@@ -1,5 +1,5 @@
-import { useLocation } from 'react-router-dom'
-import { Menu, Search, LogOut, User as UserIcon } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { Search, LogOut, User as UserIcon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Input } from '@/components/ui/input'
@@ -22,6 +22,7 @@ export function AppHeader() {
   const getPageTitle = () => {
     if (location.pathname.includes('/dashboard')) return 'Dashboard'
     if (location.pathname.includes('/pericias')) return 'Cadastro de Perícias'
+    if (location.pathname.includes('/perfil')) return 'Meu Perfil'
     return 'Visão Geral'
   }
 
@@ -50,8 +51,15 @@ export function AppHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10 border border-primary/10">
+                {user?.avatar_url && (
+                  <img
+                    src={user.avatar_url}
+                    alt={user.name || 'User'}
+                    className="h-full w-full object-cover rounded-full"
+                  />
+                )}
                 <AvatarFallback className="bg-primary/5 text-primary">
-                  {user?.name.charAt(0) || 'U'}
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -63,19 +71,21 @@ export function AppHeader() {
                 <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
                 <div className="mt-2">
                   <Badge variant="secondary" className="capitalize">
-                    {user?.role.replace('_', ' ')}
+                    {user?.role?.replace('_', ' ') || 'Usuário'}
                   </Badge>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <UserIcon className="mr-2 h-4 w-4" />
-              <span>Meu Perfil</span>
+            <DropdownMenuItem asChild>
+              <Link to="/perfil" className="w-full cursor-pointer">
+                <UserIcon className="mr-2 h-4 w-4" />
+                <span>Meu Perfil</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={logout}
-              className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+              className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
             >
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sair do sistema</span>

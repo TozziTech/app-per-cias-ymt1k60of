@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard'
 import Financeiro from './pages/Financeiro'
 import Pericias from './pages/Pericias'
 import Calendario from './pages/Calendario'
+import Perfil from './pages/Perfil'
 import NotFound from './pages/NotFound'
 
 const App = () => (
@@ -31,6 +32,7 @@ const App = () => (
                 <Route path="/financeiro" element={<Financeiro />} />
                 <Route path="/pericias" element={<Pericias />} />
                 <Route path="/calendario" element={<Calendario />} />
+                <Route path="/perfil" element={<Perfil />} />
               </Route>
             </Route>
 
