@@ -116,10 +116,11 @@ export default function Pericias() {
       }
     }
 
+    const searchLower = searchTerm.toLowerCase()
     const matchSearch =
-      p.codigoInterno.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.numeroProcesso.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.id.toLowerCase().includes(searchTerm.toLowerCase())
+      (p.codigoInterno || '').toLowerCase().includes(searchLower) ||
+      (p.numeroProcesso || '').toLowerCase().includes(searchLower) ||
+      (p.id || '').toLowerCase().includes(searchLower)
 
     const matchStatus = statusFilter === 'todos' || p.status === statusFilter
 
