@@ -41,6 +41,7 @@ export type Database = {
       }
       contatos: {
         Row: {
+          codigo_id: string | null
           created_at: string
           email: string | null
           endereco: string | null
@@ -48,10 +49,13 @@ export type Database = {
           nome: string
           observacoes: string | null
           telefone: string | null
+          telefone_alternativo: string | null
+          telefone_celular: string | null
           tipo: string
           updated_at: string
         }
         Insert: {
+          codigo_id?: string | null
           created_at?: string
           email?: string | null
           endereco?: string | null
@@ -59,10 +63,13 @@ export type Database = {
           nome: string
           observacoes?: string | null
           telefone?: string | null
+          telefone_alternativo?: string | null
+          telefone_celular?: string | null
           tipo?: string
           updated_at?: string
         }
         Update: {
+          codigo_id?: string | null
           created_at?: string
           email?: string | null
           endereco?: string | null
@@ -70,6 +77,8 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           telefone?: string | null
+          telefone_alternativo?: string | null
+          telefone_celular?: string | null
           tipo?: string
           updated_at?: string
         }
@@ -596,6 +605,9 @@ export const Constants = {
 //   observacoes: text (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
+//   telefone_celular: text (nullable)
+//   telefone_alternativo: text (nullable)
+//   codigo_id: text (nullable)
 // Table: lancamento_categorias
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)

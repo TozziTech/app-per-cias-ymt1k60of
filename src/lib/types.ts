@@ -93,4 +93,5 @@ export interface Pericia {
   limitesEsclarecimentos?: string
   entregaEsclarecimentos?: string
   anexos?: PericiaAnexo[]
+  contato_perito_id?: string | null
 }

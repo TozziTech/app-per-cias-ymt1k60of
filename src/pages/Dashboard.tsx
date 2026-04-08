@@ -1,390 +1,272 @@
-import { useAuth } from '@/contexts/AuthContext'
-import { usePericias } from '@/contexts/PericiasContext'
+import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Activity, AlertTriangle, CheckCircle2, Clock, FileText, Bell, History } from 'lucide-react'
-import { Bar, BarChart, XAxis, YAxis, Tooltip } from 'recharts'
+import { usePericias } from '@/contexts/PericiasContext'
+import { useLancamentos } from '@/hooks/use-lancamentos'
+import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
+import { differenceInDays } from 'date-fns'
+import {
+  AlertCircle,
+  Clock,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  FileText,
+  CheckCircle2,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase/client'
-import { isBefore, addDays, parseISO, format, differenceInCalendarDays } from 'date-fns'
-
-const chartData = [
-  { month: 'Jan', pericias: 12 },
-  { month: 'Fev', pericias: 18 },
-  { month: 'Mar', pericias: 15 },
-  { month: 'Abr', pericias: 22 },
-  { month: 'Mai', pericias: 30 },
-  { month: 'Jun', pericias: 25 },
-]
-
-import { DollarSign, TrendingDown, TrendingUp, Wallet } from 'lucide-react'
+import { Pericia } from '@/lib/types'
+import { Link } from 'react-router-dom'
 
 export default function Dashboard() {
-  const { user } = useAuth()
   const { pericias } = usePericias()
-  const [logs, setLogs] = useState<any[]>([])
-  const [lancamentos, setLancamentos] = useState<any[]>([])
+  const { lancamentos } = useLancamentos()
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'administrador'
+  const chartData = useMemo(() => {
+    const months = [
+      'Jan',
+      'Fev',
+      'Mar',
+      'Abr',
+      'Mai',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Set',
+      'Out',
+      'Nov',
+      'Dez',
+    ]
+    const data = months.map((m) => ({ month: m, receitas: 0, despesas: 0, saldo: 0 }))
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const { data: logsData } = await supabase
-        .from('activity_logs')
-        .select('*, profiles:user_id(name)')
-        .order('created_at', { ascending: false })
-        .limit(6)
-      if (logsData) setLogs(logsData)
+    lancamentos.forEach((l) => {
+      const date = new Date(l.data)
+      if (!isNaN(date.getTime()) && (l.status === 'recebido' || l.status === 'pago')) {
+        const idx = date.getMonth()
+        if (l.tipo === 'receita') {
+          data[idx].receitas += Number(l.valor) || 0
+        } else {
+          data[idx].despesas += Number(l.valor) || 0
+        }
+      }
+    })
 
-      const { data: lancsData } = await supabase.from('lancamentos').select('*')
-      if (lancsData) setLancamentos(lancsData)
+    data.forEach((d) => {
+      d.saldo = d.receitas - d.despesas
+    })
+
+    const currentMonth = new Date().getMonth()
+    const startIndex = (currentMonth - 5 + 12) % 12
+    const result = []
+    for (let i = 0; i < 6; i++) {
+      result.push(data[(startIndex + i) % 12])
     }
-    fetchData()
-  }, [])
+    return result
+  }, [lancamentos])
 
-  const currentMonth = new Date().getMonth()
-  const currentYear = new Date().getFullYear()
+  const kpis = useMemo(() => {
+    let receitas = 0
+    let despesas = 0
 
-  const thisMonthLancamentos = lancamentos.filter((l) => {
-    const d = new Date(l.data)
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear
-  })
+    lancamentos.forEach((l) => {
+      const valor = Number(l.valor) || 0
+      if (l.tipo === 'receita' && (l.status === 'recebido' || l.status === 'pago'))
+        receitas += valor
+      if (l.tipo === 'despesa' && (l.status === 'recebido' || l.status === 'pago'))
+        despesas += valor
+    })
 
-  const receitas = thisMonthLancamentos
-    .filter((l) => l.Status === 'receita' || l.tipo === 'receita')
-    .reduce((acc, curr) => acc + Number(curr.valor), 0)
+    return { receitas, despesas, saldo: receitas - despesas }
+  }, [lancamentos])
 
-  const despesas = thisMonthLancamentos
-    .filter((l) => l.Status === 'despesa' || l.tipo === 'despesa')
-    .reduce((acc, curr) => acc + Number(curr.valor), 0)
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
 
-  const saldo = receitas - despesas
-
-  const dashboardPericias = isAdmin
-    ? pericias
-    : pericias.filter(
-        (p) =>
-          (p.peritoAssociado || (p as any).perito_associado) &&
-          user?.name &&
-          (p.peritoAssociado || (p as any).perito_associado)
-            .toLowerCase()
-            .includes(user.name.toLowerCase()),
-      )
-
-  const stats = {
-    total: dashboardPericias.length,
-    pendentes: dashboardPericias.filter((p) => p.status === 'Pendente').length,
-    emAndamento: dashboardPericias.filter((p) => p.status === 'Em Andamento').length,
-    concluidas: dashboardPericias.filter((p) => p.status === 'Concluído').length,
+  const parseDateSafe = (d: string | Date | undefined | null): Date | null => {
+    if (!d) return null
+    const parsed = new Date(d)
+    if (isNaN(parsed.getTime())) return null
+    return new Date(parsed.getTime() + parsed.getTimezoneOffset() * 60000)
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Concluído':
-        return <Badge className="bg-emerald-500 hover:bg-emerald-600">Concluído</Badge>
-      case 'Em Andamento':
-        return (
-          <Badge
-            variant="secondary"
-            className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
-          >
-            Em Andamento
-          </Badge>
-        )
-      case 'Pendente':
-        return (
-          <Badge
-            variant="outline"
-            className="text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-700"
-          >
-            Pendente
-          </Badge>
-        )
-      default:
-        return <Badge>{status}</Badge>
-    }
-  }
+  const notifications = useMemo(() => {
+    const alerts: {
+      id: string
+      pericia: Pericia
+      title: string
+      days: number
+      type: 'atrasado' | 'proximo'
+    }[] = []
 
-  const nextWeek = addDays(new Date(), 7)
-  const notificacoes = dashboardPericias
-    .filter((p) => {
-      const prazoStr =
-        p.prazoEntrega ||
-        (p as any).prazo_entrega ||
-        p.dataEntregaLaudo ||
-        (p as any).data_entrega_laudo
-      if (p.status === 'Concluído' || !prazoStr) return false
-      return isBefore(parseISO(prazoStr), nextWeek)
+    pericias.forEach((p) => {
+      if (p.status === 'Concluído') return
+
+      const checkDeadline = (dateStr: string | undefined | null, title: string) => {
+        const date = parseDateSafe(dateStr)
+        if (!date) return
+
+        const diff = differenceInDays(date, new Date())
+        if (diff < 0) {
+          alerts.push({
+            id: `${p.id}-${title}`,
+            pericia: p,
+            title,
+            days: Math.abs(diff),
+            type: 'atrasado',
+          })
+        } else if (diff <= 7) {
+          alerts.push({ id: `${p.id}-${title}`, pericia: p, title, days: diff, type: 'proximo' })
+        }
+      }
+
+      checkDeadline(p.dataEntregaLaudo, 'Entrega do Laudo')
+      checkDeadline(p.entregaImpugnacao, 'Entrega de Impugnação')
+      checkDeadline(p.entregaEsclarecimentos, 'Entrega de Esclarecimentos')
     })
-    .sort((a, b) => {
-      const aPrazo =
-        a.prazoEntrega ||
-        (a as any).prazo_entrega ||
-        a.dataEntregaLaudo ||
-        (a as any).data_entrega_laudo
-      const bPrazo =
-        b.prazoEntrega ||
-        (b as any).prazo_entrega ||
-        b.dataEntregaLaudo ||
-        (b as any).data_entrega_laudo
-      return new Date(aPrazo).getTime() - new Date(bPrazo).getTime()
+
+    return alerts.sort((a, b) => {
+      if (a.type === 'atrasado' && b.type !== 'atrasado') return -1
+      if (b.type === 'atrasado' && a.type !== 'atrasado') return 1
+      return a.days - b.days
     })
+  }, [pericias])
+
+  const pendingPericias = pericias.filter(
+    (p) => p.status === 'Pendente' || p.status === 'Em Andamento',
+  )
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-1">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-10">
+      <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Bem-vindo,{' '}
-          <span className="font-semibold text-foreground capitalize">
-            {user?.role?.replace('_', ' ') || 'Usuário'}
-          </span>
-          . Aqui está o resumo das {isAdmin ? 'suas atividades' : 'suas perícias'}.
-        </p>
+        <p className="text-muted-foreground">Resumo financeiro e acompanhamento de prazos.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
-        <Card className="shadow-sm border-l-4 border-l-emerald-500">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Receitas (Mês)</CardTitle>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="shadow-sm border-primary/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Saldo Atual</CardTitle>
+            <Wallet className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div
+              className={`text-2xl font-bold ${kpis.saldo >= 0 ? 'text-primary' : 'text-destructive'}`}
+            >
+              {formatCurrency(kpis.saldo)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border-primary/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receitas Realizadas</CardTitle>
             <TrendingUp className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-500">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                receitas,
-              )}
+              {formatCurrency(kpis.receitas)}
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm border-l-4 border-l-red-500">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Despesas (Mês)</CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-500" />
+
+        <Card className="shadow-sm border-primary/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Despesas Realizadas</CardTitle>
+            <TrendingDown className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-500">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                despesas,
-              )}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-l-4 border-l-primary">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Saldo (Mês)</CardTitle>
-            <Wallet className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldo)}
+            <div className="text-2xl font-bold text-destructive">
+              {formatCurrency(kpis.despesas)}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Perícias Ativas</CardTitle>
-            <Activity className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.emAndamento}</div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-            <Clock className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.pendentes}</div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.concluidas}</div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Total de Perícias</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{stats.total}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4 shadow-sm">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="shadow-sm lg:col-span-4">
           <CardHeader>
-            <CardTitle>Evolução Mensal</CardTitle>
+            <CardTitle>Balanço Mensal (Últimos 6 meses)</CardTitle>
+            <CardDescription>Comparativo de Receitas e Despesas.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
             <ChartContainer
-              config={{ pericias: { label: 'Perícias', color: 'hsl(var(--primary))' } }}
-              className="h-[250px] w-full"
+              config={{
+                receitas: { label: 'Receitas', color: 'hsl(var(--primary))' },
+                despesas: { label: 'Despesas', color: 'hsl(var(--destructive))' },
+              }}
+              className="h-[300px] w-full"
             >
-              <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v) => `${v}`}
-                />
-                <Tooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="pericias" fill="var(--color-pericias)" radius={[4, 4, 0, 0]} />
-              </BarChart>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 5, right: 10, left: 30, bottom: 0 }}>
+                  <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => `R$ ${v}`}
+                    width={80}
+                  />
+                  <Tooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="receitas" fill="var(--color-receitas)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="despesas" fill="var(--color-despesas)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
         </Card>
 
-        <Card className="col-span-3 shadow-sm border-amber-200 dark:border-amber-900/50">
-          <CardHeader className="bg-amber-50/50 dark:bg-amber-950/20 pb-4">
-            <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-400">
-              <Bell className="h-5 w-5" /> Notificações e Prazos
-            </CardTitle>
-            <CardDescription>Perícias atrasadas ou vencendo nos próximos 7 dias</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-4">
-            {notificacoes.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhum prazo próximo ou em atraso.
-              </p>
-            ) : (
-              notificacoes.slice(0, 4).map((n) => {
-                const prazoStr =
-                  n.prazoEntrega ||
-                  (n as any).prazo_entrega ||
-                  n.dataEntregaLaudo ||
-                  (n as any).data_entrega_laudo
-                const prazoDate = prazoStr ? parseISO(prazoStr) : null
-                const diff = prazoDate ? differenceInCalendarDays(prazoDate, new Date()) : null
-                const isOverdue = diff !== null && diff < 0
-                const isToday = diff === 0
-
-                return (
-                  <div
-                    key={n.id}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium flex items-center gap-2">
-                        {n.numeroProcesso || (n as any).numero_processo || 'Sem número'}
-                        {isOverdue && (
-                          <AlertTriangle className="h-3 w-3 text-destructive animate-pulse" />
-                        )}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-muted-foreground">
-                          Prazo: {prazoDate ? format(prazoDate, 'dd/MM/yyyy') : ''}
-                        </span>
-                        {isOverdue ? (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] h-4 px-1 text-destructive border-destructive/30 bg-destructive/10"
-                          >
-                            Atrasado
-                          </Badge>
-                        ) : isToday ? (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] h-4 px-1 text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30"
-                          >
-                            Vence hoje
-                          </Badge>
-                        ) : diff !== null && diff <= 7 ? (
-                          <span className="text-amber-600 dark:text-amber-400 font-medium">
-                            Em {diff} dias
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                    {getStatusBadge(n.status || 'Pendente')}
-                  </div>
-                )
-              })
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="shadow-sm">
+        <Card className="shadow-sm lg:col-span-3 flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5 text-muted-foreground" /> Logs de Atividade
+              <Clock className="w-5 h-5 text-primary" />
+              Prazos e Alertas
             </CardTitle>
+            <CardDescription>Perícias com prazos críticos.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {logs.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhuma atividade recente.
-              </p>
+          <CardContent className="flex-1 overflow-y-auto max-h-[300px] pr-2 space-y-4">
+            {notifications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-muted-foreground py-8 h-full">
+                <CheckCircle2 className="w-12 h-12 mb-2 text-emerald-500/50" />
+                <p>Nenhum prazo crítico no momento.</p>
+              </div>
             ) : (
-              logs.map((log) => (
-                <div key={log.id} className="flex items-start gap-3">
-                  <div className="h-2 w-2 mt-2 rounded-full bg-primary" />
-                  <div className="space-y-1">
-                    <p className="text-sm leading-none">
-                      <span className="font-medium">{log.profiles?.name || 'Usuário'}</span>{' '}
-                      <span className="text-muted-foreground">
-                        {log.action} {log.entity_type}
-                      </span>{' '}
-                      <span className="font-medium">
-                        {log.details?.numero_processo || log.details?.descricao || ''}
-                      </span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(log.created_at), "dd/MM/yyyy 'às' HH:mm")}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle>
-              {isAdmin ? 'Perícias Recentes (Geral)' : 'Minhas Perícias Recentes'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {dashboardPericias.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhuma perícia encontrada.
-              </p>
-            ) : (
-              dashboardPericias.slice(0, 4).map((pericia) => (
-                <div key={pericia.id} className="flex items-center">
-                  <div className="mr-4 flex h-9 w-9 items-center justify-center rounded-full bg-muted">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
+              notifications.map((notif) => (
+                <div
+                  key={notif.id}
+                  className="flex items-start gap-4 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                >
+                  <div className="mt-0.5">
+                    {notif.type === 'atrasado' ? (
+                      <AlertCircle className="w-5 h-5 text-destructive animate-pulse" />
+                    ) : (
+                      <Clock className="w-5 h-5 text-amber-500" />
+                    )}
                   </div>
                   <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {pericia.numeroProcesso ||
-                        (pericia as any).numero_processo ||
-                        'Processo sem número'}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                      {pericia.peritoAssociado ||
-                        (pericia as any).perito_associado ||
-                        'Sem responsável'}
-                    </p>
-                  </div>
-                  <div className="ml-auto font-medium">
-                    {getStatusBadge(pericia.status || 'Pendente')}
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium leading-none">{notif.title}</p>
+                      <Badge
+                        variant={notif.type === 'atrasado' ? 'destructive' : 'outline'}
+                        className={
+                          notif.type === 'proximo' ? 'text-amber-500 border-amber-500/50' : ''
+                        }
+                      >
+                        {notif.type === 'atrasado'
+                          ? `Atrasado ${notif.days}d`
+                          : notif.days === 0
+                            ? 'Vence hoje'
+                            : `Em ${notif.days}d`}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground flex flex-col">
+                      <span>Proc: {notif.pericia.numeroProcesso || 'S/N'}</span>
+                      <Link
+                        to="/pericias"
+                        className="text-primary hover:underline mt-1 font-medium"
+                      >
+                        Ver Perícia
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))
@@ -392,6 +274,41 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-primary" />
+            Perícias em Andamento / Pendentes
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {pendingPericias.length === 0 ? (
+            <p className="text-muted-foreground">Nenhuma perícia em andamento.</p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {pendingPericias.slice(0, 6).map((p) => (
+                <Link
+                  key={p.id}
+                  to="/pericias"
+                  className="flex flex-col p-4 rounded-lg border hover:border-primary/50 transition-colors bg-card"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="font-semibold text-sm">{p.codigoInterno}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {p.status}
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground mb-1 truncate">
+                    Processo: {p.numeroProcesso}
+                  </span>
+                  <span className="text-xs text-muted-foreground truncate">Vara: {p.vara}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

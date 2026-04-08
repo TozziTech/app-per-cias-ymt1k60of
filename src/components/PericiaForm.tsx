@@ -37,7 +37,7 @@ const formSchema = z.object({
   endereco: z.string().optional(),
   observacoes: z.string().optional(),
   linkNuvem: z.string().url('Deve ser URL válida').or(z.literal('')).optional(),
-  perito_id: z.string().optional().nullable(),
+  contato_perito_id: z.string().optional().nullable(),
   peritoAssociado: z.string().optional(),
   descricaoImpugnacao: z.string().optional(),
   dataImpugnacao: z.date().optional().nullable(),
@@ -64,15 +64,19 @@ export function PericiaForm({
 }) {
   const { addPericia, updatePericia } = usePericias()
   const { toast } = useToast()
-  const [peritos, setPeritos] = useState<{ id: string; nome: string }[]>([])
+  const [peritos, setPeritos] = useState<{ id: string; nome: string; tipo: string }[]>([])
 
   useEffect(() => {
     supabase
-      .from('peritos')
-      .select('id, nome')
+      .from('contatos')
+      .select('id, nome, tipo')
       .order('nome')
       .then(({ data }) => {
-        if (data) setPeritos(data)
+        if (data) {
+          setPeritos(
+            data.filter((c) => c.tipo === 'Perito' || c.tipo === 'Advogado' || c.tipo === 'Outros'),
+          )
+        }
       })
   }, [])
 
@@ -101,7 +105,7 @@ export function PericiaForm({
       observacoes: '',
       linkNuvem: '',
       checklist: [],
-      perito_id: '',
+      contato_perito_id: '',
       peritoAssociado: '',
       descricaoImpugnacao: '',
       diasImpugnacao: '',
@@ -130,7 +134,7 @@ export function PericiaForm({
         endereco: pericia.endereco || '',
         observacoes: pericia.observacoes || '',
         linkNuvem: pericia.linkNuvem || '',
-        perito_id: pericia.perito_id || '',
+        contato_perito_id: pericia.contato_perito_id || '',
         peritoAssociado: pericia.peritoAssociado || '',
         descricaoImpugnacao: pericia.descricaoImpugnacao || '',
         dataImpugnacao: parseDateSafe(pericia.dataImpugnacao),
@@ -166,7 +170,7 @@ export function PericiaForm({
         honorarios: values.honorarios ? parseFloat(values.honorarios.replace(',', '.')) : undefined,
         diasImpugnacao: values.diasImpugnacao ? parseInt(values.diasImpugnacao, 10) : undefined,
         status: (values.status || 'Agendado') as any,
-        perito_id: values.perito_id || null,
+        contato_perito_id: values.contato_perito_id || null,
       }
 
       if (pericia) {
@@ -253,16 +257,16 @@ export function PericiaForm({
           />
           <div className="space-y-2 flex flex-col">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Perito Associado
+              Perito / Profissional Associado
             </label>
             <select
-              {...form.register('perito_id')}
+              {...form.register('contato_perito_id')}
               className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <option value="">Selecione um perito...</option>
+              <option value="">Selecione da lista de contatos...</option>
               {peritos.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.nome}
+                  {p.nome} ({p.tipo})
                 </option>
               ))}
             </select>

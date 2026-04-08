@@ -661,7 +661,7 @@ export default function Pericias() {
                     <p className="font-medium">{selectedPericia.assistenteTecnicoRe || '-'}</p>
                   </div>
                   <div className="col-span-2">
-                    <p className="text-muted-foreground">Perito Associado</p>
+                    <p className="text-muted-foreground">Profissional / Perito Associado (Nome)</p>
                     <p className="font-medium">{selectedPericia.peritoAssociado || '-'}</p>
                   </div>
                 </div>

@@ -3,36 +3,38 @@ import { Pericia, PericiaAnexo } from '@/lib/types'
 import { Json } from '@/lib/supabase/types'
 
 const mapToDb = (p: Partial<Pericia>) => {
-  return {
-    codigo_interno: p.codigoInterno,
-    numero_processo: p.numeroProcesso,
-    juiz: p.juiz,
-    advogado_autora: p.advogadoAutora,
-    advogado_re: p.advogadoRe,
-    assistente_autora: p.assistenteTecnicoAutora,
-    assistente_re: p.assistenteTecnicoRe,
-    vara: p.vara,
-    cidade: p.cidade,
-    data_nomeacao: p.dataNomeacao || null,
-    data_pericia: p.dataPericia || null,
-    data_entrega_laudo: p.dataEntregaLaudo || null,
-    honorarios: p.honorarios,
-    endereco: p.endereco,
-    observacoes: p.observacoes,
-    link_nuvem: p.linkNuvem,
-    checklist: (p.checklist as unknown as Json) || [],
-    status: p.status,
-    justica_gratuita: p.justicaGratuita,
-    perito_associado: p.peritoAssociado,
-    descricao_impugnacao: p.descricaoImpugnacao,
-    data_impugnacao: p.dataImpugnacao || null,
-    dias_impugnacao: p.diasImpugnacao,
-    prazo_entrega: p.prazoEntrega || null,
-    entrega_impugnacao: p.entregaImpugnacao || null,
-    limites_esclarecimentos: p.limitesEsclarecimentos,
-    entrega_esclarecimentos: p.entregaEsclarecimentos || null,
-    perito_id: p.perito_id || null,
-  }
+  const db: any = {}
+  if (p.codigoInterno !== undefined) db.codigo_interno = p.codigoInterno
+  if (p.numeroProcesso !== undefined) db.numero_processo = p.numeroProcesso
+  if (p.juiz !== undefined) db.juiz = p.juiz
+  if (p.advogadoAutora !== undefined) db.advogado_autora = p.advogadoAutora
+  if (p.advogadoRe !== undefined) db.advogado_re = p.advogadoRe
+  if (p.assistenteTecnicoAutora !== undefined) db.assistente_autora = p.assistenteTecnicoAutora
+  if (p.assistenteTecnicoRe !== undefined) db.assistente_re = p.assistenteTecnicoRe
+  if (p.vara !== undefined) db.vara = p.vara
+  if (p.cidade !== undefined) db.cidade = p.cidade
+  if (p.dataNomeacao !== undefined) db.data_nomeacao = p.dataNomeacao || null
+  if (p.dataPericia !== undefined) db.data_pericia = p.dataPericia || null
+  if (p.dataEntregaLaudo !== undefined) db.data_entrega_laudo = p.dataEntregaLaudo || null
+  if (p.honorarios !== undefined) db.honorarios = p.honorarios
+  if (p.endereco !== undefined) db.endereco = p.endereco
+  if (p.observacoes !== undefined) db.observacoes = p.observacoes
+  if (p.linkNuvem !== undefined) db.link_nuvem = p.linkNuvem
+  if (p.checklist !== undefined) db.checklist = (p.checklist as unknown as Json) || []
+  if (p.status !== undefined) db.status = p.status
+  if (p.justicaGratuita !== undefined) db.justica_gratuita = p.justicaGratuita
+  if (p.peritoAssociado !== undefined) db.perito_associado = p.peritoAssociado
+  if (p.descricaoImpugnacao !== undefined) db.descricao_impugnacao = p.descricaoImpugnacao
+  if (p.dataImpugnacao !== undefined) db.data_impugnacao = p.dataImpugnacao || null
+  if (p.diasImpugnacao !== undefined) db.dias_impugnacao = p.diasImpugnacao
+  if (p.prazoEntrega !== undefined) db.prazo_entrega = p.prazoEntrega || null
+  if (p.entregaImpugnacao !== undefined) db.entrega_impugnacao = p.entregaImpugnacao || null
+  if (p.limitesEsclarecimentos !== undefined) db.limites_esclarecimentos = p.limitesEsclarecimentos
+  if (p.entregaEsclarecimentos !== undefined)
+    db.entrega_esclarecimentos = p.entregaEsclarecimentos || null
+  if (p.perito_id !== undefined) db.perito_id = p.perito_id || null
+  if (p.contato_perito_id !== undefined) db.contato_perito_id = p.contato_perito_id || null
+  return db
 }
 
 const mapFromDb = (row: any): Pericia => {
@@ -66,6 +68,7 @@ const mapFromDb = (row: any): Pericia => {
     limitesEsclarecimentos: row.limites_esclarecimentos || '',
     entregaEsclarecimentos: row.entrega_esclarecimentos || '',
     perito_id: row.perito_id || null,
+    contato_perito_id: row.contato_perito_id || null,
     anexos: row.pericia_anexos || [],
   }
 }
