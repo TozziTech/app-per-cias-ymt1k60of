@@ -236,7 +236,7 @@ export default function Calendario() {
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
             Calendário
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -267,7 +267,7 @@ export default function Calendario() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 rounded-none hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="h-9 w-9 rounded-none hover:bg-zinc-100 dark:hover:bg-zinc-800"
                 onClick={prevMonth}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -278,7 +278,7 @@ export default function Calendario() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 rounded-none hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="h-9 w-9 rounded-none hover:bg-zinc-100 dark:hover:bg-zinc-800"
                 onClick={nextMonth}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -292,54 +292,54 @@ export default function Calendario() {
         {(filterType === 'all' || filterType === 'nomeacao') && (
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-purple-500 shadow-sm"></div>
-            <span className="font-medium text-slate-700 dark:text-slate-300">Nomeações</span>
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">Nomeações</span>
           </div>
         )}
         {(filterType === 'all' || filterType === 'pericia') && (
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-slate-500 shadow-sm"></div>
-            <span className="font-medium text-slate-700 dark:text-slate-300">Visitas Técnicas</span>
+            <div className="w-3 h-3 rounded-full bg-zinc-500 shadow-sm"></div>
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">Visitas Técnicas</span>
           </div>
         )}
         {(filterType === 'all' || filterType === 'entrega') && (
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
-            <span className="font-medium text-slate-700 dark:text-slate-300">Prazos de Laudo</span>
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">Prazos de Laudo</span>
           </div>
         )}
         {(filterType === 'all' || filterType === 'impugnacao') && (
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-orange-500 shadow-sm"></div>
-            <span className="font-medium text-slate-700 dark:text-slate-300">Impugnações</span>
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">Impugnações</span>
           </div>
         )}
         {(filterType === 'all' || filterType === 'esclarecimentos') && (
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-pink-500 shadow-sm"></div>
-            <span className="font-medium text-slate-700 dark:text-slate-300">Esclarecimentos</span>
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">Esclarecimentos</span>
           </div>
         )}
         <div className="flex items-center gap-2 ml-auto">
           <BellRing className="w-4 h-4 text-amber-500" />
-          <span className="font-medium text-slate-700 dark:text-slate-300 text-xs">
+          <span className="font-medium text-zinc-700 dark:text-zinc-300 text-xs">
             Vence em &lt; 48h
           </span>
         </div>
       </div>
 
-      <Card className="shadow-sm border-slate-200 dark:border-slate-800 overflow-hidden">
+      <Card className="shadow-sm border-zinc-200 dark:border-zinc-800 overflow-hidden">
         <CardContent className="p-0">
-          <div className="grid grid-cols-7 gap-px bg-slate-200 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+          <div className="grid grid-cols-7 gap-px bg-zinc-200 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-800">
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((d) => (
               <div
                 key={d}
-                className="bg-slate-50 dark:bg-slate-900/80 py-3 text-center text-sm font-semibold text-slate-500 dark:text-slate-400"
+                className="bg-zinc-50 dark:bg-zinc-900/80 py-3 text-center text-sm font-semibold text-zinc-500 dark:text-zinc-400"
               >
                 {d}
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-px bg-slate-200 dark:bg-slate-800">
+          <div className="grid grid-cols-7 gap-px bg-zinc-200 dark:bg-zinc-800">
             {days.map((day, i) => {
               const dayEvents = getEventsForDay(day)
               const isCurrentMonth = isSameMonth(day, currentDate)
@@ -352,12 +352,12 @@ export default function Calendario() {
                     if (dayEvents.length > 0) setSelectedDate(day)
                   }}
                   className={cn(
-                    'bg-white dark:bg-slate-950 min-h-[120px] p-2 transition-colors relative group',
+                    'bg-white dark:bg-zinc-950 min-h-[120px] p-2 transition-colors relative group',
                     !isCurrentMonth &&
-                      'text-slate-400 bg-slate-50/50 dark:bg-slate-900/50 dark:text-slate-600',
+                      'text-zinc-400 bg-zinc-50/50 dark:bg-zinc-900/50 dark:text-zinc-600',
                     dayEvents.length > 0 &&
-                      'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900',
-                    isToday && 'bg-slate-100/50 dark:bg-slate-800/40',
+                      'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900',
+                    isToday && 'bg-zinc-100/50 dark:bg-zinc-800/40',
                   )}
                 >
                   <div className="flex justify-between items-start mb-2">
@@ -367,7 +367,7 @@ export default function Calendario() {
                         isToday && 'bg-primary text-primary-foreground shadow-sm',
                         !isToday &&
                           dayEvents.length > 0 &&
-                          'group-hover:bg-slate-200 dark:group-hover:bg-slate-800',
+                          'group-hover:bg-zinc-200 dark:group-hover:bg-zinc-800',
                         !isToday && !isCurrentMonth && 'opacity-50',
                       )}
                     >
@@ -376,7 +376,7 @@ export default function Calendario() {
                     {dayEvents.length > 0 && (
                       <Badge
                         variant="secondary"
-                        className="text-[10px] px-1.5 py-0 h-5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                        className="text-[10px] px-1.5 py-0 h-5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
                       >
                         {dayEvents.length}
                       </Badge>
@@ -392,7 +392,7 @@ export default function Calendario() {
                           className={cn(
                             'text-[11px] px-1.5 py-1 rounded-sm truncate font-medium flex items-center justify-between shadow-sm relative overflow-hidden group/event',
                             e.type === 'pericia'
-                              ? 'bg-slate-200 text-slate-800 dark:bg-slate-800/80 dark:text-slate-300 border border-slate-300 dark:border-slate-700/50'
+                              ? 'bg-zinc-200 text-zinc-800 dark:bg-zinc-800/80 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700/50'
                               : e.type === 'entrega'
                                 ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800/50'
                                 : e.type === 'impugnacao'
@@ -401,7 +401,7 @@ export default function Calendario() {
                                     ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-300 border border-pink-200 dark:border-pink-800/50'
                                     : 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50',
                             urgent &&
-                              'ring-1 ring-amber-400 dark:ring-amber-500 ring-offset-1 dark:ring-offset-slate-950',
+                              'ring-1 ring-amber-400 dark:ring-amber-500 ring-offset-1 dark:ring-offset-zinc-950',
                           )}
                           title={`${e.title}: ${e.processo}${urgent ? ' (Vence em < 48h)' : ''}`}
                         >
@@ -416,7 +416,7 @@ export default function Calendario() {
                       )
                     })}
                     {dayEvents.length > 3 && (
-                      <div className="text-[10px] text-slate-500 font-medium pl-1 mt-1">
+                      <div className="text-[10px] text-zinc-500 font-medium pl-1 mt-1">
                         +{dayEvents.length - 3} mais
                       </div>
                     )}
@@ -445,7 +445,7 @@ export default function Calendario() {
                   <div
                     key={e.id}
                     className={cn(
-                      'p-4 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3 bg-slate-50/50 dark:bg-slate-900/50 shadow-sm relative',
+                      'p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl space-y-3 bg-zinc-50/50 dark:bg-zinc-900/50 shadow-sm relative',
                       isUrgent(e.date, e.originalData.status) &&
                         'border-amber-300 dark:border-amber-700 bg-amber-50/30 dark:bg-amber-900/10',
                     )}
@@ -456,7 +456,7 @@ export default function Calendario() {
                           className={cn(
                             'text-xs px-2 py-0.5 font-semibold shadow-sm',
                             e.type === 'pericia'
-                              ? 'bg-slate-600 hover:bg-slate-700 text-white'
+                              ? 'bg-zinc-600 hover:bg-zinc-700 text-white'
                               : e.type === 'entrega'
                                 ? 'bg-red-500 hover:bg-red-600 text-white'
                                 : e.type === 'impugnacao'
@@ -487,7 +487,7 @@ export default function Calendario() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+                          className="h-7 w-7 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
                           title="Adicionar à Agenda"
                           onClick={() => {
                             downloadIcs({
@@ -504,17 +504,17 @@ export default function Calendario() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-1">
+                      <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1">
                         Processo: {e.processo}
                       </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
                         <FileText className="w-3.5 h-3.5" />
                         {e.originalData.vara || 'Vara não informada'}
                         {e.originalData.cidade ? ` - ${e.originalData.cidade}` : ''}
                       </div>
                     </div>
                     {e.originalData.observacoes && (
-                      <div className="text-xs bg-white dark:bg-slate-950 p-2.5 rounded-md border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 italic line-clamp-3">
+                      <div className="text-xs bg-white dark:bg-zinc-950 p-2.5 rounded-md border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 italic line-clamp-3">
                         {e.originalData.observacoes}
                       </div>
                     )}

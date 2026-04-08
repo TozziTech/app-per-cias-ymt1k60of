@@ -230,6 +230,7 @@ export type Database = {
       }
       pericias: {
         Row: {
+          adiantamento_solicitado: boolean | null
           advogado_autora: string | null
           advogado_re: string | null
           assistente_autora: string | null
@@ -249,6 +250,7 @@ export type Database = {
           entrega_esclarecimentos: string | null
           entrega_impugnacao: string | null
           honorarios: number | null
+          honorarios_parcelados: boolean | null
           id: string
           juiz: string | null
           justica_gratuita: boolean | null
@@ -259,12 +261,14 @@ export type Database = {
           perito_associado: string | null
           perito_id: string | null
           prazo_entrega: string | null
+          quantidade_parcelas: number | null
           status: string | null
           status_pagamento: string | null
           updated_at: string
           vara: string | null
         }
         Insert: {
+          adiantamento_solicitado?: boolean | null
           advogado_autora?: string | null
           advogado_re?: string | null
           assistente_autora?: string | null
@@ -284,6 +288,7 @@ export type Database = {
           entrega_esclarecimentos?: string | null
           entrega_impugnacao?: string | null
           honorarios?: number | null
+          honorarios_parcelados?: boolean | null
           id?: string
           juiz?: string | null
           justica_gratuita?: boolean | null
@@ -294,12 +299,14 @@ export type Database = {
           perito_associado?: string | null
           perito_id?: string | null
           prazo_entrega?: string | null
+          quantidade_parcelas?: number | null
           status?: string | null
           status_pagamento?: string | null
           updated_at?: string
           vara?: string | null
         }
         Update: {
+          adiantamento_solicitado?: boolean | null
           advogado_autora?: string | null
           advogado_re?: string | null
           assistente_autora?: string | null
@@ -319,6 +326,7 @@ export type Database = {
           entrega_esclarecimentos?: string | null
           entrega_impugnacao?: string | null
           honorarios?: number | null
+          honorarios_parcelados?: boolean | null
           id?: string
           juiz?: string | null
           justica_gratuita?: boolean | null
@@ -329,6 +337,7 @@ export type Database = {
           perito_associado?: string | null
           perito_id?: string | null
           prazo_entrega?: string | null
+          quantidade_parcelas?: number | null
           status?: string | null
           status_pagamento?: string | null
           updated_at?: string
@@ -702,6 +711,9 @@ export const Constants = {
 //   perito_id: uuid (nullable)
 //   contato_perito_id: uuid (nullable)
 //   status_pagamento: text (nullable, default: 'Pendente'::text)
+//   honorarios_parcelados: boolean (nullable, default: false)
+//   quantidade_parcelas: integer (nullable)
+//   adiantamento_solicitado: boolean (nullable, default: false)
 // Table: peritos
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)
@@ -833,7 +845,7 @@ export const Constants = {
 //       NEW.id,
 //       NEW.email,
 //       COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
-//       COALESCE(NEW.raw_user_meta_data->>'role', 'user')
+//       COALESCE(NEW.raw_user_meta_data->>'role', 'Administrador')
 //     );
 //     RETURN NEW;
 //   END;
