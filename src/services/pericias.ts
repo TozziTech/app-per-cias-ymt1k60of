@@ -1,6 +1,23 @@
 import { supabase } from '@/lib/supabase/client'
 import { Pericia } from '@/lib/types'
 
+export async function getMyPericias(userId?: string): Promise<Pericia[]> {
+  let query = supabase.from('pericias').select('*')
+
+  if (userId) {
+    query = query.eq('perito_id', userId)
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Erro ao buscar minhas perícias:', error)
+    throw error
+  }
+
+  return (data || []) as any as Pericia[]
+}
+
 export async function getPericias(): Promise<Pericia[]> {
   const { data, error } = await supabase
     .from('pericias')
