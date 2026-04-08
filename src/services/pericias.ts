@@ -234,9 +234,18 @@ export async function logActivity(
   action: string,
   details?: string,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('pericia_logs')
-    .insert([{ pericia_id: periciaId, action, details }])
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const { error } = await supabase.from('activity_logs').insert([
+    {
+      entity_id: periciaId,
+      entity_type: 'perícia',
+      action,
+      details: details ? { descricao: details } : null,
+      user_id: user?.id || null,
+    },
+  ])
 
   if (error) {
     console.error('Erro ao registrar atividade:', error)
@@ -246,9 +255,9 @@ export async function logActivity(
 
 export async function getPericiaLogs(periciaId: string): Promise<any[]> {
   const { data, error } = await supabase
-    .from('pericia_logs')
+    .from('activity_logs')
     .select('*')
-    .eq('pericia_id', periciaId)
+    .eq('entity_id', periciaId)
     .order('created_at', { ascending: false })
 
   if (error) {

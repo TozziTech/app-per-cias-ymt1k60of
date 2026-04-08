@@ -9,11 +9,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Copy, FileText, Loader2, FileDown } from 'lucide-react'
+import { Copy, FileText, Loader2, FileDown, History } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import { valorPorExtenso } from '@/lib/extenso'
 import { GerenciadorTemplates } from './GerenciadorTemplates'
+import { GerenciadorCabecalhos } from './GerenciadorCabecalhos'
+import { logActivity } from '@/services/pericias'
 
 interface GeradorPeticoesProps {
   pericia: Pericia
@@ -72,30 +74,42 @@ const STATIC_TEMPLATES = [
 
 export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
   const [templates, setTemplates] = useState<any[]>([])
+  const [cabecalhos, setCabecalhos] = useState<any[]>([])
+  const [historico, setHistorico] = useState<any[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState('')
   const [generatedText, setGeneratedText] = useState('')
   const [peritoData, setPeritoData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
 
-  const fetchTemplates = async () => {
+  const fetchDados = async () => {
     try {
-      const { data, error } = await supabase.from('peticao_templates').select('*').order('nome')
-      if (!error && data && data.length > 0) {
-        // Garante que todos os templates estáticos estejam presentes, caso a migração falhe
-        const mergedTemplates = [...data]
-        const dbNames = data.map((t: any) => t.nome)
-
+      // Templates
+      const { data: tData } = await supabase.from('peticao_templates').select('*').order('nome')
+      if (tData && tData.length > 0) {
+        const mergedTemplates = [...tData]
+        const dbNames = tData.map((t: any) => t.nome)
         STATIC_TEMPLATES.forEach((staticT) => {
           if (!dbNames.includes(staticT.nome)) {
             mergedTemplates.push({ ...staticT, is_system: true })
           }
         })
-
         setTemplates(mergedTemplates.sort((a, b) => a.nome.localeCompare(b.nome)))
       } else {
         setTemplates(STATIC_TEMPLATES)
       }
+
+      // Cabeçalhos
+      const { data: cData } = await supabase.from('cabecalhos_vara').select('*')
+      if (cData) setCabecalhos(cData)
+
+      // Histórico
+      const { data: hData } = await supabase
+        .from('historico_documentos')
+        .select('*')
+        .eq('pericia_id', pericia.id)
+        .order('created_at', { ascending: false })
+      if (hData) setHistorico(hData)
     } catch (err) {
       setTemplates(STATIC_TEMPLATES)
     }
@@ -104,7 +118,7 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
   useEffect(() => {
     async function init() {
       setIsLoading(true)
-      await fetchTemplates()
+      await fetchDados()
       if (pericia.perito_id) {
         const { data } = await supabase
           .from('peritos')
@@ -116,7 +130,7 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
       setIsLoading(false)
     }
     init()
-  }, [pericia.perito_id])
+  }, [pericia.id, pericia.perito_id])
 
   useEffect(() => {
     if (!selectedTemplate) {
@@ -164,12 +178,30 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
       data_atual: new Date().toLocaleDateString('pt-BR'),
     }
 
-    const header = `EXCELENTÍSSIMO(A) SENHOR(A) DOUTOR(A) JUIZ(A) DE DIREITO DA ${dados.vara.toUpperCase()} DA COMARCA DE ${dados.cidade.toUpperCase()}\n\nProcesso nº: ${dados.numero_processo}\n\n${dados.perito}, Perito(a) do Juízo, devidamente qualificado(a) nos autos do processo em epígrafe, portador(a) do CPF nº ${dados.cpf} e registro profissional nº ${dados.crea}, com endereço profissional em ${dados.endereco_perito}, vem, respeitosamente, à presença de Vossa Excelência, `
+    const customCabecalho = cabecalhos.find((c) => {
+      const matchVara = c.vara.toLowerCase() === dados.vara.toLowerCase()
+      const matchCidade = !c.cidade || c.cidade.toLowerCase() === dados.cidade.toLowerCase()
+      return matchVara && matchCidade
+    })
+
+    const defaultHeader = `EXCELENTÍSSIMO(A) SENHOR(A) DOUTOR(A) JUIZ(A) DE DIREITO DA ${dados.vara.toUpperCase()} DA COMARCA DE ${dados.cidade.toUpperCase()}\n\nProcesso nº: ${dados.numero_processo}\n\n${dados.perito}, Perito(a) do Juízo, devidamente qualificado(a) nos autos do processo em epígrafe, portador(a) do CPF nº ${dados.cpf} e registro profissional nº ${dados.crea}, com endereço profissional em ${dados.endereco_perito}, vem, respeitosamente, à presença de Vossa Excelência, `
+
+    let headerToUse = defaultHeader
+    if (customCabecalho) {
+      headerToUse = customCabecalho.conteudo
+        .replace(/\[VARA\]/g, dados.vara)
+        .replace(/\[CIDADE\]/g, dados.cidade)
+        .replace(/\[NÚMERO DO PROCESSO\]/g, dados.numero_processo)
+        .replace(/\[NOME DO PERITO\]/g, dados.perito)
+        .replace(/\[CPF DO PERITO\]/g, dados.cpf)
+        .replace(/\[REGISTRO PROFISSIONAL\]/g, dados.crea)
+        .replace(/\[ENDEREÇO PROFISSIONAL\]/g, dados.endereco_perito)
+    }
 
     const footer = `\n\nTermos em que,\nPede deferimento.\n\n${dados.cidade}, ${dados.data_atual}\n\n___________________________________________________\n${dados.perito}\nPerito(a) do Juízo\n${dados.crea}`
 
     let text = template.conteudo
-      .replace(/\[CABEÇALHO\]/g, header)
+      .replace(/\[CABEÇALHO\]/g, headerToUse)
       .replace(/\[RODAPE\]/g, footer)
       .replace(/\[VALOR_HONORARIOS\]/g, dados.valor_honorarios)
       .replace(/\[VALOR_EXTENSO\]/g, dados.valor_extenso)
@@ -177,12 +209,41 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
       .replace(/\[ENDERECO_PERICIA\]/g, dados.endereco_pericia)
 
     setGeneratedText(text)
-  }, [selectedTemplate, pericia, peritoData, templates])
+  }, [selectedTemplate, pericia, peritoData, templates, cabecalhos])
 
-  const handleCopy = () => {
+  const registerGeneration = async (templateName: string) => {
+    try {
+      await logActivity(pericia.id, 'gerou_peticao', `Petição gerada: ${templateName}`)
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      const newItem = {
+        pericia_id: pericia.id,
+        tipo_documento: 'Petição',
+        nome_documento: templateName,
+        user_id: user?.id || null,
+      }
+
+      const { data, error } = await supabase
+        .from('historico_documentos')
+        .insert(newItem)
+        .select()
+        .single()
+      if (!error && data) {
+        setHistorico((prev) => [data, ...prev])
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleCopy = async () => {
     if (!generatedText) return
-    navigator.clipboard.writeText(generatedText)
+    await navigator.clipboard.writeText(generatedText)
     toast({ title: 'Sucesso', description: 'Texto copiado para a área de transferência.' })
+    const template = templates.find((t) => t.id === selectedTemplate)
+    if (template) registerGeneration(template.nome)
   }
 
   const handleDownloadDoc = () => {
@@ -204,13 +265,16 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
+
+    const template = templates.find((t) => t.id === selectedTemplate)
+    if (template) registerGeneration(template.nome)
   }
 
   return (
-    <div className="space-y-4 pt-2">
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+    <div className="space-y-4 pt-2 pb-6">
+      <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
         <Select value={selectedTemplate} onValueChange={setSelectedTemplate} disabled={isLoading}>
-          <SelectTrigger className="w-full sm:w-[350px]">
+          <SelectTrigger className="w-full xl:w-[350px]">
             <SelectValue
               placeholder={isLoading ? 'Carregando dados...' : 'Selecione o modelo de petição...'}
             />
@@ -224,8 +288,9 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
           </SelectContent>
         </Select>
 
-        <div className="flex gap-2 w-full sm:w-auto flex-wrap">
-          <GerenciadorTemplates templates={templates} onTemplatesChange={fetchTemplates} />
+        <div className="flex gap-2 w-full xl:w-auto flex-wrap">
+          <GerenciadorTemplates templates={templates} onTemplatesChange={fetchDados} />
+          <GerenciadorCabecalhos cabecalhos={cabecalhos} onCabecalhosChange={fetchDados} />
           <Button
             variant="outline"
             onClick={handleCopy}
@@ -267,6 +332,34 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
               processo e do seu perfil profissional.
             </p>
           </div>
+        )}
+      </div>
+
+      <div className="mt-8 border-t pt-6">
+        <h3 className="text-sm font-semibold flex items-center gap-2 mb-4">
+          <History className="w-4 h-4" /> Histórico de Documentos Gerados
+        </h3>
+        {historico && historico.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {historico.map((h: any) => (
+              <div
+                key={h.id}
+                className="flex justify-between items-center text-sm bg-muted/30 p-3 rounded border"
+              >
+                <span className="font-medium flex items-center gap-2">
+                  <FileText className="h-3 w-3 text-muted-foreground" />
+                  {h.nome_documento}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(h.created_at).toLocaleString('pt-BR')}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Nenhuma petição gerada e registrada para esta perícia ainda.
+          </p>
         )}
       </div>
     </div>
