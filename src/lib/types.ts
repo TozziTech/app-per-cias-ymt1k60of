@@ -110,6 +110,7 @@ export interface Pericia {
   observacoes?: string
   linkNuvem?: string
   checklist: ChecklistItem[]
+  peticoes?: ChecklistItem[]
   status: PericiaStatus
   justicaGratuita?: boolean
   peritoAssociado?: string

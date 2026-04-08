@@ -65,6 +65,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { PericiaForm } from '@/components/PericiaForm'
 import { exportToCsv } from '@/lib/export'
 import { supabase } from '@/lib/supabase/client'
@@ -72,7 +82,7 @@ import { supabase } from '@/lib/supabase/client'
 import { Pericia } from '@/lib/types'
 
 export default function Pericias() {
-  const { pericias, updatePericia } = usePericias()
+  const { pericias, updatePericia, deletePericia } = usePericias()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('todos')
   const [isSheetOpen, setIsSheetOpen] = useState(false)
@@ -89,6 +99,10 @@ export default function Pericias() {
   const [logs, setLogs] = useState<any[]>([])
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [newTaskText, setNewTaskText] = useState('')
+  const [newPeticaoText, setNewPeticaoText] = useState('')
+  const [editingPeticaoId, setEditingPeticaoId] = useState<string | null>(null)
+  const [editingPeticaoText, setEditingPeticaoText] = useState('')
+  const [periciaToDelete, setPericiaToDelete] = useState<Pericia | null>(null)
 
   const fetchLogs = async (periciaId: string) => {
     setIsLoadingLogs(true)
@@ -387,6 +401,85 @@ export default function Pericias() {
       fetchLogs(selectedPericia.id)
     } catch (e) {
       toast({ title: 'Erro', description: 'Falha ao remover tarefa.', variant: 'destructive' })
+    }
+  }
+
+  const handleTogglePeticao = async (itemId: string, concluido: boolean) => {
+    if (!selectedPericia) return
+    const newPeticoes = (selectedPericia.peticoes || []).map((i) =>
+      i.id === itemId ? { ...i, concluido } : i,
+    )
+
+    try {
+      await updatePericia(selectedPericia.id, { peticoes: newPeticoes })
+      setSelectedPericia((prev) => (prev ? { ...prev, peticoes: newPeticoes } : prev))
+      fetchLogs(selectedPericia.id)
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao atualizar petição.', variant: 'destructive' })
+    }
+  }
+
+  const handleAddPeticao = async () => {
+    if (!newPeticaoText.trim() || !selectedPericia) return
+    const newPeticao = { id: crypto.randomUUID(), texto: newPeticaoText.trim(), concluido: false }
+    const newPeticoes = [...(selectedPericia.peticoes || []), newPeticao]
+
+    try {
+      await updatePericia(selectedPericia.id, { peticoes: newPeticoes })
+      setSelectedPericia((prev) => (prev ? { ...prev, peticoes: newPeticoes } : prev))
+      setNewPeticaoText('')
+      fetchLogs(selectedPericia.id)
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao adicionar petição.', variant: 'destructive' })
+    }
+  }
+
+  const handleRemovePeticao = async (itemId: string) => {
+    if (!selectedPericia) return
+    const newPeticoes = (selectedPericia.peticoes || []).filter((i) => i.id !== itemId)
+
+    try {
+      await updatePericia(selectedPericia.id, { peticoes: newPeticoes })
+      setSelectedPericia((prev) => (prev ? { ...prev, peticoes: newPeticoes } : prev))
+      fetchLogs(selectedPericia.id)
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao remover petição.', variant: 'destructive' })
+    }
+  }
+
+  const startEditPeticao = (item: any) => {
+    setEditingPeticaoId(item.id)
+    setEditingPeticaoText(item.texto)
+  }
+
+  const saveEditPeticao = async () => {
+    if (!selectedPericia || !editingPeticaoId) return
+    const newPeticoes = (selectedPericia.peticoes || []).map((i) =>
+      i.id === editingPeticaoId ? { ...i, texto: editingPeticaoText } : i,
+    )
+
+    try {
+      await updatePericia(selectedPericia.id, { peticoes: newPeticoes })
+      setSelectedPericia((prev) => (prev ? { ...prev, peticoes: newPeticoes } : prev))
+      setEditingPeticaoId(null)
+      setEditingPeticaoText('')
+      fetchLogs(selectedPericia.id)
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao editar petição.', variant: 'destructive' })
+    }
+  }
+
+  const confirmDeletePericia = async () => {
+    if (!periciaToDelete) return
+    try {
+      await deletePericia(periciaToDelete.id)
+      toast({ title: 'Sucesso', description: 'Perícia excluída com sucesso.' })
+      setPericiaToDelete(null)
+      if (selectedPericia?.id === periciaToDelete.id) {
+        setIsDetailsOpen(false)
+      }
+    } catch (e) {
+      // erro tratado no context
     }
   }
 
@@ -904,6 +997,25 @@ export default function Pericias() {
                             <TooltipContent>Agenda: Prazo do Laudo</TooltipContent>
                           </Tooltip>
                         )}
+
+                        {canEditFinanceiro && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setPericiaToDelete(pericia)
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Excluir Perícia</TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1296,6 +1408,101 @@ export default function Pericias() {
                     </div>
                   </div>
                 </div>
+
+                <div className="border-t pt-4 text-sm">
+                  <h4 className="font-medium mb-3">Controle de Petições</h4>
+                  <div className="space-y-3">
+                    <ul className="space-y-2">
+                      {(selectedPericia.peticoes || []).map((item) => (
+                        <li key={item.id} className="flex items-start gap-2 group">
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePeticao(item.id, !item.concluido)}
+                            className={`mt-0.5 h-5 w-5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${item.concluido ? 'bg-primary border-primary text-primary-foreground' : 'border-input hover:border-primary'}`}
+                          >
+                            {item.concluido && <Check className="h-3.5 w-3.5" />}
+                          </button>
+
+                          {editingPeticaoId === item.id ? (
+                            <div className="flex-1 flex items-center gap-2">
+                              <Input
+                                value={editingPeticaoText}
+                                onChange={(e) => setEditingPeticaoText(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveEditPeticao()
+                                }}
+                                className="h-7 text-xs"
+                                autoFocus
+                              />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={saveEditPeticao}
+                              >
+                                <Check className="h-4 w-4 text-emerald-500" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <span
+                                className={`flex-1 leading-snug pt-0.5 ${item.concluido ? 'line-through text-muted-foreground' : ''}`}
+                              >
+                                {item.texto}
+                              </span>
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 flex items-center gap-1 pt-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => startEditPeticao(item)}
+                                  className="text-muted-foreground hover:text-primary transition-colors"
+                                  title="Editar Petição"
+                                >
+                                  <Edit className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemovePeticao(item.id)}
+                                  className="text-muted-foreground hover:text-destructive transition-colors"
+                                  title="Remover Petição"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </li>
+                      ))}
+                      {(!selectedPericia.peticoes || selectedPericia.peticoes.length === 0) && (
+                        <p className="text-muted-foreground text-sm py-2">
+                          Nenhuma petição cadastrada.
+                        </p>
+                      )}
+                    </ul>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        placeholder="Nova petição..."
+                        value={newPeticaoText}
+                        onChange={(e) => setNewPeticaoText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            handleAddPeticao()
+                          }
+                        }}
+                        className="h-8 text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={handleAddPeticao}
+                        className="shrink-0 h-8"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Adicionar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
 
               <TabsContent value="historico" className="space-y-6 mt-0">
@@ -1379,6 +1586,31 @@ export default function Pericias() {
           )}
         </SheetContent>
       </Sheet>
+
+      <AlertDialog
+        open={!!periciaToDelete}
+        onOpenChange={(open) => !open && setPericiaToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Perícia?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente a perícia
+              {periciaToDelete?.codigoInterno ? ` ${periciaToDelete.codigoInterno}` : ''} e removerá
+              todos os dados atrelados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeletePericia}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
