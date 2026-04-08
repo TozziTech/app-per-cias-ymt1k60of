@@ -77,6 +77,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { PericiaForm } from '@/components/PericiaForm'
+import { GeradorPeticoes } from '@/components/GeradorPeticoes'
 import { exportToCsv } from '@/lib/export'
 import { supabase } from '@/lib/supabase/client'
 
@@ -1055,9 +1056,16 @@ export default function Pericias() {
 
           {selectedPericia && (
             <Tabs defaultValue="detalhes" className="w-full mt-6 pb-12">
-              <TabsList className="w-full grid grid-cols-2 mb-4">
-                <TabsTrigger value="detalhes">Detalhes e Arquivos</TabsTrigger>
-                <TabsTrigger value="historico">Histórico de Acesso</TabsTrigger>
+              <TabsList className="w-full grid grid-cols-3 mb-4 h-auto">
+                <TabsTrigger value="detalhes" className="text-xs sm:text-sm py-2">
+                  Detalhes e Arquivos
+                </TabsTrigger>
+                <TabsTrigger value="gerador" className="text-xs sm:text-sm py-2">
+                  Gerador de Petições
+                </TabsTrigger>
+                <TabsTrigger value="historico" className="text-xs sm:text-sm py-2">
+                  Histórico de Acesso
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="detalhes" className="space-y-6 mt-0">
@@ -1571,6 +1579,10 @@ export default function Pericias() {
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="gerador" className="space-y-6 mt-0">
+                <GeradorPeticoes pericia={selectedPericia} />
               </TabsContent>
 
               <TabsContent value="historico" className="space-y-6 mt-0">
