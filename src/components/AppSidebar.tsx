@@ -8,6 +8,7 @@ import {
   DollarSign,
   BookOpen,
   Users,
+  Briefcase,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -27,6 +28,7 @@ const navItems = [
   { title: 'Cadastro de Perícias', url: '/pericias', icon: FileText },
   { title: 'Peritos Associados', url: '/peritos', icon: Users },
   { title: 'Contatos', url: '/contatos', icon: BookOpen },
+  { title: 'Portal do Perito', url: '/portal-perito', icon: Briefcase },
   { title: 'Calendário', url: '/calendario', icon: Calendar },
   { title: 'Configurações', url: '#', icon: Settings },
 ]

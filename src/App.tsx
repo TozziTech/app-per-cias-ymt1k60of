@@ -18,6 +18,7 @@ import NotFound from './pages/NotFound'
 import Contatos from './pages/Contatos'
 import Peritos from './pages/Peritos'
 import PeritoDetalhes from './pages/PeritoDetalhes'
+import PortalPerito from './pages/PortalPerito'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -41,6 +42,7 @@ const App = () => (
                   <Route path="/contatos" element={<Contatos />} />
                   <Route path="/peritos" element={<Peritos />} />
                   <Route path="/peritos/:id" element={<PeritoDetalhes />} />
+                  <Route path="/portal-perito" element={<PortalPerito />} />
                 </Route>
               </Route>
 

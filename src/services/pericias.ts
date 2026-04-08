@@ -89,6 +89,42 @@ export const getPericias = async () => {
   return (data || []).map(mapFromDb)
 }
 
+export const getMyPericias = async (email?: string, name?: string) => {
+  let peritoId = null
+  let peritoNome = name
+
+  if (email) {
+    const { data: perito } = await supabase
+      .from('peritos')
+      .select('id, nome')
+      .eq('email', email)
+      .maybeSingle()
+
+    if (perito) {
+      peritoId = perito.id
+      peritoNome = perito.nome
+    }
+  }
+
+  let query = supabase
+    .from('pericias')
+    .select('*, pericia_anexos(*)')
+    .order('created_at', { ascending: false })
+
+  if (peritoId) {
+    query = query.or(`perito_id.eq.${peritoId},perito_associado.ilike.%${peritoNome}%`)
+  } else if (peritoNome) {
+    query = query.ilike('perito_associado', `%${peritoNome}%`)
+  } else {
+    // If no identification is found, return nothing
+    query = query.eq('id', '00000000-0000-0000-0000-000000000000')
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return (data || []).map(mapFromDb)
+}
+
 export const getPericiaAnexos = async (periciaId: string) => {
   const { data, error } = await supabase
     .from('pericia_anexos')
