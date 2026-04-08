@@ -57,6 +57,25 @@ export interface Lancamento {
   } | null
 }
 
+export interface Tarefa {
+  id: string
+  titulo: string
+  descricao?: string | null
+  status: string
+  pericia_id?: string | null
+  responsavel_id?: string | null
+  data_entrega?: string | null
+  finalizado: boolean
+  created_at: string
+  updated_at?: string
+  pericia?: {
+    numero_processo: string
+  } | null
+  responsavel?: {
+    name: string
+  } | null
+}
+
 export interface PericiaAnexo {
   id: string
   pericia_id: string

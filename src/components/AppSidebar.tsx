@@ -9,6 +9,7 @@ import {
   BookOpen,
   Users,
   Briefcase,
+  CheckSquare,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -24,6 +25,7 @@ import {
 
 const navItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Tarefas', url: '/tarefas', icon: CheckSquare },
   { title: 'Financeiro', url: '/financeiro', icon: DollarSign },
   { title: 'Cadastro de Perícias', url: '/pericias', icon: FileText },
   { title: 'Peritos Associados', url: '/peritos', icon: Users },

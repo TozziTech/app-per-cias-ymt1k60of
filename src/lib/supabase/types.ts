@@ -228,6 +228,45 @@ export type Database = {
           },
         ]
       }
+      pericia_mensagens: {
+        Row: {
+          created_at: string
+          id: string
+          mensagem: string
+          pericia_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mensagem: string
+          pericia_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mensagem?: string
+          pericia_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'pericia_mensagens_pericia_id_fkey'
+            columns: ['pericia_id']
+            isOneToOne: false
+            referencedRelation: 'pericias'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'pericia_mensagens_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       pericias: {
         Row: {
           adiantamento_solicitado: boolean | null
@@ -677,6 +716,12 @@ export const Constants = {
 //   size: bigint (not null)
 //   created_at: timestamp with time zone (not null, default: now())
 //   created_by: uuid (nullable)
+// Table: pericia_mensagens
+//   id: uuid (not null, default: gen_random_uuid())
+//   pericia_id: uuid (not null)
+//   user_id: uuid (not null)
+//   mensagem: text (not null)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: pericias
 //   id: uuid (not null, default: gen_random_uuid())
 //   codigo_interno: text (nullable)
@@ -770,6 +815,10 @@ export const Constants = {
 //   FOREIGN KEY pericia_anexos_created_by_fkey: FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL
 //   FOREIGN KEY pericia_anexos_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE CASCADE
 //   PRIMARY KEY pericia_anexos_pkey: PRIMARY KEY (id)
+// Table: pericia_mensagens
+//   FOREIGN KEY pericia_mensagens_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE CASCADE
+//   PRIMARY KEY pericia_mensagens_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY pericia_mensagens_user_id_fkey: FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
 // Table: pericias
 //   FOREIGN KEY pericias_contato_perito_id_fkey: FOREIGN KEY (contato_perito_id) REFERENCES contatos(id) ON DELETE SET NULL
 //   FOREIGN KEY pericias_perito_id_fkey: FOREIGN KEY (perito_id) REFERENCES peritos(id) ON DELETE SET NULL
@@ -812,6 +861,10 @@ export const Constants = {
 //     WITH CHECK: true
 //   Policy "authenticated_select_anexos" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
+// Table: pericia_mensagens
+//   Policy "authenticated_all_mensagens" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: pericias
 //   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true
