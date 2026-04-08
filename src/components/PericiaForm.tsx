@@ -46,6 +46,9 @@ const formSchema = z.object({
   entregaImpugnacao: z.date().optional().nullable(),
   limitesEsclarecimentos: z.string().optional(),
   entregaEsclarecimentos: z.date().optional().nullable(),
+  honorariosParcelados: z.boolean().default(false),
+  quantidadeParcelas: z.string().optional(),
+  adiantamentoSolicitado: z.boolean().default(false),
   checklist: z.array(
     z.object({
       id: z.string(),
@@ -148,6 +151,9 @@ export function PericiaForm({
         entregaImpugnacao: parseDateSafe(pericia.entregaImpugnacao),
         limitesEsclarecimentos: pericia.limitesEsclarecimentos || '',
         entregaEsclarecimentos: parseDateSafe(pericia.entregaEsclarecimentos),
+        honorariosParcelados: pericia.honorariosParcelados || false,
+        quantidadeParcelas: pericia.quantidadeParcelas ? pericia.quantidadeParcelas.toString() : '',
+        adiantamentoSolicitado: pericia.adiantamentoSolicitado || false,
         checklist: pericia.checklist || [],
       })
     }
@@ -174,6 +180,11 @@ export function PericiaForm({
           : undefined,
         honorarios: values.honorarios ? parseFloat(values.honorarios.replace(',', '.')) : undefined,
         diasImpugnacao: values.diasImpugnacao ? parseInt(values.diasImpugnacao, 10) : undefined,
+        honorariosParcelados: values.honorariosParcelados,
+        quantidadeParcelas: values.quantidadeParcelas
+          ? parseInt(values.quantidadeParcelas, 10)
+          : undefined,
+        adiantamentoSolicitado: values.adiantamentoSolicitado,
         status: (values.status || 'Agendado') as any,
         perito_id: values.perito_id || null,
         peritoAssociado:
@@ -235,6 +246,28 @@ export function PericiaForm({
             label="Honorários Aprovados (R$)"
             placeholder="0.00"
           />
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 mt-2 md:col-span-2 p-3 bg-muted/30 rounded-md border border-border">
+            <CustomCheckbox
+              control={form.control}
+              name="honorariosParcelados"
+              label="Honorários Parcelados?"
+            />
+            {form.watch('honorariosParcelados') && (
+              <div className="w-32">
+                <CustomInput
+                  control={form.control}
+                  name="quantidadeParcelas"
+                  label="Qtd. Parcelas"
+                  type="number"
+                />
+              </div>
+            )}
+            <CustomCheckbox
+              control={form.control}
+              name="adiantamentoSolicitado"
+              label="Solicitação de Adiantamento (50%)"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-primary/20 pt-6">

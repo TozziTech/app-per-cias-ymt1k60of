@@ -297,7 +297,7 @@ export default function Calendario() {
         )}
         {(filterType === 'all' || filterType === 'pericia') && (
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></div>
+            <div className="w-3 h-3 rounded-full bg-slate-500 shadow-sm"></div>
             <span className="font-medium text-slate-700 dark:text-slate-300">Visitas Técnicas</span>
           </div>
         )}
@@ -357,7 +357,7 @@ export default function Calendario() {
                       'text-slate-400 bg-slate-50/50 dark:bg-slate-900/50 dark:text-slate-600',
                     dayEvents.length > 0 &&
                       'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900',
-                    isToday && 'bg-blue-50/30 dark:bg-blue-900/20',
+                    isToday && 'bg-slate-100/50 dark:bg-slate-800/40',
                   )}
                 >
                   <div className="flex justify-between items-start mb-2">
@@ -392,7 +392,7 @@ export default function Calendario() {
                           className={cn(
                             'text-[11px] px-1.5 py-1 rounded-sm truncate font-medium flex items-center justify-between shadow-sm relative overflow-hidden group/event',
                             e.type === 'pericia'
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50'
+                              ? 'bg-slate-200 text-slate-800 dark:bg-slate-800/80 dark:text-slate-300 border border-slate-300 dark:border-slate-700/50'
                               : e.type === 'entrega'
                                 ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800/50'
                                 : e.type === 'impugnacao'
@@ -456,7 +456,7 @@ export default function Calendario() {
                           className={cn(
                             'text-xs px-2 py-0.5 font-semibold shadow-sm',
                             e.type === 'pericia'
-                              ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                              ? 'bg-slate-600 hover:bg-slate-700 text-white'
                               : e.type === 'entrega'
                                 ? 'bg-red-500 hover:bg-red-600 text-white'
                                 : e.type === 'impugnacao'

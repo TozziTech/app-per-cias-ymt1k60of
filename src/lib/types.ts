@@ -1,4 +1,10 @@
-export type UserRole = 'administrador' | 'engenheiro_perito'
+export type UserRole =
+  | 'Administrador'
+  | 'Gerente'
+  | 'Perito Associado'
+  | 'administrador'
+  | 'engenheiro_perito'
+  | 'user'
 
 export interface User {
   id: string
@@ -96,4 +102,7 @@ export interface Pericia {
   contato_perito_id?: string | null
   status_pagamento?: string
   statusPagamento?: string
+  honorariosParcelados?: boolean
+  quantidadeParcelas?: number
+  adiantamentoSolicitado?: boolean
 }

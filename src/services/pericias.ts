@@ -34,6 +34,9 @@ const mapToDb = (p: Partial<Pericia>) => {
     db.entrega_esclarecimentos = p.entregaEsclarecimentos || null
   if (p.perito_id !== undefined) db.perito_id = p.perito_id || null
   if (p.contato_perito_id !== undefined) db.contato_perito_id = p.contato_perito_id || null
+  if (p.honorariosParcelados !== undefined) db.honorarios_parcelados = p.honorariosParcelados
+  if (p.quantidadeParcelas !== undefined) db.quantidade_parcelas = p.quantidadeParcelas
+  if (p.adiantamentoSolicitado !== undefined) db.adiantamento_solicitado = p.adiantamentoSolicitado
   return db
 }
 
@@ -70,6 +73,9 @@ const mapFromDb = (row: any): Pericia => {
     perito_id: row.perito_id || null,
     contato_perito_id: row.contato_perito_id || null,
     anexos: row.pericia_anexos || [],
+    honorariosParcelados: row.honorarios_parcelados || false,
+    quantidadeParcelas: row.quantidade_parcelas || undefined,
+    adiantamentoSolicitado: row.adiantamento_solicitado || false,
   }
 }
 

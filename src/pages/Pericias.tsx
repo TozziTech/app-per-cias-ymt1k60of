@@ -82,6 +82,9 @@ export default function Pericias() {
   const { user } = useAuth()
   const { toast } = useToast()
   const [isUploading, setIsUploading] = useState(false)
+
+  const isPerito = user?.role === 'Perito Associado'
+  const canEditFinanceiro = user?.role === 'Administrador' || user?.role === 'Gerente'
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [logs, setLogs] = useState<any[]>([])
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
@@ -106,6 +109,13 @@ export default function Pericias() {
   }, [selectedPericia?.id, isDetailsOpen])
 
   const filteredPericias = pericias.filter((p) => {
+    if (isPerito) {
+      const peritoName = user?.name || ''
+      if (p.peritoAssociado !== peritoName && !peritoName.includes(p.peritoAssociado || '---')) {
+        return false
+      }
+    }
+
     const matchSearch =
       p.codigoInterno.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.numeroProcesso.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -709,7 +719,11 @@ export default function Pericias() {
               <TableRow>
                 <TableHead className="pl-4 sm:pl-6 py-2 h-10 text-xs">Cód. / Processo</TableHead>
                 <TableHead className="py-2 h-10 text-xs">Perito Associado</TableHead>
-                <TableHead className="hidden xl:table-cell py-2 h-10 text-xs">Honorários</TableHead>
+                {!isPerito && (
+                  <TableHead className="hidden xl:table-cell py-2 h-10 text-xs">
+                    Honorários
+                  </TableHead>
+                )}
                 <TableHead className="hidden lg:table-cell py-2 h-10 text-xs">Nomeação</TableHead>
                 <TableHead className="py-2 h-10 text-xs">Perícia</TableHead>
                 <TableHead className="py-2 h-10 text-xs">Entrega</TableHead>
@@ -751,9 +765,11 @@ export default function Pericias() {
                     >
                       {pericia.peritoAssociado || '-'}
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell py-2 text-xs">
-                      {pericia.honorarios ? `R$ ${pericia.honorarios.toFixed(2)}` : '-'}
-                    </TableCell>
+                    {!isPerito && (
+                      <TableCell className="hidden xl:table-cell py-2 text-xs">
+                        {pericia.honorarios ? `R$ ${pericia.honorarios.toFixed(2)}` : '-'}
+                      </TableCell>
+                    )}
                     <TableCell className="hidden lg:table-cell py-2 text-xs">
                       {renderDate(pericia.dataNomeacao)}
                     </TableCell>
@@ -946,18 +962,34 @@ export default function Pericias() {
                     <p className="text-muted-foreground">Juiz</p>
                     <p className="font-medium">{selectedPericia.juiz || '-'}</p>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Honorários</p>
-                    <p className="font-medium">
-                      {selectedPericia.honorarios
-                        ? `R$ ${selectedPericia.honorarios.toFixed(2)}`
-                        : '-'}
-                    </p>
-                  </div>
+                  {canEditFinanceiro && (
+                    <>
+                      <div>
+                        <p className="text-muted-foreground">Honorários</p>
+                        <p className="font-medium flex items-center">
+                          {selectedPericia.honorarios
+                            ? `R$ ${selectedPericia.honorarios.toFixed(2)}`
+                            : '-'}
+                          {selectedPericia.honorariosParcelados && (
+                            <Badge variant="secondary" className="ml-2 text-[10px]">
+                              Parcelado ({selectedPericia.quantidadeParcelas}x)
+                            </Badge>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Adiantamento (50%)</p>
+                        <p className="font-medium">
+                          {selectedPericia.adiantamentoSolicitado ? 'Solicitado' : 'Não'}
+                        </p>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <p className="text-muted-foreground">Status de Pagamento</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Select
+                        disabled={!canEditFinanceiro}
                         value={
                           (selectedPericia as any).status_pagamento ||
                           selectedPericia.statusPagamento ||
@@ -1184,17 +1216,19 @@ export default function Pericias() {
                             >
                               <Download className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Excluir"
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() =>
-                                handleDeleteAnexo(anexo.id, anexo.file_path, anexo.file_name)
-                              }
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {!isPerito && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Excluir"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() =>
+                                  handleDeleteAnexo(anexo.id, anexo.file_path, anexo.file_name)
+                                }
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       ))}
