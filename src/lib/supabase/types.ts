@@ -351,8 +351,12 @@ export type Database = {
       peritos: {
         Row: {
           agencia: string | null
+          area_atuacao: string | null
+          bairro: string | null
           banco: string | null
+          cep: string | null
           chave_pix: string | null
+          cidade_estado: string | null
           codigo_id: string | null
           conta: string | null
           cpf: string | null
@@ -365,6 +369,7 @@ export type Database = {
           especialidade: string | null
           id: string
           nome: string
+          numero: string | null
           observacoes: string | null
           rg: string | null
           status: string | null
@@ -374,8 +379,12 @@ export type Database = {
         }
         Insert: {
           agencia?: string | null
+          area_atuacao?: string | null
+          bairro?: string | null
           banco?: string | null
+          cep?: string | null
           chave_pix?: string | null
+          cidade_estado?: string | null
           codigo_id?: string | null
           conta?: string | null
           cpf?: string | null
@@ -388,6 +397,7 @@ export type Database = {
           especialidade?: string | null
           id?: string
           nome: string
+          numero?: string | null
           observacoes?: string | null
           rg?: string | null
           status?: string | null
@@ -397,8 +407,12 @@ export type Database = {
         }
         Update: {
           agencia?: string | null
+          area_atuacao?: string | null
+          bairro?: string | null
           banco?: string | null
+          cep?: string | null
           chave_pix?: string | null
+          cidade_estado?: string | null
           codigo_id?: string | null
           conta?: string | null
           cpf?: string | null
@@ -411,6 +425,7 @@ export type Database = {
           especialidade?: string | null
           id?: string
           nome?: string
+          numero?: string | null
           observacoes?: string | null
           rg?: string | null
           status?: string | null
@@ -705,6 +720,11 @@ export const Constants = {
 //   conta: text (nullable)
 //   codigo_id: text (nullable)
 //   observacoes: text (nullable)
+//   numero: text (nullable)
+//   cep: text (nullable)
+//   cidade_estado: text (nullable)
+//   bairro: text (nullable)
+//   area_atuacao: text (nullable)
 // Table: profiles
 //   id: uuid (not null)
 //   email: text (not null)

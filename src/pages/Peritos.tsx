@@ -135,7 +135,13 @@ export default function Peritos() {
   const filtered = peritos.filter((p) => {
     const isAtiva = p.status !== 'Arquivado'
     const matchesTab = tab === 'Ativas' ? isAtiva : !isAtiva
-    return matchesTab && p.nome.toLowerCase().includes(search.toLowerCase())
+    const s = search.toLowerCase()
+    return (
+      matchesTab &&
+      (p.nome?.toLowerCase().includes(s) ||
+        p.area_atuacao?.toLowerCase().includes(s) ||
+        p.cidade_estado?.toLowerCase().includes(s))
+    )
   })
 
   return (
@@ -154,7 +160,7 @@ export default function Peritos() {
           <div className="relative flex-1 sm:w-80">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome..."
+              placeholder="Buscar por nome, área ou cidade..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 bg-background/50 border-border"
@@ -403,15 +409,17 @@ export default function Peritos() {
                     ID: {perito.codigo_id}
                   </Badge>
                 )}
-                {perito.crea && (
-                  <Badge variant="secondary" className="text-xs font-medium">
-                    CREA: {perito.crea}
-                  </Badge>
-                )}
               </div>
             </div>
 
             <div className="space-y-2 text-sm text-muted-foreground mt-1">
+              {perito.crea && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs font-medium">
+                    CREA: {perito.crea}
+                  </Badge>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 shrink-0" />
                 <span>{perito.telefone || 'Sem telefone'}</span>
