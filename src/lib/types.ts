@@ -94,4 +94,6 @@ export interface Pericia {
   entregaEsclarecimentos?: string
   anexos?: PericiaAnexo[]
   contato_perito_id?: string | null
+  status_pagamento?: string
+  statusPagamento?: string
 }

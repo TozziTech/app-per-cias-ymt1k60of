@@ -58,8 +58,15 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { PericiaForm } from '@/components/PericiaForm'
 import { exportToCsv } from '@/lib/export'
+import { supabase } from '@/lib/supabase/client'
 
 import { Pericia } from '@/lib/types'
 
@@ -179,8 +186,26 @@ export default function Pericias() {
         'Ass Ré': p.assistenteTecnicoRe,
         Honorários: p.honorarios,
         'Justiça Gratuita': p.justicaGratuita ? 'Sim' : 'Não',
+        'Status Pgto': (p as any).status_pagamento || p.statusPagamento || 'Pendente',
       })),
     )
+  }
+
+  const getPaymentBadge = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'recebido':
+      case 'pago':
+        return <Badge className="bg-emerald-500 hover:bg-emerald-600">Recebido</Badge>
+      case 'atrasado':
+        return <Badge variant="destructive">Atrasado</Badge>
+      case 'pendente':
+      default:
+        return (
+          <Badge variant="outline" className="text-amber-600 border-amber-300">
+            Pendente
+          </Badge>
+        )
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -321,6 +346,75 @@ export default function Pericias() {
     if (!d) return '-'
     const parsed = parseDateSafe(d)
     return parsed ? parsed.toLocaleDateString('pt-BR') : '-'
+  }
+
+  const handlePrintTablePdf = () => {
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+
+    const html = `
+      <html>
+        <head>
+          <title>Relatório de Perícias</title>
+          <style>
+            body { font-family: 'Helvetica', 'Arial', sans-serif; color: #333; padding: 20px; }
+            h1 { color: #D4AF37; margin-bottom: 20px; font-size: 24px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f3f4f6; color: #374151; font-weight: bold; }
+            @media print {
+              body { padding: 0; }
+              th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Relatório de Perícias</h1>
+          <table>
+            <thead>
+              <tr>
+                <th>Processo</th>
+                <th>Cód. Interno</th>
+                <th>Vara</th>
+                <th>Honorários</th>
+                <th>D. Nomeação</th>
+                <th>D. Perícia</th>
+                <th>D. Entrega</th>
+                <th>Pgto</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredPericias
+                .map(
+                  (p) => `
+                <tr>
+                  <td>${p.numeroProcesso || '-'}</td>
+                  <td>${p.codigoInterno || '-'}</td>
+                  <td>${p.vara || '-'}</td>
+                  <td>${p.honorarios ? `R$ ${p.honorarios.toFixed(2)}` : '-'}</td>
+                  <td>${renderDate(p.dataNomeacao)}</td>
+                  <td>${renderDate(p.dataPericia)}</td>
+                  <td>${renderDate(p.dataEntregaLaudo)}</td>
+                  <td>${(p as any).status_pagamento || p.statusPagamento || 'Pendente'}</td>
+                  <td>${p.status || '-'}</td>
+                </tr>
+              `,
+                )
+                .join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    printWindow.document.open()
+    printWindow.document.write(html)
+    printWindow.document.close()
+
+    setTimeout(() => {
+      printWindow.print()
+    }, 250)
   }
 
   const handlePrintPdf = (pericia: Pericia) => {
@@ -491,10 +585,18 @@ export default function Pericias() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleExportExcel} className="shadow-sm">
-            <Download className="mr-2 h-4 w-4" />
-            Exportar
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="shadow-sm">
+                <Download className="mr-2 h-4 w-4" />
+                Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportExcel}>Exportar CSV</DropdownMenuItem>
+              <DropdownMenuItem onClick={handlePrintTablePdf}>Exportar PDF</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Sheet
             open={isSheetOpen}
             onOpenChange={(open) => {
@@ -560,12 +662,12 @@ export default function Pericias() {
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="pl-4 sm:pl-6">Cód. Interno</TableHead>
-                <TableHead className="hidden lg:table-cell">Processo</TableHead>
-                <TableHead className="hidden xl:table-cell">Vara</TableHead>
-                <TableHead className="hidden md:table-cell">Cidade</TableHead>
-                <TableHead className="hidden sm:table-cell">Perito Assoc.</TableHead>
-                <TableHead>Data Perícia</TableHead>
+                <TableHead className="pl-4 sm:pl-6">Processo / Cód.</TableHead>
+                <TableHead className="hidden xl:table-cell">Honorários</TableHead>
+                <TableHead className="hidden lg:table-cell">D. Nomeação</TableHead>
+                <TableHead>D. Perícia</TableHead>
+                <TableHead>D. Entrega</TableHead>
+                <TableHead className="hidden md:table-cell">Pgto.</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right pr-4 sm:pr-6">Ações</TableHead>
               </TableRow>
@@ -585,20 +687,23 @@ export default function Pericias() {
                     onClick={() => handleRowClick(pericia)}
                   >
                     <TableCell className="pl-4 sm:pl-6">
-                      <div className="font-medium">{pericia.codigoInterno}</div>
+                      <div className="font-medium">
+                        {pericia.numeroProcesso || pericia.codigoInterno}
+                      </div>
+                      {pericia.numeroProcesso && pericia.codigoInterno && (
+                        <div className="text-xs text-muted-foreground">{pericia.codigoInterno}</div>
+                      )}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell text-muted-foreground">
-                      {pericia.numeroProcesso}
+                    <TableCell className="hidden xl:table-cell">
+                      {pericia.honorarios ? `R$ ${pericia.honorarios.toFixed(2)}` : '-'}
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell">{pericia.vara}</TableCell>
-                    <TableCell className="hidden md:table-cell">{pericia.cidade || '-'}</TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground truncate max-w-[150px]">
-                      {pericia.peritoAssociado || '-'}
+                    <TableCell className="hidden lg:table-cell">
+                      {renderDate(pericia.dataNomeacao)}
                     </TableCell>
                     <TableCell>{renderDate(pericia.dataPericia)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {getStatusBadge(pericia.status)}
+                        {renderDate(pericia.dataEntregaLaudo)}
                         {(() => {
                           const prazoStatus = getPrazoStatus(pericia)
                           if (prazoStatus?.status === 'atrasado') {
@@ -629,6 +734,12 @@ export default function Pericias() {
                         })()}
                       </div>
                     </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {getPaymentBadge(
+                        (pericia as any).status_pagamento || pericia.statusPagamento || 'Pendente',
+                      )}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(pericia.status)}</TableCell>
                     <TableCell
                       className="text-right pr-4 sm:pr-6"
                       onClick={(e) => e.stopPropagation()}
@@ -777,6 +888,55 @@ export default function Pericias() {
                         ? `R$ ${selectedPericia.honorarios.toFixed(2)}`
                         : '-'}
                     </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Status de Pagamento</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Select
+                        value={
+                          (selectedPericia as any).status_pagamento ||
+                          selectedPericia.statusPagamento ||
+                          'Pendente'
+                        }
+                        onValueChange={async (val) => {
+                          try {
+                            await supabase
+                              .from('pericias')
+                              .update({ status_pagamento: val })
+                              .eq('id', selectedPericia.id)
+                            setSelectedPericia((prev) =>
+                              prev
+                                ? { ...prev, status_pagamento: val, statusPagamento: val }
+                                : prev,
+                            )
+                            toast({
+                              title: 'Sucesso',
+                              description: 'Status de pagamento atualizado.',
+                            })
+                          } catch (e) {
+                            toast({
+                              title: 'Erro',
+                              description: 'Falha ao atualizar.',
+                              variant: 'destructive',
+                            })
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-8 w-full sm:w-[130px]">
+                          <SelectValue placeholder="Alterar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Pendente">Pendente</SelectItem>
+                          <SelectItem value="Recebido">Recebido</SelectItem>
+                          <SelectItem value="Atrasado">Atrasado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {getPaymentBadge(
+                        (selectedPericia as any).status_pagamento ||
+                          selectedPericia.statusPagamento ||
+                          'Pendente',
+                      )}
+                    </div>
                   </div>
                   <div className="col-span-2">
                     <p className="text-muted-foreground">Endereço</p>
