@@ -5,7 +5,7 @@
 @layer base {
   :root {
     --background: 0 0% 98%;
-    --foreground: 222.2 47.4% 11.2%;
+    --foreground: 43 70% 25%; /* Dourado escuro */
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
     --popover: 0 0% 100%;
@@ -28,7 +28,7 @@
 
   .dark {
     --background: 226 47% 8%; /* Very dark blue #0B1120 */
-    --foreground: 210 40% 98%;
+    --foreground: 43 70% 80%; /* Dourado suave */
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
     --popover: 222 47% 11%;

@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { MapPin, Calendar, Layers, Trash, Edit, Search, Plus } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import { MapPin, Phone, Mail, Trash, Edit, Search, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { format } from 'date-fns'
+import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -20,20 +21,36 @@ export default function Peritos() {
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState('Ativas')
   const [isOpen, setIsOpen] = useState(false)
-  const [form, setForm] = useState({
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  const emptyForm = {
     nome: '',
     especialidade: '',
+    codigo_id: '',
+    cpf: '',
+    rg: '',
+    data_nascimento: '',
+    crea: '',
     endereco: '',
-    orcamento_previsto: 0,
+    telefone: '',
+    telefone_alternativo: '',
+    email: '',
+    chave_pix: '',
+    banco: '',
+    agencia: '',
+    conta: '',
+    observacoes: '',
     status: 'Ativo',
-  })
+  }
+
+  const [form, setForm] = useState(emptyForm)
   const navigate = useNavigate()
   const { toast } = useToast()
 
   const fetchPeritos = async () => {
     const { data } = await supabase
       .from('peritos')
-      .select('*, lancamentos(*)')
+      .select('*')
       .order('created_at', { ascending: false })
     if (data) setPeritos(data)
   }
@@ -44,15 +61,59 @@ export default function Peritos() {
 
   const handleSave = async () => {
     if (!form.nome)
-      return toast({ title: 'Erro', description: 'Nome obrigatório', variant: 'destructive' })
-    const { error } = await supabase.from('peritos').insert([form])
-    if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' })
-    else {
-      toast({ title: 'Sucesso', description: 'Perito cadastrado!' })
+      return toast({ title: 'Erro', description: 'Nome é obrigatório', variant: 'destructive' })
+
+    const payload = { ...form }
+    if (!payload.data_nascimento) delete (payload as any).data_nascimento
+
+    let error
+    if (editingId) {
+      const { error: updateError } = await supabase
+        .from('peritos')
+        .update(payload)
+        .eq('id', editingId)
+      error = updateError
+    } else {
+      const { error: insertError } = await supabase.from('peritos').insert([payload])
+      error = insertError
+    }
+
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } else {
+      toast({
+        title: 'Sucesso',
+        description: editingId ? 'Perito atualizado!' : 'Perito cadastrado!',
+      })
       setIsOpen(false)
-      setForm({ nome: '', especialidade: '', endereco: '', orcamento_previsto: 0, status: 'Ativo' })
+      setForm(emptyForm)
+      setEditingId(null)
       fetchPeritos()
     }
+  }
+
+  const handleEdit = (p: any) => {
+    setForm({
+      nome: p.nome || '',
+      especialidade: p.especialidade || '',
+      codigo_id: p.codigo_id || '',
+      cpf: p.cpf || '',
+      rg: p.rg || '',
+      data_nascimento: p.data_nascimento || '',
+      crea: p.crea || '',
+      endereco: p.endereco || '',
+      telefone: p.telefone || '',
+      telefone_alternativo: p.telefone_alternativo || '',
+      email: p.email || '',
+      chave_pix: p.chave_pix || '',
+      banco: p.banco || '',
+      agencia: p.agencia || '',
+      conta: p.conta || '',
+      observacoes: p.observacoes || '',
+      status: p.status || 'Ativo',
+    })
+    setEditingId(p.id)
+    setIsOpen(true)
   }
 
   const handleDelete = async (id: string) => {
@@ -89,50 +150,170 @@ export default function Peritos() {
               className="pl-9 bg-background/50 border-border"
             />
           </div>
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <Dialog
+            open={isOpen}
+            onOpenChange={(val) => {
+              setIsOpen(val)
+              if (!val) {
+                setEditingId(null)
+                setForm(emptyForm)
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button>
-                <Plus className="w-4 h-4 mr-2" /> Novo
+                <Plus className="w-4 h-4 mr-2" /> Novo Perito
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-3xl">
               <DialogHeader>
-                <DialogTitle>Novo Perito Associado</DialogTitle>
+                <DialogTitle>{editingId ? 'Editar Perito' : 'Novo Perito Associado'}</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label>Nome</Label>
-                  <Input
-                    value={form.nome}
-                    onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                  />
+              <div className="max-h-[70vh] overflow-y-auto pr-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                  {/* Dados Profissionais */}
+                  <div className="col-span-full font-semibold text-primary/80 mt-2">
+                    Dados Profissionais
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nome Completo</Label>
+                    <Input
+                      value={form.nome}
+                      onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Código ID</Label>
+                    <Input
+                      value={form.codigo_id}
+                      onChange={(e) => setForm({ ...form, codigo_id: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Especialidade</Label>
+                    <Input
+                      value={form.especialidade}
+                      onChange={(e) => setForm({ ...form, especialidade: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>CREA</Label>
+                    <Input
+                      value={form.crea}
+                      onChange={(e) => setForm({ ...form, crea: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Dados Pessoais */}
+                  <div className="col-span-full font-semibold text-primary/80 mt-4">
+                    Dados Pessoais
+                  </div>
+                  <div className="space-y-2">
+                    <Label>CPF</Label>
+                    <Input
+                      value={form.cpf}
+                      onChange={(e) => setForm({ ...form, cpf: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>RG</Label>
+                    <Input
+                      value={form.rg}
+                      onChange={(e) => setForm({ ...form, rg: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Data de Nascimento</Label>
+                    <Input
+                      type="date"
+                      value={form.data_nascimento}
+                      onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Contato e Endereço */}
+                  <div className="col-span-full font-semibold text-primary/80 mt-4">
+                    Contato e Endereço
+                  </div>
+                  <div className="space-y-2">
+                    <Label>E-mail</Label>
+                    <Input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Telefone Celular</Label>
+                    <Input
+                      value={form.telefone}
+                      onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Telefone Alternativo</Label>
+                    <Input
+                      value={form.telefone_alternativo}
+                      onChange={(e) => setForm({ ...form, telefone_alternativo: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-full">
+                    <Label>Endereço Completo</Label>
+                    <Input
+                      value={form.endereco}
+                      onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Dados Bancários */}
+                  <div className="col-span-full font-semibold text-primary/80 mt-4">
+                    Dados Bancários
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Banco</Label>
+                    <Input
+                      value={form.banco}
+                      onChange={(e) => setForm({ ...form, banco: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Chave Pix</Label>
+                    <Input
+                      value={form.chave_pix}
+                      onChange={(e) => setForm({ ...form, chave_pix: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Agência</Label>
+                    <Input
+                      value={form.agencia}
+                      onChange={(e) => setForm({ ...form, agencia: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Conta</Label>
+                    <Input
+                      value={form.conta}
+                      onChange={(e) => setForm({ ...form, conta: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Observações */}
+                  <div className="col-span-full font-semibold text-primary/80 mt-4">
+                    Outras Informações
+                  </div>
+                  <div className="space-y-2 col-span-full">
+                    <Label>Observações</Label>
+                    <Textarea
+                      value={form.observacoes}
+                      onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Especialidade</Label>
-                  <Input
-                    value={form.especialidade}
-                    onChange={(e) => setForm({ ...form, especialidade: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Endereço / Local</Label>
-                  <Input
-                    value={form.endereco}
-                    onChange={(e) => setForm({ ...form, endereco: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Orçamento Previsto (R$)</Label>
-                  <Input
-                    type="number"
-                    value={form.orcamento_previsto}
-                    onChange={(e) =>
-                      setForm({ ...form, orcamento_previsto: Number(e.target.value) })
-                    }
-                  />
-                </div>
-                <Button className="w-full" onClick={handleSave}>
-                  Salvar
+              </div>
+              <div className="pt-4 mt-2 border-t flex justify-end">
+                <Button onClick={handleSave} className="w-full sm:w-auto">
+                  Salvar Perito
                 </Button>
               </div>
             </DialogContent>
@@ -141,67 +322,71 @@ export default function Peritos() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filtered.map((perito) => {
-          const despesas =
-            perito.lancamentos
-              ?.filter((l: any) => l.Status === 'despesa' || l.tipo === 'despesa')
-              .reduce((a: number, c: any) => a + Number(c.valor), 0) || 0
-          const orcamento = Number(perito.orcamento_previsto) || 1
-          const pct = Math.min(100, Math.round((despesas / orcamento) * 100))
-          const formattedDespesas = new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-          }).format(despesas)
-          const formattedOrcamento = new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-          }).format(Number(perito.orcamento_previsto) || 0)
-
-          return (
-            <div
-              key={perito.id}
-              className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 shadow-sm hover:shadow-md transition-all"
-            >
-              <div className="flex justify-between items-start">
+        {filtered.map((perito) => (
+          <div
+            key={perito.id}
+            className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 shadow-sm hover:shadow-md transition-all"
+          >
+            <div className="flex justify-between items-start">
+              <div>
                 <h3 className="text-xl font-semibold text-foreground">{perito.nome}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {perito.especialidade || 'Especialidade não informada'}
+                </p>
               </div>
+              {perito.codigo_id && (
+                <Badge variant="outline" className="text-xs shrink-0">
+                  ID: {perito.codigo_id}
+                </Badge>
+              )}
+            </div>
 
-              <div className="space-y-2 text-sm text-muted-foreground mt-1">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  <span>{perito.endereco || 'Local não informado'}</span>
-                </div>
+            <div className="space-y-2 text-sm text-muted-foreground mt-1">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4" />
+                <span>{perito.telefone || 'Sem telefone'}</span>
               </div>
-
-              <div className="flex items-center justify-between mt-3 pt-4 border-t border-border/50 gap-2">
-                <div className="flex items-center gap-2 ml-auto">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 text-destructive border-destructive/30 hover:bg-destructive/10"
-                    onClick={() => handleDelete(perito.id)}
-                  >
-                    <Trash className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-foreground text-background hover:bg-foreground/90 font-medium px-4"
-                    onClick={() => navigate(`/peritos/${perito.id}`)}
-                  >
-                    Detalhes
-                  </Button>
-                </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                <span className="truncate" title={perito.endereco}>
+                  {perito.endereco || 'Local não informado'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                <span className="truncate" title={perito.email}>
+                  {perito.email || 'Sem e-mail'}
+                </span>
               </div>
             </div>
-          )
-        })}
+
+            <div className="flex items-center justify-end mt-3 pt-4 border-t border-border/50 gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={() => handleDelete(perito.id)}
+              >
+                <Trash className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={() => handleEdit(perito)}
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                className="bg-foreground text-background hover:bg-foreground/90 font-medium px-4"
+                onClick={() => navigate(`/peritos/${perito.id}`)}
+              >
+                Detalhes
+              </Button>
+            </div>
+          </div>
+        ))}
         {filtered.length === 0 && (
           <div className="col-span-full text-center py-12 text-muted-foreground">
             Nenhum perito encontrado nesta aba.
