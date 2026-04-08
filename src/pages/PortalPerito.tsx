@@ -27,6 +27,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ChatPanel } from '@/components/ChatPanel'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -378,10 +379,11 @@ export default function PortalPerito() {
 
                     <Tabs defaultValue="tarefas" className="flex-1 flex flex-col min-h-0">
                       <div className="px-6 pt-4">
-                        <TabsList className="grid w-full grid-cols-3 bg-zinc-100 dark:bg-zinc-900">
+                        <TabsList className="grid w-full grid-cols-4 bg-zinc-100 dark:bg-zinc-900">
                           <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
                           <TabsTrigger value="documentos">Documentos</TabsTrigger>
                           <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+                          <TabsTrigger value="mensagens">Chat</TabsTrigger>
                         </TabsList>
                       </div>
 
@@ -604,6 +606,12 @@ export default function PortalPerito() {
                               </div>
                             )}
                           </div>
+                        </TabsContent>
+
+                        <TabsContent value="mensagens" className="mt-0 h-full">
+                          {currentUser && (
+                            <ChatPanel periciaId={pericia.id} currentUserId={currentUser.id} />
+                          )}
                         </TabsContent>
                       </ScrollArea>
                     </Tabs>
