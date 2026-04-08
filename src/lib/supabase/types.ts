@@ -390,9 +390,11 @@ export type Database = {
           codigo_interno: string | null
           contato_perito_id: string | null
           created_at: string
+          data_aceite: string | null
           data_entrega_laudo: string | null
           data_impugnacao: string | null
           data_nomeacao: string | null
+          data_pagamento: string | null
           data_pericia: string | null
           descricao_impugnacao: string | null
           dias_impugnacao: number | null
@@ -429,9 +431,11 @@ export type Database = {
           codigo_interno?: string | null
           contato_perito_id?: string | null
           created_at?: string
+          data_aceite?: string | null
           data_entrega_laudo?: string | null
           data_impugnacao?: string | null
           data_nomeacao?: string | null
+          data_pagamento?: string | null
           data_pericia?: string | null
           descricao_impugnacao?: string | null
           dias_impugnacao?: number | null
@@ -468,9 +472,11 @@ export type Database = {
           codigo_interno?: string | null
           contato_perito_id?: string | null
           created_at?: string
+          data_aceite?: string | null
           data_entrega_laudo?: string | null
           data_impugnacao?: string | null
           data_nomeacao?: string | null
+          data_pagamento?: string | null
           data_pericia?: string | null
           descricao_impugnacao?: string | null
           dias_impugnacao?: number | null
@@ -1039,6 +1045,8 @@ export const Constants = {
 //   quantidade_parcelas: integer (nullable)
 //   adiantamento_solicitado: boolean (nullable, default: false)
 //   peticoes: jsonb (nullable, default: '[]'::jsonb)
+//   data_aceite: timestamp with time zone (nullable)
+//   data_pagamento: timestamp with time zone (nullable)
 // Table: peritos
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)
