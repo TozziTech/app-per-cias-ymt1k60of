@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 import { useLancamentos } from '@/hooks/use-lancamentos'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, TrendingUp, TrendingDown, Wallet, Plus } from 'lucide-react'
@@ -11,16 +12,31 @@ import { Lancamento } from '@/lib/types'
 import { exportToCsv } from '@/lib/export'
 import { Download, History } from 'lucide-react'
 import { AuditoriaDialog } from '@/components/Financeiro/AuditoriaDialog'
+import { useToast } from '@/hooks/use-toast'
 
 export default function Financeiro() {
+  const { user } = useAuth()
+  const isAdmin =
+    user?.role === 'Administrador' ||
+    user?.role === 'administrador' ||
+    user?.role === 'Gerente' ||
+    user?.role === 'Gestor'
+
   const { lancamentos, loading, addLancamentos, updateLancamento, deleteLancamento } =
     useLancamentos()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isAuditoriaOpen, setIsAuditoriaOpen] = useState(false)
   const [editingLancamento, setEditingLancamento] = useState<Lancamento | undefined>(undefined)
+  const { toast } = useToast()
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
+
+  // Filter lancamentos so non-admins only see their own
+  const visibleLancamentos = useMemo(() => {
+    if (isAdmin) return lancamentos
+    return lancamentos.filter((l) => l.responsavel_id === user?.id)
+  }, [lancamentos, isAdmin, user])
 
   const kpis = useMemo(() => {
     let receitas = 0
@@ -28,7 +44,7 @@ export default function Financeiro() {
     let aReceber = 0
     let aPagar = 0
 
-    lancamentos.forEach((l) => {
+    visibleLancamentos.forEach((l) => {
       const valor = Number(l.valor) || 0
       if (l.tipo === 'receita') {
         if (l.status === 'recebido' || l.status === 'pago') receitas += valor
@@ -40,7 +56,7 @@ export default function Financeiro() {
     })
 
     return { receitas, despesas, saldo: receitas - despesas, aReceber, aPagar }
-  }, [lancamentos])
+  }, [visibleLancamentos])
 
   const chartData = useMemo(() => {
     const months = [
@@ -59,7 +75,7 @@ export default function Financeiro() {
     ]
     const data = months.map((m) => ({ month: m, receitas: 0, despesas: 0 }))
 
-    lancamentos.forEach((l) => {
+    visibleLancamentos.forEach((l) => {
       const date = new Date(l.data)
       if (!isNaN(date.getTime()) && (l.status === 'recebido' || l.status === 'pago')) {
         const idx = date.getMonth()
@@ -75,7 +91,7 @@ export default function Financeiro() {
       result.push(data[(startIndex + i) % 12])
     }
     return result
-  }, [lancamentos])
+  }, [visibleLancamentos])
 
   const handleEdit = (lancamento: Lancamento) => {
     setEditingLancamento(lancamento)
@@ -90,7 +106,7 @@ export default function Financeiro() {
   const handleExportExcel = () => {
     exportToCsv(
       'fluxo_caixa.csv',
-      lancamentos.map((l) => ({
+      visibleLancamentos.map((l) => ({
         Data: new Date(l.data).toLocaleDateString('pt-BR'),
         Tipo: l.tipo === 'receita' ? 'Receita' : 'Despesa',
         Categoria: l.categoria,
@@ -113,23 +129,27 @@ export default function Financeiro() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setIsAuditoriaOpen(true)}
-            className="shadow-sm"
-            title="Histórico de Auditoria"
-          >
-            <History className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Auditoria</span>
-          </Button>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              onClick={() => setIsAuditoriaOpen(true)}
+              className="shadow-sm"
+              title="Histórico de Auditoria"
+            >
+              <History className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Auditoria</span>
+            </Button>
+          )}
           <Button variant="outline" onClick={handleExportExcel} className="shadow-sm">
             <Download className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">Exportar</span>
           </Button>
-          <Button onClick={handleOpenNew} className="gap-2 shadow-sm">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Novo Lançamento</span>
-          </Button>
+          {isAdmin && (
+            <Button onClick={handleOpenNew} className="gap-2 shadow-sm">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Novo Lançamento</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -227,10 +247,28 @@ export default function Financeiro() {
 
       <div className="mt-8">
         <LancamentosTable
-          lancamentos={lancamentos}
+          lancamentos={visibleLancamentos}
           isLoading={loading}
-          onEdit={handleEdit}
-          onDelete={deleteLancamento}
+          onEdit={
+            isAdmin
+              ? handleEdit
+              : (l) =>
+                  toast({
+                    title: 'Acesso negado',
+                    description: 'Você não tem permissão para editar.',
+                    variant: 'destructive',
+                  })
+          }
+          onDelete={
+            isAdmin
+              ? deleteLancamento
+              : async (id) =>
+                  toast({
+                    title: 'Acesso negado',
+                    description: 'Você não tem permissão para excluir.',
+                    variant: 'destructive',
+                  })
+          }
         />
       </div>
 

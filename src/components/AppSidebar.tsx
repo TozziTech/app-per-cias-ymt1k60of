@@ -10,7 +10,9 @@ import {
   Users,
   Briefcase,
   CheckSquare,
+  Shield,
 } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   Sidebar,
   SidebarContent,
@@ -24,18 +26,28 @@ import {
 } from '@/components/ui/sidebar'
 
 const navItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'Tarefas', url: '/tarefas', icon: CheckSquare },
-  { title: 'Financeiro', url: '/financeiro', icon: DollarSign },
-  { title: 'Cadastro de Perícias', url: '/pericias', icon: FileText },
-  { title: 'Peritos Associados', url: '/peritos', icon: Users },
-  { title: 'Contatos', url: '/contatos', icon: BookOpen },
-  { title: 'Portal do Perito', url: '/portal-perito', icon: Briefcase },
-  { title: 'Calendário', url: '/calendario', icon: Calendar },
-  { title: 'Configurações', url: '#', icon: Settings },
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, adminOnly: false },
+  { title: 'Tarefas', url: '/tarefas', icon: CheckSquare, adminOnly: false },
+  { title: 'Financeiro', url: '/financeiro', icon: DollarSign, adminOnly: false },
+  { title: 'Cadastro de Perícias', url: '/pericias', icon: FileText, adminOnly: true },
+  { title: 'Peritos Associados', url: '/peritos', icon: Users, adminOnly: true },
+  { title: 'Contatos', url: '/contatos', icon: BookOpen, adminOnly: true },
+  { title: 'Portal do Perito', url: '/portal-perito', icon: Briefcase, adminOnly: false },
+  { title: 'Calendário', url: '/calendario', icon: Calendar, adminOnly: false },
+  { title: 'Usuários e Acessos', url: '/usuarios', icon: Shield, adminOnly: true },
+  { title: 'Configurações', url: '#', icon: Settings, adminOnly: true },
 ]
 
 export function AppSidebar() {
+  const { user } = useAuth()
+  const isAdmin =
+    user?.role === 'Administrador' ||
+    user?.role === 'administrador' ||
+    user?.role === 'Gerente' ||
+    user?.role === 'Gestor'
+
+  const visibleItems = navItems.filter((item) => !item.adminOnly || isAdmin)
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b p-4">
@@ -49,7 +61,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink

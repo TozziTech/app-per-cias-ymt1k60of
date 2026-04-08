@@ -37,7 +37,15 @@ export type Database = {
           id?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'activity_logs_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
       }
       contatos: {
         Row: {
@@ -518,6 +526,8 @@ export type Database = {
       }
       tarefa_comentarios: {
         Row: {
+          anexo_nome: string | null
+          anexo_url: string | null
           comentario: string
           created_at: string
           id: string
@@ -525,6 +535,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          anexo_nome?: string | null
+          anexo_url?: string | null
           comentario: string
           created_at?: string
           id?: string
@@ -532,6 +544,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          anexo_nome?: string | null
+          anexo_url?: string | null
           comentario?: string
           created_at?: string
           id?: string
@@ -903,6 +917,8 @@ export const Constants = {
 //   user_id: uuid (not null)
 //   comentario: text (not null)
 //   created_at: timestamp with time zone (not null, default: now())
+//   anexo_url: text (nullable)
+//   anexo_nome: text (nullable)
 // Table: tarefas
 //   id: uuid (not null, default: gen_random_uuid())
 //   titulo: text (not null)
@@ -919,7 +935,7 @@ export const Constants = {
 // --- CONSTRAINTS ---
 // Table: activity_logs
 //   PRIMARY KEY activity_logs_pkey: PRIMARY KEY (id)
-//   FOREIGN KEY activity_logs_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL
+//   FOREIGN KEY activity_logs_user_id_fkey: FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE SET NULL
 // Table: contatos
 //   PRIMARY KEY contatos_pkey: PRIMARY KEY (id)
 // Table: lancamento_categorias
