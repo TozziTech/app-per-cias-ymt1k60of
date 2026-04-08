@@ -201,9 +201,10 @@ export default function PeritoDetalhes() {
                   className="flex justify-between items-center p-3 rounded-lg border border-border bg-secondary/20"
                 >
                   <div>
-                    <p className="font-medium text-sm">
-                      {p.numero_processo || p.codigo_interno || 'Sem número'}
-                    </p>
+                    <p className="font-medium text-sm">{p.codigo_interno || 'Sem Cód.'}</p>
+                    {p.numero_processo && (
+                      <p className="text-xs text-muted-foreground">Proc: {p.numero_processo}</p>
+                    )}
                     <p className="text-xs text-muted-foreground">Vara: {p.vara}</p>
                   </div>
                   <Badge variant="outline">{p.status || 'Pendente'}</Badge>

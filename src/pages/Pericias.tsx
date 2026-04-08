@@ -345,6 +345,7 @@ export default function Pericias() {
     try {
       await updatePericia(selectedPericia.id, { checklist: newChecklist })
       setSelectedPericia((prev) => (prev ? { ...prev, checklist: newChecklist } : prev))
+      fetchLogs(selectedPericia.id)
     } catch (e) {
       toast({ title: 'Erro', description: 'Falha ao atualizar tarefa.', variant: 'destructive' })
     }
@@ -359,6 +360,7 @@ export default function Pericias() {
       await updatePericia(selectedPericia.id, { checklist: newChecklist })
       setSelectedPericia((prev) => (prev ? { ...prev, checklist: newChecklist } : prev))
       setNewTaskText('')
+      fetchLogs(selectedPericia.id)
     } catch (e) {
       toast({ title: 'Erro', description: 'Falha ao adicionar tarefa.', variant: 'destructive' })
     }
@@ -371,6 +373,7 @@ export default function Pericias() {
     try {
       await updatePericia(selectedPericia.id, { checklist: newChecklist })
       setSelectedPericia((prev) => (prev ? { ...prev, checklist: newChecklist } : prev))
+      fetchLogs(selectedPericia.id)
     } catch (e) {
       toast({ title: 'Erro', description: 'Falha ao remover tarefa.', variant: 'destructive' })
     }
@@ -704,20 +707,21 @@ export default function Pericias() {
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="pl-4 sm:pl-6">Processo / Cód.</TableHead>
-                <TableHead className="hidden xl:table-cell">Honorários</TableHead>
-                <TableHead className="hidden lg:table-cell">D. Nomeação</TableHead>
-                <TableHead>D. Perícia</TableHead>
-                <TableHead>D. Entrega</TableHead>
-                <TableHead className="hidden md:table-cell">Pgto.</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right pr-4 sm:pr-6">Ações</TableHead>
+                <TableHead className="pl-4 sm:pl-6 py-2 h-10 text-xs">Cód. / Processo</TableHead>
+                <TableHead className="py-2 h-10 text-xs">Perito Associado</TableHead>
+                <TableHead className="hidden xl:table-cell py-2 h-10 text-xs">Honorários</TableHead>
+                <TableHead className="hidden lg:table-cell py-2 h-10 text-xs">Nomeação</TableHead>
+                <TableHead className="py-2 h-10 text-xs">Perícia</TableHead>
+                <TableHead className="py-2 h-10 text-xs">Entrega</TableHead>
+                <TableHead className="hidden md:table-cell py-2 h-10 text-xs">Pgto.</TableHead>
+                <TableHead className="py-2 h-10 text-xs">Status</TableHead>
+                <TableHead className="text-right pr-4 sm:pr-6 py-2 h-10 text-xs">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredPericias.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                     Nenhuma perícia encontrada.
                   </TableCell>
                 </TableRow>
@@ -728,23 +732,36 @@ export default function Pericias() {
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => handleRowClick(pericia)}
                   >
-                    <TableCell className="pl-4 sm:pl-6">
-                      <div className="font-medium">
-                        {pericia.numeroProcesso || pericia.codigoInterno}
+                    <TableCell className="pl-4 sm:pl-6 py-2">
+                      <div className="font-medium text-xs">
+                        {pericia.codigoInterno || 'Sem Cód.'}
                       </div>
-                      {pericia.numeroProcesso && pericia.codigoInterno && (
-                        <div className="text-xs text-muted-foreground">{pericia.codigoInterno}</div>
+                      {pericia.numeroProcesso && (
+                        <div
+                          className="text-[11px] text-muted-foreground truncate max-w-[130px]"
+                          title={pericia.numeroProcesso}
+                        >
+                          {pericia.numeroProcesso}
+                        </div>
                       )}
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell">
+                    <TableCell
+                      className="py-2 text-xs truncate max-w-[120px]"
+                      title={pericia.peritoAssociado || ''}
+                    >
+                      {pericia.peritoAssociado || '-'}
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell py-2 text-xs">
                       {pericia.honorarios ? `R$ ${pericia.honorarios.toFixed(2)}` : '-'}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
+                    <TableCell className="hidden lg:table-cell py-2 text-xs">
                       {renderDate(pericia.dataNomeacao)}
                     </TableCell>
-                    <TableCell>{renderDate(pericia.dataPericia)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+                    <TableCell className="py-2 text-xs">
+                      {renderDate(pericia.dataPericia)}
+                    </TableCell>
+                    <TableCell className="py-2 text-xs">
+                      <div className="flex items-center gap-1.5">
                         {renderDate(pericia.dataEntregaLaudo)}
                         {(() => {
                           const prazoStatus = getPrazoStatus(pericia)
@@ -752,7 +769,7 @@ export default function Pericias() {
                             return (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <AlertCircle className="h-4 w-4 text-destructive animate-pulse" />
+                                  <AlertCircle className="h-3.5 w-3.5 text-destructive animate-pulse" />
                                 </TooltipTrigger>
                                 <TooltipContent>Atrasado há {prazoStatus.dias} dias</TooltipContent>
                               </Tooltip>
@@ -762,7 +779,7 @@ export default function Pericias() {
                             return (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Clock className="h-4 w-4 text-amber-500" />
+                                  <Clock className="h-3.5 w-3.5 text-amber-500" />
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   {prazoStatus.dias === 0
@@ -776,26 +793,32 @@ export default function Pericias() {
                         })()}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {getPaymentBadge(
-                        (pericia as any).status_pagamento || pericia.statusPagamento || 'Pendente',
-                      )}
+                    <TableCell className="hidden md:table-cell py-2 text-xs">
+                      <div className="scale-90 origin-left">
+                        {getPaymentBadge(
+                          (pericia as any).status_pagamento ||
+                            pericia.statusPagamento ||
+                            'Pendente',
+                        )}
+                      </div>
                     </TableCell>
-                    <TableCell>{getStatusBadge(pericia.status)}</TableCell>
+                    <TableCell className="py-2 text-xs">
+                      <div className="scale-90 origin-left">{getStatusBadge(pericia.status)}</div>
+                    </TableCell>
                     <TableCell
-                      className="text-right pr-4 sm:pr-6"
+                      className="text-right pr-4 sm:pr-6 py-2"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-0.5">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => handleRowClick(pericia)}
-                              className="h-8 w-8"
+                              className="h-7 w-7"
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-3.5 w-3.5" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Visualizar</TooltipContent>
@@ -805,13 +828,13 @@ export default function Pericias() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-7 w-7"
                               onClick={() => {
                                 setPericiaToEdit(pericia)
                                 setIsSheetOpen(true)
                               }}
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-3.5 w-3.5" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Editar</TooltipContent>
@@ -823,10 +846,10 @@ export default function Pericias() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-7 w-7"
                                 onClick={() => handleExport(pericia, 'nomeacao')}
                               >
-                                <CalendarPlus className="h-4 w-4 text-blue-500" />
+                                <CalendarPlus className="h-3.5 w-3.5 text-blue-500" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Agenda: Nomeação</TooltipContent>
@@ -839,10 +862,10 @@ export default function Pericias() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-7 w-7"
                                 onClick={() => handleExport(pericia, 'pericia')}
                               >
-                                <CalendarPlus className="h-4 w-4 text-amber-500" />
+                                <CalendarPlus className="h-3.5 w-3.5 text-amber-500" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Agenda: Visita Técnica</TooltipContent>
@@ -855,10 +878,10 @@ export default function Pericias() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-7 w-7"
                                 onClick={() => handleExport(pericia, 'entrega')}
                               >
-                                <CalendarPlus className="h-4 w-4 text-emerald-500" />
+                                <CalendarPlus className="h-3.5 w-3.5 text-emerald-500" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Agenda: Prazo do Laudo</TooltipContent>
@@ -955,6 +978,7 @@ export default function Pericias() {
                               title: 'Sucesso',
                               description: 'Status de pagamento atualizado.',
                             })
+                            fetchLogs(selectedPericia.id)
                           } catch (e) {
                             toast({
                               title: 'Erro',
@@ -1277,15 +1301,36 @@ export default function Pericias() {
                             {log.details &&
                               log.entity_type === 'perícia' &&
                               log.action === 'atualizou' && (
-                                <div className="mt-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded-md">
-                                  {Object.entries(log.details).map(([key, value]) => (
-                                    <div key={key}>
-                                      <span className="font-medium capitalize">
-                                        {key.replace(/_/g, ' ')}:
-                                      </span>{' '}
-                                      {String(value)}
-                                    </div>
-                                  ))}
+                                <div className="mt-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded-md space-y-1">
+                                  {Object.entries(log.details).map(([key, value]) => {
+                                    if (key.includes('anterior')) return null
+                                    const anterior = log.details[`${key}_anterior`]
+                                    return (
+                                      <div
+                                        key={key}
+                                        className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2"
+                                      >
+                                        <span className="font-medium capitalize text-foreground shrink-0">
+                                          {key.replace(/_/g, ' ')}:
+                                        </span>
+                                        {anterior ? (
+                                          <span className="inline-flex flex-wrap items-center gap-1.5 text-xs">
+                                            <span className="line-through opacity-60 bg-muted px-1 rounded">
+                                              {String(anterior)}
+                                            </span>
+                                            <span className="text-muted-foreground">→</span>
+                                            <span className="font-medium text-primary bg-primary/10 px-1 rounded">
+                                              {String(value)}
+                                            </span>
+                                          </span>
+                                        ) : (
+                                          <span className="text-muted-foreground">
+                                            {String(value)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
                                 </div>
                               )}
                           </div>
