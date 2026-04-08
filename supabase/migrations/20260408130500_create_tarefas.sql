@@ -24,7 +24,7 @@ DECLARE
   v_tarefa_id uuid := '11111111-1111-1111-1111-111111111111'::uuid;
 BEGIN
   SELECT id INTO v_pericia_id FROM public.pericias LIMIT 1;
-  SELECT id INTO v_responsavel_id FROM auth.users LIMIT 1;
+  SELECT id INTO v_responsavel_id FROM public.profiles LIMIT 1;
 
   IF v_pericia_id IS NOT NULL AND v_responsavel_id IS NOT NULL THEN
     IF NOT EXISTS (SELECT 1 FROM public.tarefas WHERE id = v_tarefa_id) THEN
