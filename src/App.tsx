@@ -15,6 +15,9 @@ import Pericias from './pages/Pericias'
 import Calendario from './pages/Calendario'
 import Perfil from './pages/Perfil'
 import NotFound from './pages/NotFound'
+import Contatos from './pages/Contatos'
+import Peritos from './pages/Peritos'
+import PeritoDetalhes from './pages/PeritoDetalhes'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -35,6 +38,9 @@ const App = () => (
                   <Route path="/pericias" element={<Pericias />} />
                   <Route path="/calendario" element={<Calendario />} />
                   <Route path="/perfil" element={<Perfil />} />
+                  <Route path="/contatos" element={<Contatos />} />
+                  <Route path="/peritos" element={<Peritos />} />
+                  <Route path="/peritos/:id" element={<PeritoDetalhes />} />
                 </Route>
               </Route>
 

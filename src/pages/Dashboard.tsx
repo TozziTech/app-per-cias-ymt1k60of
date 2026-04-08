@@ -18,24 +18,48 @@ const chartData = [
   { month: 'Jun', pericias: 25 },
 ]
 
+import { DollarSign, TrendingDown, TrendingUp, Wallet } from 'lucide-react'
+
 export default function Dashboard() {
   const { user } = useAuth()
   const { pericias } = usePericias()
   const [logs, setLogs] = useState<any[]>([])
+  const [lancamentos, setLancamentos] = useState<any[]>([])
 
   const isAdmin = user?.role === 'admin' || user?.role === 'administrador'
 
   useEffect(() => {
-    const fetchLogs = async () => {
-      const { data } = await supabase
+    const fetchData = async () => {
+      const { data: logsData } = await supabase
         .from('activity_logs')
         .select('*, profiles:user_id(name)')
         .order('created_at', { ascending: false })
         .limit(6)
-      if (data) setLogs(data)
+      if (logsData) setLogs(logsData)
+
+      const { data: lancsData } = await supabase.from('lancamentos').select('*')
+      if (lancsData) setLancamentos(lancsData)
     }
-    fetchLogs()
+    fetchData()
   }, [])
+
+  const currentMonth = new Date().getMonth()
+  const currentYear = new Date().getFullYear()
+
+  const thisMonthLancamentos = lancamentos.filter((l) => {
+    const d = new Date(l.data)
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear
+  })
+
+  const receitas = thisMonthLancamentos
+    .filter((l) => l.Status === 'receita' || l.tipo === 'receita')
+    .reduce((acc, curr) => acc + Number(curr.valor), 0)
+
+  const despesas = thisMonthLancamentos
+    .filter((l) => l.Status === 'despesa' || l.tipo === 'despesa')
+    .reduce((acc, curr) => acc + Number(curr.valor), 0)
+
+  const saldo = receitas - despesas
 
   const dashboardPericias = isAdmin
     ? pericias
@@ -106,6 +130,46 @@ export default function Dashboard() {
           </span>
           . Aqui está o resumo das {isAdmin ? 'suas atividades' : 'suas perícias'}.
         </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <Card className="shadow-sm border-l-4 border-l-emerald-500">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">Receitas (Mês)</CardTitle>
+            <TrendingUp className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-500">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                receitas,
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-l-4 border-l-red-500">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">Despesas (Mês)</CardTitle>
+            <TrendingDown className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-500">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                despesas,
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-l-4 border-l-primary">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">Saldo (Mês)</CardTitle>
+            <Wallet className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldo)}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

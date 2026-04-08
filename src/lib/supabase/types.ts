@@ -39,38 +39,77 @@ export type Database = {
         }
         Relationships: []
       }
+      lancamento_categorias: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       lancamentos: {
         Row: {
+          anexo_nome: string | null
+          anexo_url: string | null
           categoria: string
           created_at: string
           data: string
           descricao: string
+          frequencia_recorrencia: string | null
           id: string
+          parcelas: number | null
           pericia_id: string | null
+          recorrente: boolean | null
+          responsavel_id: string | null
           status: string
           Status: string
           updated_at: string
           valor: number
         }
         Insert: {
+          anexo_nome?: string | null
+          anexo_url?: string | null
           categoria: string
           created_at?: string
           data: string
           descricao: string
+          frequencia_recorrencia?: string | null
           id?: string
+          parcelas?: number | null
           pericia_id?: string | null
+          recorrente?: boolean | null
+          responsavel_id?: string | null
           status: string
           Status: string
           updated_at?: string
           valor?: number
         }
         Update: {
+          anexo_nome?: string | null
+          anexo_url?: string | null
           categoria?: string
           created_at?: string
           data?: string
           descricao?: string
+          frequencia_recorrencia?: string | null
           id?: string
+          parcelas?: number | null
           pericia_id?: string | null
+          recorrente?: boolean | null
+          responsavel_id?: string | null
           status?: string
           Status?: string
           updated_at?: string
@@ -82,6 +121,13 @@ export type Database = {
             columns: ['pericia_id']
             isOneToOne: false
             referencedRelation: 'pericias'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'lancamentos_responsavel_id_fkey'
+            columns: ['responsavel_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
         ]
@@ -411,6 +457,11 @@ export const Constants = {
 //   entity_id: uuid (not null)
 //   details: jsonb (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
+// Table: lancamento_categorias
+//   id: uuid (not null, default: gen_random_uuid())
+//   nome: text (not null)
+//   tipo: text (not null)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: lancamentos
 //   id: uuid (not null, default: gen_random_uuid())
 //   data: timestamp with time zone (not null)
@@ -422,6 +473,12 @@ export const Constants = {
 //   status: text (not null)
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
+//   responsavel_id: uuid (nullable)
+//   recorrente: boolean (nullable, default: false)
+//   frequencia_recorrencia: text (nullable)
+//   parcelas: integer (nullable)
+//   anexo_url: text (nullable)
+//   anexo_nome: text (nullable)
 // Table: pericia_anexos
 //   id: uuid (not null, default: gen_random_uuid())
 //   pericia_id: uuid (not null)
@@ -475,9 +532,13 @@ export const Constants = {
 // Table: activity_logs
 //   PRIMARY KEY activity_logs_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY activity_logs_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL
+// Table: lancamento_categorias
+//   PRIMARY KEY lancamento_categorias_pkey: PRIMARY KEY (id)
+//   CHECK lancamento_categorias_tipo_check: CHECK ((tipo = ANY (ARRAY['receita'::text, 'despesa'::text])))
 // Table: lancamentos
 //   FOREIGN KEY lancamentos_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE SET NULL
 //   PRIMARY KEY lancamentos_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY lancamentos_responsavel_id_fkey: FOREIGN KEY (responsavel_id) REFERENCES profiles(id) ON DELETE SET NULL
 //   CHECK lancamentos_status_check: CHECK ((status = ANY (ARRAY['pendente'::text, 'pago'::text, 'recebido'::text])))
 //   CHECK lancamentos_tipo_check: CHECK (("Status" = ANY (ARRAY['receita'::text, 'despesa'::text])))
 // Table: pericia_anexos
@@ -495,6 +556,11 @@ export const Constants = {
 //   Policy "authenticated_insert_logs" (INSERT, PERMISSIVE) roles={authenticated}
 //     WITH CHECK: true
 //   Policy "authenticated_select_logs" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+// Table: lancamento_categorias
+//   Policy "authenticated_insert_categorias" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select_categorias" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 // Table: lancamentos
 //   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}

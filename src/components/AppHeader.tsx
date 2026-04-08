@@ -23,7 +23,11 @@ export function AppHeader() {
 
   const getPageTitle = () => {
     if (location.pathname.includes('/dashboard')) return 'Dashboard'
+    if (location.pathname.includes('/financeiro')) return 'Financeiro'
     if (location.pathname.includes('/pericias')) return 'Cadastro de Perícias'
+    if (location.pathname.includes('/peritos')) return 'Peritos Associados'
+    if (location.pathname.includes('/contatos')) return 'Contatos'
+    if (location.pathname.includes('/calendario')) return 'Calendário'
     if (location.pathname.includes('/perfil')) return 'Meu Perfil'
     return 'Visão Geral'
   }
