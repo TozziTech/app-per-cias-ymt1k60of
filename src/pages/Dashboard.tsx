@@ -34,11 +34,33 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Pericia } from '@/lib/types'
 import { Link } from 'react-router-dom'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Button } from '@/components/ui/button'
+import { Filter } from 'lucide-react'
 
 export default function Dashboard() {
   const { pericias } = usePericias()
   const { lancamentos } = useLancamentos()
-  const [recentDocs, setRecentDocs] = useState<any[]>([])
+  const [allDocs, setAllDocs] = useState<any[]>([])
+  const [showHistory, setShowHistory] = useState(false)
+  const [filterDate, setFilterDate] = useState('')
+  const [filterType, setFilterType] = useState('all')
+  const [filterVara, setFilterVara] = useState('all')
 
   useEffect(() => {
     async function fetchDocs() {
@@ -46,11 +68,30 @@ export default function Dashboard() {
         .from('historico_documentos')
         .select('*, pericia:pericias(numero_processo, vara)')
         .order('created_at', { ascending: false })
-        .limit(10)
-      if (data) setRecentDocs(data)
+        .limit(300)
+      if (data) setAllDocs(data)
     }
     fetchDocs()
   }, [])
+
+  const recentDocs = useMemo(() => allDocs.slice(0, 10), [allDocs])
+
+  const varas = useMemo(() => {
+    const v = new Set<string>()
+    allDocs.forEach((d) => {
+      if (d.pericia?.vara) v.add(d.pericia.vara)
+    })
+    return Array.from(v).sort()
+  }, [allDocs])
+
+  const filteredDocs = useMemo(() => {
+    return allDocs.filter((d) => {
+      if (filterDate && !d.created_at.startsWith(filterDate)) return false
+      if (filterType !== 'all' && d.tipo_documento !== filterType) return false
+      if (filterVara !== 'all' && d.pericia?.vara !== filterVara) return false
+      return true
+    })
+  }, [allDocs, filterDate, filterType, filterVara])
 
   const parseDateSafe = (d: string | Date | undefined | null): Date | null => {
     if (!d) return null
@@ -402,12 +443,22 @@ export default function Dashboard() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="shadow-sm flex flex-col h-[400px]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="w-5 h-5 text-primary" />
-              Documentos Recentes
-            </CardTitle>
-            <CardDescription>Últimas petições e laudos gerados.</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2">
+                <History className="w-5 h-5 text-primary" />
+                Documentos Recentes
+              </CardTitle>
+              <CardDescription>Últimas petições e laudos gerados.</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowHistory(true)}
+              className="shrink-0 h-8"
+            >
+              <Filter className="w-4 h-4 mr-2" /> Histórico Completo
+            </Button>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto pr-2 space-y-4">
             {recentDocs.length === 0 ? (
@@ -543,6 +594,118 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={showHistory} onOpenChange={setShowHistory}>
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Histórico Avançado de Documentos</DialogTitle>
+            <DialogDescription>
+              Filtre e busque por documentos gerados em todas as perícias.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Data de Geração</label>
+              <Input
+                type="date"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Tipo de Documento</label>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Tipos</SelectItem>
+                  <SelectItem value="Petição">Petição</SelectItem>
+                  <SelectItem value="Laudo/Relatório">Laudo/Relatório</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Vara / Juízo</label>
+              <Select value={filterVara} onValueChange={setFilterVara}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Varas</SelectItem>
+                  {varas.map((v) => (
+                    <SelectItem key={v} value={v}>
+                      {v}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-muted-foreground">
+              {filteredDocs.length} documentos encontrados
+            </span>
+            {(filterDate || filterType !== 'all' || filterVara !== 'all') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFilterDate('')
+                  setFilterType('all')
+                  setFilterVara('all')
+                }}
+                className="h-8"
+              >
+                Limpar Filtros
+              </Button>
+            )}
+          </div>
+
+          <ScrollArea className="flex-1 border rounded-md">
+            <div className="p-4 space-y-3">
+              {filteredDocs.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhum documento encontrado com os filtros atuais.
+                </div>
+              ) : (
+                filteredDocs.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <FileText className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium leading-none">{doc.nome_documento}</p>
+                        <div className="text-xs text-muted-foreground mt-1.5 space-y-0.5">
+                          <p>
+                            Processo:{' '}
+                            <span className="font-medium text-foreground">
+                              {doc.pericia?.numero_processo || 'S/N'}
+                            </span>
+                          </p>
+                          <p>Vara: {doc.pericia?.vara || 'Não informada'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0">
+                      <Badge variant="secondary" className="text-[10px]">
+                        {doc.tipo_documento}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(doc.created_at).toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

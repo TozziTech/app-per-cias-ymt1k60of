@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Copy, FileText, Loader2, FileDown, History } from 'lucide-react'
+import { Copy, FileText, Loader2, FileDown, History, Printer } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import { valorPorExtenso } from '@/lib/extenso'
@@ -291,6 +291,45 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
     if (template) registerGeneration(template.nome)
   }
 
+  const handleExportPDF = () => {
+    if (!generatedText) return
+    const printWindow = window.open('', '', 'width=800,height=600')
+    if (!printWindow) {
+      toast({
+        title: 'Erro',
+        description: 'Permita pop-ups para gerar o PDF.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Documento_Pericia_${pericia.numeroProcesso || 'S_N'}</title>
+          <style>
+            @page { margin: 2cm; }
+            body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; text-align: justify; padding: 2cm; white-space: pre-wrap; margin: 0; }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>${generatedText}</body>
+      </html>
+    `
+    printWindow.document.write(htmlContent)
+    printWindow.document.close()
+    printWindow.focus()
+    setTimeout(() => {
+      printWindow.print()
+      printWindow.close()
+    }, 250)
+
+    const template = templates.find((t) => t.id === selectedTemplate)
+    if (template) registerGeneration(template.nome)
+  }
+
   return (
     <div className="space-y-4 pt-2 pb-6">
       <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
@@ -317,16 +356,25 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
             onClick={handleCopy}
             disabled={!generatedText}
             className="flex-1 sm:flex-none bg-background"
+            title="Copiar Texto"
           >
-            <Copy className="h-4 w-4 mr-2" /> Copiar
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleDownloadDoc}
+            disabled={!generatedText}
+            className="flex-1 sm:flex-none bg-background"
+          >
+            <FileDown className="h-4 w-4 mr-2" /> DOC
           </Button>
           <Button
             variant="default"
-            onClick={handleDownloadDoc}
+            onClick={handleExportPDF}
             disabled={!generatedText}
             className="flex-1 sm:flex-none"
           >
-            <FileDown className="h-4 w-4 mr-2" /> Exportar DOC
+            <Printer className="h-4 w-4 mr-2" /> Gerar PDF
           </Button>
         </div>
       </div>

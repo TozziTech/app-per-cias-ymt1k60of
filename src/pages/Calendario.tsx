@@ -22,6 +22,7 @@ import {
   Clock,
   BellRing,
   CalendarPlus,
+  RefreshCw,
 } from 'lucide-react'
 
 import { supabase } from '@/lib/supabase/client'
@@ -211,6 +212,40 @@ export default function Calendario() {
 
   const getEventsForDay = (day: Date) => events.filter((e) => isSameDay(e.date, day))
 
+  const handleSyncAllCalendar = () => {
+    if (events.length === 0) return
+
+    let icsString =
+      'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//App Pericias//PT\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n'
+
+    events.forEach((e) => {
+      const dt = e.date
+      const startStr = dt.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+      const endDt = new Date(dt.getTime() + 60 * 60 * 1000)
+      const endStr = endDt.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+
+      icsString += 'BEGIN:VEVENT\n'
+      icsString += `UID:${e.id}-${Date.now()}@app-pericias\n`
+      icsString += `DTSTAMP:${startStr}\n`
+      icsString += `DTSTART:${startStr}\n`
+      icsString += `DTEND:${endStr}\n`
+      icsString += `SUMMARY:${e.title} - Proc: ${e.processo}\n`
+      icsString += `DESCRIPTION:Processo: ${e.processo}\\nStatus: ${e.originalData.status || ''}\\nVara: ${e.originalData.vara || ''}\n`
+      icsString += `LOCATION:${e.originalData.endereco || e.originalData.cidade || ''}\n`
+      icsString += 'END:VEVENT\n'
+    })
+
+    icsString += 'END:VCALENDAR'
+
+    const blob = new Blob([icsString], { type: 'text/calendar;charset=utf-8' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'agenda_pericias.ics'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const getEventIcon = (type: EventType) => {
     switch (type) {
       case 'pericia':
@@ -234,7 +269,7 @@ export default function Calendario() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
             Calendário
@@ -244,7 +279,16 @@ export default function Calendario() {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+          <Button
+            variant="outline"
+            onClick={handleSyncAllCalendar}
+            className="gap-2 sm:w-auto w-full justify-center"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Sincronizar Agenda
+          </Button>
+
           <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
             <SelectTrigger className="w-[180px] h-9">
               <SelectValue placeholder="Filtrar eventos" />
