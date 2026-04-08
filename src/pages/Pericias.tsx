@@ -53,16 +53,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuPortal,
-} from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PericiaForm } from '@/components/PericiaForm'
 
 import { Pericia } from '@/lib/types'
@@ -357,8 +348,7 @@ export default function Pericias() {
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="w-[100px] pl-4 sm:pl-6">ID</TableHead>
-                <TableHead>Cód. Interno</TableHead>
+                <TableHead className="pl-4 sm:pl-6">Cód. Interno</TableHead>
                 <TableHead className="hidden md:table-cell">Processo</TableHead>
                 <TableHead className="hidden lg:table-cell">Vara</TableHead>
                 <TableHead>Data Perícia</TableHead>
@@ -369,7 +359,7 @@ export default function Pericias() {
             <TableBody>
               {filteredPericias.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                     Nenhuma perícia encontrada.
                   </TableCell>
                 </TableRow>
@@ -380,8 +370,7 @@ export default function Pericias() {
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => handleRowClick(pericia)}
                   >
-                    <TableCell className="font-medium pl-4 sm:pl-6">{pericia.id}</TableCell>
-                    <TableCell>
+                    <TableCell className="pl-4 sm:pl-6">
                       <div className="font-medium">{pericia.codigoInterno}</div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground">
@@ -396,56 +385,77 @@ export default function Pericias() {
                       className="text-right pr-4 sm:pr-6"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Abrir menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleRowClick(pericia)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            <span>Visualizar</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Edit className="mr-2 h-4 w-4" />
-                            <span>Editar</span>
-                          </DropdownMenuItem>
+                      <div className="flex items-center justify-end gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRowClick(pericia)}
+                              className="h-8 w-8"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Visualizar</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar</TooltipContent>
+                        </Tooltip>
 
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                              <CalendarPlus className="mr-2 h-4 w-4" />
-                              <span>Adicionar à Agenda</span>
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuPortal>
-                              <DropdownMenuSubContent>
-                                {(pericia.dataNomeacao || pericia.data_nomeacao) && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleExport(pericia, 'nomeacao')}
-                                  >
-                                    Nomeação
-                                  </DropdownMenuItem>
-                                )}
-                                {(pericia.dataPericia || pericia.data_pericia) && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleExport(pericia, 'pericia')}
-                                  >
-                                    Visita Técnica
-                                  </DropdownMenuItem>
-                                )}
-                                {(pericia.dataEntregaLaudo || pericia.data_entrega_laudo) && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleExport(pericia, 'entrega')}
-                                  >
-                                    Prazo do Laudo
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuSubContent>
-                            </DropdownMenuPortal>
-                          </DropdownMenuSub>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                        {(pericia.dataNomeacao || pericia.data_nomeacao) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleExport(pericia, 'nomeacao')}
+                              >
+                                <CalendarPlus className="h-4 w-4 text-blue-500" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Agenda: Nomeação</TooltipContent>
+                          </Tooltip>
+                        )}
+
+                        {(pericia.dataPericia || pericia.data_pericia) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleExport(pericia, 'pericia')}
+                              >
+                                <CalendarPlus className="h-4 w-4 text-amber-500" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Agenda: Visita Técnica</TooltipContent>
+                          </Tooltip>
+                        )}
+
+                        {(pericia.dataEntregaLaudo || pericia.data_entrega_laudo) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleExport(pericia, 'entrega')}
+                              >
+                                <CalendarPlus className="h-4 w-4 text-emerald-500" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Agenda: Prazo do Laudo</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
