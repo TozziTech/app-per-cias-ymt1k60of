@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { NotificationsMenu } from './NotificationsMenu'
 
 export function AppHeader() {
   const { user, logout } = useAuth()
@@ -52,6 +53,8 @@ export function AppHeader() {
             className="w-64 rounded-full bg-muted/50 pl-8 focus-visible:bg-background"
           />
         </div>
+
+        <NotificationsMenu />
 
         <Button
           variant="ghost"

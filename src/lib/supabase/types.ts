@@ -638,7 +638,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: { Args: { user_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
@@ -980,7 +980,7 @@ export const Constants = {
 //   Policy "authenticated_insert_logs" (INSERT, PERMISSIVE) roles={authenticated}
 //     WITH CHECK: true
 //   Policy "authenticated_select_logs" (SELECT, PERMISSIVE) roles={authenticated}
-//     USING: true
+//     USING: is_admin(auth.uid())
 // Table: contatos
 //   Policy "authenticated_all_contatos" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -991,15 +991,15 @@ export const Constants = {
 //   Policy "authenticated_select_categorias" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 // Table: lancamentos
-//   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_insert" (INSERT, PERMISSIVE) roles={authenticated}
-//     WITH CHECK: true
-//   Policy "authenticated_select" (SELECT, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_update" (UPDATE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//     WITH CHECK: true
+//   Policy "authenticated_delete_lancamentos" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: is_admin(auth.uid())
+//   Policy "authenticated_insert_lancamentos" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: is_admin(auth.uid())
+//   Policy "authenticated_select_lancamentos" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: (is_admin(auth.uid()) OR (responsavel_id = auth.uid()))
+//   Policy "authenticated_update_lancamentos" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: is_admin(auth.uid())
+//     WITH CHECK: is_admin(auth.uid())
 // Table: pericia_anexos
 //   Policy "authenticated_delete_anexos" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -1026,8 +1026,11 @@ export const Constants = {
 //     USING: true
 //     WITH CHECK: true
 // Table: profiles
-//   Policy "profiles_read_own" (SELECT, PERMISSIVE) roles={authenticated}
-//     USING: (auth.uid() = id)
+//   Policy "profiles_read_all" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "profiles_update_admin" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: is_admin(auth.uid())
+//     WITH CHECK: is_admin(auth.uid())
 //   Policy "profiles_update_own" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: (auth.uid() = id)
 // Table: tarefa_comentarios
@@ -1035,9 +1038,14 @@ export const Constants = {
 //     USING: true
 //     WITH CHECK: true
 // Table: tarefas
-//   Policy "authenticated_all_tarefas" (ALL, PERMISSIVE) roles={authenticated}
-//     USING: true
-//     WITH CHECK: true
+//   Policy "tarefas_delete" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: is_admin(auth.uid())
+//   Policy "tarefas_insert" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: is_admin(auth.uid())
+//   Policy "tarefas_select" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: (is_admin(auth.uid()) OR (perito_associado_id = auth.uid()) OR (responsavel_id = auth.uid()))
+//   Policy "tarefas_update" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (is_admin(auth.uid()) OR (perito_associado_id = auth.uid()) OR (responsavel_id = auth.uid()))
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION handle_new_user()
@@ -1055,6 +1063,20 @@ export const Constants = {
 //       COALESCE(NEW.raw_user_meta_data->>'role', 'Administrador')
 //     );
 //     RETURN NEW;
+//   END;
+//   $function$
+//
+// FUNCTION is_admin(uuid)
+//   CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
+//    RETURNS boolean
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   DECLARE
+//     user_role text;
+//   BEGIN
+//     SELECT role INTO user_role FROM public.profiles WHERE id = user_id;
+//     RETURN user_role IN ('Administrador', 'administrador', 'Gerente', 'Gestor');
 //   END;
 //   $function$
 //
