@@ -13,11 +13,11 @@ Deno.serve(async (req: Request) => {
 
   try {
     const payload = await req.json()
-    const { type, record } = payload
+    const { type, record, table } = payload
 
-    console.log(`[Webhook Triggered] Event Type: ${type}`)
+    console.log(`[Webhook Triggered] Event Type: ${type} on table: ${table || 'pericias'}`)
 
-    if (type === 'INSERT') {
+    if (type === 'INSERT' && (!table || table === 'pericias')) {
       const peritoAssociado = record.perito_associado || record.peritoAssociado
       const processo = record.numero_processo || record.numeroProcesso
 
@@ -26,6 +26,14 @@ Deno.serve(async (req: Request) => {
         // Here you would integrate with Resend, SendGrid, etc.
         console.log(
           `Email mock enviado para o perito: ${peritoAssociado} -> "Você foi atribuído a uma nova perícia (${processo})."`,
+        )
+      }
+    } else if (table === 'tarefas' && type === 'INSERT') {
+      const peritoAssociado = record.perito_associado_id
+      console.log(`Nova tarefa registrada: ${record.titulo}`)
+      if (peritoAssociado) {
+        console.log(
+          `[ALERTA EMAIL/PUSH] Email mock enviado para o perito ID: ${peritoAssociado} -> "Você foi atribuído a uma nova tarefa: ${record.titulo}."`,
         )
       }
     } else {

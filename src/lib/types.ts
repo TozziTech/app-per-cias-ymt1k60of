@@ -64,6 +64,7 @@ export interface Tarefa {
   status: string
   pericia_id?: string | null
   responsavel_id?: string | null
+  perito_associado_id?: string | null
   data_entrega?: string | null
   finalizado: boolean
   created_at: string
@@ -72,6 +73,9 @@ export interface Tarefa {
     numero_processo: string
   } | null
   responsavel?: {
+    name: string
+  } | null
+  perito?: {
     name: string
   } | null
 }

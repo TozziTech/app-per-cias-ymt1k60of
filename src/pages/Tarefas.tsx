@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Plus, Pencil, Trash2, CalendarIcon } from 'lucide-react'
+import { Plus, CalendarIcon, Search, Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -9,15 +9,6 @@ import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -25,14 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
+import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import {
   Select,
   SelectContent,
@@ -42,6 +26,8 @@ import {
 } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Badge } from '@/components/ui/badge'
+import { TaskCard } from '@/components/TaskCard'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -53,17 +39,21 @@ const schema = z.object({
   status: z.string().min(1, 'Obrigatório'),
   pericia_id: z.string().optional(),
   responsavel_id: z.string().optional(),
+  perito_associado_id: z.string().optional(),
   data_entrega: z.date().optional(),
 })
 type FormData = z.infer<typeof schema>
 
+const COLUMNS = ['Pendente', 'Em Andamento', 'Concluída']
+
 export default function Tarefas() {
   const [tarefas, setTarefas] = useState<Tarefa[]>([])
   const [pericias, setPericias] = useState<{ id: string; numero_processo: string }[]>([])
-  const [responsaveis, setResponsaveis] = useState<{ id: string; name: string }[]>([])
+  const [profiles, setProfiles] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Tarefa | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
   const { toast } = useToast()
 
   const form = useForm<FormData>({
@@ -76,14 +66,23 @@ export default function Tarefas() {
     const [tRes, pRes, rRes] = await Promise.all([
       supabase
         .from('tarefas')
-        .select('*, pericia:pericias(numero_processo), responsavel:profiles(name)')
+        .select('*, pericia:pericias(numero_processo)')
         .order('created_at', { ascending: false }),
       supabase.from('pericias').select('id, numero_processo'),
       supabase.from('profiles').select('id, name'),
     ])
-    if (tRes.data) setTarefas(tRes.data as unknown as Tarefa[])
+
+    if (tRes.data && rRes.data) {
+      const profilesMap = new Map(rRes.data.map((p) => [p.id, p.name]))
+      const mappedTasks = tRes.data.map((t) => ({
+        ...t,
+        responsavel: t.responsavel_id ? { name: profilesMap.get(t.responsavel_id) } : null,
+        perito: t.perito_associado_id ? { name: profilesMap.get(t.perito_associado_id) } : null,
+      }))
+      setTarefas(mappedTasks as unknown as Tarefa[])
+    }
     if (pRes.data) setPericias(pRes.data)
-    if (rRes.data) setResponsaveis(rRes.data)
+    if (rRes.data) setProfiles(rRes.data)
     setLoading(false)
   }
 
@@ -97,12 +96,25 @@ export default function Tarefas() {
         ...data,
         pericia_id: data.pericia_id || null,
         responsavel_id: data.responsavel_id || null,
+        perito_associado_id: data.perito_associado_id || null,
         data_entrega: data.data_entrega ? data.data_entrega.toISOString() : null,
       }
       const { error } = editing
         ? await supabase.from('tarefas').update(payload).eq('id', editing.id)
         : await supabase.from('tarefas').insert([payload])
       if (error) throw error
+
+      if (
+        payload.perito_associado_id &&
+        (!editing || editing.perito_associado_id !== payload.perito_associado_id)
+      ) {
+        supabase.functions
+          .invoke('notify-webhook', {
+            body: { type: 'INSERT', table: 'tarefas', record: payload },
+          })
+          .catch(console.error)
+      }
+
       toast({ title: 'Sucesso!' })
       setOpen(false)
       loadData()
@@ -119,6 +131,7 @@ export default function Tarefas() {
       status: t.status,
       pericia_id: t.pericia_id || undefined,
       responsavel_id: t.responsavel_id || undefined,
+      perito_associado_id: t.perito_associado_id || undefined,
       data_entrega: t.data_entrega ? new Date(t.data_entrega) : undefined,
     })
     setOpen(true)
@@ -131,23 +144,29 @@ export default function Tarefas() {
   }
 
   const toggleStatus = async (t: Tarefa, finalizado: boolean) => {
-    await supabase
-      .from('tarefas')
-      .update({ finalizado, status: finalizado ? 'Concluída' : 'Pendente' })
-      .eq('id', t.id)
+    const newStatus = finalizado ? 'Concluída' : 'Em Andamento'
+    await supabase.from('tarefas').update({ finalizado, status: newStatus }).eq('id', t.id)
     setTarefas((prev) =>
-      prev.map((x) =>
-        x.id === t.id ? { ...x, finalizado, status: finalizado ? 'Concluída' : 'Pendente' } : x,
-      ),
+      prev.map((x) => (x.id === t.id ? { ...x, finalizado, status: newStatus } : x)),
     )
   }
 
+  const filteredTarefas = tarefas.filter((t) => {
+    const s = searchTerm.toLowerCase()
+    return (
+      t.titulo.toLowerCase().includes(s) ||
+      t.responsavel?.name?.toLowerCase().includes(s) ||
+      t.perito?.name?.toLowerCase().includes(s) ||
+      t.pericia?.numero_processo?.toLowerCase().includes(s)
+    )
+  })
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">Tarefas</h1>
-          <p className="text-muted-foreground">Gerencie as tarefas vinculadas aos processos.</p>
+          <p className="text-muted-foreground">Gerencie o fluxo de trabalho e prazos da equipe.</p>
         </div>
         <Dialog
           open={open}
@@ -164,43 +183,43 @@ export default function Tarefas() {
               <Plus className="mr-2 h-4 w-4" /> Nova Tarefa
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editing ? 'Editar Tarefa' : 'Nova Tarefa'}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="titulo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Título</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="descricao"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="titulo"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Título</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="descricao"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Descrição</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} rows={3} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="pericia_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Processo</FormLabel>
+                        <FormLabel>Processo Vinculado</FormLabel>
                         <Select
                           onValueChange={(val) => field.onChange(val === 'none' ? undefined : val)}
                           value={field.value || 'none'}
@@ -211,7 +230,7 @@ export default function Tarefas() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="none">Nenhum</SelectItem>
+                            <SelectItem value="none">Nenhum (Tarefa Avulsa)</SelectItem>
                             {pericias.map((p) => (
                               <SelectItem key={p.id} value={p.id}>
                                 {p.numero_processo || 'Sem número'}
@@ -222,35 +241,6 @@ export default function Tarefas() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="responsavel_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Responsável</FormLabel>
-                        <Select
-                          onValueChange={(val) => field.onChange(val === 'none' ? undefined : val)}
-                          value={field.value || 'none'}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">Nenhum</SelectItem>
-                            {responsaveis.map((r) => (
-                              <SelectItem key={r.id} value={r.id}>
-                                {r.name || 'Sem nome'}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="status"
@@ -267,6 +257,60 @@ export default function Tarefas() {
                             <SelectItem value="Pendente">Pendente</SelectItem>
                             <SelectItem value="Em Andamento">Em Andamento</SelectItem>
                             <SelectItem value="Concluída">Concluída</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="responsavel_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Responsável (Gestor)</FormLabel>
+                        <Select
+                          onValueChange={(val) => field.onChange(val === 'none' ? undefined : val)}
+                          value={field.value || 'none'}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhum</SelectItem>
+                            {profiles.map((r) => (
+                              <SelectItem key={r.id} value={r.id}>
+                                {r.name || 'Sem nome'}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="perito_associado_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Perito Associado (Executor)</FormLabel>
+                        <Select
+                          onValueChange={(val) => field.onChange(val === 'none' ? undefined : val)}
+                          value={field.value || 'none'}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhum</SelectItem>
+                            {profiles.map((r) => (
+                              <SelectItem key={r.id} value={r.id}>
+                                {r.name || 'Sem nome'}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </FormItem>
@@ -311,7 +355,7 @@ export default function Tarefas() {
                   />
                 </div>
                 <div className="flex justify-end pt-4">
-                  <Button type="submit">Salvar</Button>
+                  <Button type="submit">Salvar Tarefa</Button>
                 </div>
               </form>
             </Form>
@@ -319,67 +363,57 @@ export default function Tarefas() {
         </Dialog>
       </div>
 
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[80px]">Finalizado</TableHead>
-              <TableHead>Tarefa</TableHead>
-              <TableHead>Processo</TableHead>
-              <TableHead>Responsável</TableHead>
-              <TableHead>Prazos</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  Carregando...
-                </TableCell>
-              </TableRow>
-            ) : tarefas.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Nenhuma tarefa
-                </TableCell>
-              </TableRow>
-            ) : (
-              tarefas.map((t) => (
-                <TableRow key={t.id} className={cn(t.finalizado && 'opacity-60 bg-muted/50')}>
-                  <TableCell>
-                    <Switch checked={t.finalizado} onCheckedChange={(v) => toggleStatus(t, v)} />
-                  </TableCell>
-                  <TableCell>
-                    <div className={cn('font-medium', t.finalizado && 'line-through')}>
-                      {t.titulo}
-                    </div>
-                    <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                      {t.descricao}
-                    </div>
-                  </TableCell>
-                  <TableCell>{t.pericia?.numero_processo || '-'}</TableCell>
-                  <TableCell>{t.responsavel?.name || '-'}</TableCell>
-                  <TableCell className="text-sm">
-                    <div>Criado: {format(new Date(t.created_at), 'dd/MM/yyyy')}</div>
-                    {t.data_entrega && (
-                      <div>Entrega: {format(new Date(t.data_entrega), 'dd/MM/yyyy')}</div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(t)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)}>
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+        <Input
+          placeholder="Buscar por título, responsável, processo..."
+          className="pl-9 bg-white dark:bg-zinc-900"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {COLUMNS.map((col) => {
+            const colTasks = filteredTarefas.filter((t) => t.status === col)
+            return (
+              <div
+                key={col}
+                className="flex flex-col bg-zinc-100/50 dark:bg-zinc-800/20 p-4 rounded-xl border border-zinc-200/50 dark:border-zinc-800"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-zinc-800 dark:text-zinc-200">{col}</h3>
+                  <Badge variant="secondary" className="bg-zinc-200 dark:bg-zinc-800">
+                    {colTasks.length}
+                  </Badge>
+                </div>
+                <div className="flex flex-col gap-3 min-h-[150px]">
+                  {colTasks.length === 0 ? (
+                    <div className="text-center py-8 text-sm text-zinc-400 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg">
+                      Nenhuma tarefa
+                    </div>
+                  ) : (
+                    colTasks.map((t) => (
+                      <TaskCard
+                        key={t.id}
+                        t={t}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onToggle={toggleStatus}
+                      />
+                    ))
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

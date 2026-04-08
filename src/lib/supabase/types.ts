@@ -516,6 +516,60 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefas: {
+        Row: {
+          created_at: string
+          data_entrega: string | null
+          descricao: string | null
+          finalizado: boolean | null
+          id: string
+          pericia_id: string | null
+          responsavel_id: string | null
+          status: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_entrega?: string | null
+          descricao?: string | null
+          finalizado?: boolean | null
+          id?: string
+          pericia_id?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_entrega?: string | null
+          descricao?: string | null
+          finalizado?: boolean | null
+          id?: string
+          pericia_id?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'tarefas_pericia_id_fkey'
+            columns: ['pericia_id']
+            isOneToOne: false
+            referencedRelation: 'pericias'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'tarefas_responsavel_id_fkey'
+            columns: ['responsavel_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -794,6 +848,17 @@ export const Constants = {
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
 //   avatar_url: text (nullable)
+// Table: tarefas
+//   id: uuid (not null, default: gen_random_uuid())
+//   titulo: text (not null)
+//   descricao: text (nullable)
+//   status: text (nullable, default: 'Pendente'::text)
+//   pericia_id: uuid (nullable)
+//   responsavel_id: uuid (nullable)
+//   data_entrega: timestamp with time zone (nullable)
+//   finalizado: boolean (nullable, default: false)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
 
 // --- CONSTRAINTS ---
 // Table: activity_logs
@@ -828,6 +893,10 @@ export const Constants = {
 // Table: profiles
 //   FOREIGN KEY profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 //   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
+// Table: tarefas
+//   FOREIGN KEY tarefas_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE SET NULL
+//   PRIMARY KEY tarefas_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY tarefas_responsavel_id_fkey: FOREIGN KEY (responsavel_id) REFERENCES profiles(id) ON DELETE SET NULL
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: activity_logs
@@ -884,6 +953,10 @@ export const Constants = {
 //     USING: (auth.uid() = id)
 //   Policy "profiles_update_own" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: (auth.uid() = id)
+// Table: tarefas
+//   Policy "authenticated_all_tarefas" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION handle_new_user()
