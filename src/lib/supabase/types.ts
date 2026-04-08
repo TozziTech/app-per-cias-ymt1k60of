@@ -86,6 +86,47 @@ export type Database = {
           },
         ]
       }
+      pericia_anexos: {
+        Row: {
+          content_type: string
+          created_at: string
+          created_by: string | null
+          file_name: string
+          file_path: string
+          id: string
+          pericia_id: string
+          size: number
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          pericia_id: string
+          size: number
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          pericia_id?: string
+          size?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'pericia_anexos_pericia_id_fkey'
+            columns: ['pericia_id']
+            isOneToOne: false
+            referencedRelation: 'pericias'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       pericias: {
         Row: {
           advogado_autora: string | null
@@ -381,6 +422,15 @@ export const Constants = {
 //   status: text (not null)
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
+// Table: pericia_anexos
+//   id: uuid (not null, default: gen_random_uuid())
+//   pericia_id: uuid (not null)
+//   file_name: text (not null)
+//   file_path: text (not null)
+//   content_type: text (not null)
+//   size: bigint (not null)
+//   created_at: timestamp with time zone (not null, default: now())
+//   created_by: uuid (nullable)
 // Table: pericias
 //   id: uuid (not null, default: gen_random_uuid())
 //   codigo_interno: text (nullable)
@@ -430,6 +480,10 @@ export const Constants = {
 //   PRIMARY KEY lancamentos_pkey: PRIMARY KEY (id)
 //   CHECK lancamentos_status_check: CHECK ((status = ANY (ARRAY['pendente'::text, 'pago'::text, 'recebido'::text])))
 //   CHECK lancamentos_tipo_check: CHECK ((tipo = ANY (ARRAY['receita'::text, 'despesa'::text])))
+// Table: pericia_anexos
+//   FOREIGN KEY pericia_anexos_created_by_fkey: FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL
+//   FOREIGN KEY pericia_anexos_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE CASCADE
+//   PRIMARY KEY pericia_anexos_pkey: PRIMARY KEY (id)
 // Table: pericias
 //   PRIMARY KEY pericias_pkey: PRIMARY KEY (id)
 // Table: profiles
@@ -452,6 +506,13 @@ export const Constants = {
 //   Policy "authenticated_update" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: pericia_anexos
+//   Policy "authenticated_delete_anexos" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_insert_anexos" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select_anexos" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
 // Table: pericias
 //   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -550,3 +611,7 @@ export const Constants = {
 //   lancamentos_activity_trigger: CREATE TRIGGER lancamentos_activity_trigger AFTER INSERT OR DELETE OR UPDATE ON public.lancamentos FOR EACH ROW EXECUTE FUNCTION log_lancamento_activity()
 // Table: pericias
 //   pericias_activity_trigger: CREATE TRIGGER pericias_activity_trigger AFTER INSERT OR DELETE OR UPDATE ON public.pericias FOR EACH ROW EXECUTE FUNCTION log_pericia_activity()
+
+// --- INDEXES ---
+// Table: pericia_anexos
+//   CREATE INDEX idx_pericia_anexos_pericia_id ON public.pericia_anexos USING btree (pericia_id)

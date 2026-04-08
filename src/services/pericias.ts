@@ -88,6 +88,59 @@ export const getPericiaAnexos = async (periciaId: string) => {
   return data as PericiaAnexo[]
 }
 
+export const logActivity = async (
+  action: string,
+  entityType: string,
+  entityId: string,
+  details: any,
+  userId?: string,
+) => {
+  const { error } = await supabase.from('activity_logs').insert({
+    action,
+    entity_type: entityType,
+    entity_id: entityId,
+    details,
+    user_id: userId || null,
+  })
+  if (error) console.error('Error logging activity', error)
+}
+
+export const getPericiaLogs = async (periciaId: string) => {
+  const { data: logs, error: logsError } = await supabase
+    .from('activity_logs')
+    .select('*')
+    .eq('entity_id', periciaId)
+    .order('created_at', { ascending: false })
+
+  if (logsError) throw logsError
+
+  if (!logs.length) return []
+
+  const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
+
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, name, email')
+      .in('id', userIds)
+
+    const profileMap = (profiles || []).reduce(
+      (acc, p) => {
+        acc[p.id] = p
+        return acc
+      },
+      {} as Record<string, any>,
+    )
+
+    return logs.map((l) => ({
+      ...l,
+      user: l.user_id ? profileMap[l.user_id] : null,
+    }))
+  }
+
+  return logs.map((l) => ({ ...l, user: null }))
+}
+
 export const uploadAnexo = async (periciaId: string, file: File, userId?: string) => {
   const fileExt = file.name.split('.').pop()
   const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
@@ -113,10 +166,25 @@ export const uploadAnexo = async (periciaId: string, file: File, userId?: string
     .single()
 
   if (dbError) throw dbError
+
+  await logActivity(
+    'upload',
+    'documento',
+    periciaId,
+    { anexo_id: data.id, file_name: file.name },
+    userId,
+  )
+
   return data as PericiaAnexo
 }
 
-export const deleteAnexo = async (anexoId: string, filePath: string) => {
+export const deleteAnexo = async (
+  anexoId: string,
+  filePath: string,
+  periciaId?: string,
+  fileName?: string,
+  userId?: string,
+) => {
   const { error: storageError } = await supabase.storage.from('pericias_anexos').remove([filePath])
 
   if (storageError) throw storageError
@@ -124,6 +192,16 @@ export const deleteAnexo = async (anexoId: string, filePath: string) => {
   const { error: dbError } = await supabase.from('pericia_anexos').delete().eq('id', anexoId)
 
   if (dbError) throw dbError
+
+  if (periciaId && fileName) {
+    await logActivity(
+      'excluiu',
+      'documento',
+      periciaId,
+      { anexo_id: anexoId, file_name: fileName },
+      userId,
+    )
+  }
 }
 
 export const getAnexoUrl = async (filePath: string) => {
