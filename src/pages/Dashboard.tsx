@@ -13,6 +13,8 @@ import {
   LineChart,
   Line,
   CartesianGrid,
+  ComposedChart,
+  Legend,
 } from 'recharts'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 import { differenceInDays } from 'date-fns'
@@ -61,6 +63,7 @@ export default function Dashboard() {
   const [filterDate, setFilterDate] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [filterVara, setFilterVara] = useState('all')
+  const [dashboardPeriod, setDashboardPeriod] = useState<'6m' | '12m' | 'ytd'>('12m')
 
   useEffect(() => {
     async function fetchDocs() {
@@ -100,7 +103,10 @@ export default function Dashboard() {
     return new Date(parsed.getTime() + parsed.getTimezoneOffset() * 60000)
   }
 
-  const chartData = useMemo(() => {
+  const periodsConfig = useMemo(() => {
+    const today = new Date()
+    const currentMonth = today.getMonth()
+    const currentYear = today.getFullYear()
     const months = [
       'Jan',
       'Fev',
@@ -115,110 +121,127 @@ export default function Dashboard() {
       'Nov',
       'Dez',
     ]
-    const data = months.map((m) => ({ month: m, receitas: 0, despesas: 0, saldo: 0 }))
 
-    lancamentos.forEach((l) => {
-      const date = parseDateSafe(l.data)
-      if (date && (l.status === 'recebido' || l.status === 'pago')) {
-        const idx = date.getMonth()
-        if (l.tipo === 'receita') {
-          data[idx].receitas += Number(l.valor) || 0
-        } else {
-          data[idx].despesas += Number(l.valor) || 0
-        }
+    let periodMonths = 12
+    let startYear = currentYear
+    let startMonth = currentMonth
+
+    if (dashboardPeriod === '6m') {
+      periodMonths = 6
+      startMonth = currentMonth - 5
+    } else if (dashboardPeriod === '12m') {
+      periodMonths = 12
+      startMonth = currentMonth - 11
+    } else if (dashboardPeriod === 'ytd') {
+      periodMonths = currentMonth + 1
+      startMonth = 0
+    }
+
+    return Array.from({ length: periodMonths }).map((_, i) => {
+      const d = new Date(currentYear, startMonth + i, 1)
+      return {
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+        label: `${months[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`,
+        monthIndex: d.getMonth(),
+        year: d.getFullYear(),
       }
     })
+  }, [dashboardPeriod])
 
-    data.forEach((d) => {
-      d.saldo = d.receitas - d.despesas
-    })
+  const getKey = (date: Date | null) => {
+    if (!date) return null
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+  }
 
-    const currentMonth = new Date().getMonth()
-    const startIndex = (currentMonth - 5 + 12) % 12
-    const result = []
-    for (let i = 0; i < 6; i++) {
-      result.push(data[(startIndex + i) % 12])
-    }
-    return result
-  }, [lancamentos])
-
-  const periciasChartData = useMemo(() => {
-    const months = [
-      'Jan',
-      'Fev',
-      'Mar',
-      'Abr',
-      'Mai',
-      'Jun',
-      'Jul',
-      'Ago',
-      'Set',
-      'Out',
-      'Nov',
-      'Dez',
-    ]
-    const data = months.map((m) => ({ month: m, concluidas: 0, novas: 0 }))
+  const produtividadeHistoricaData = useMemo(() => {
+    const data = periodsConfig.map((p) => ({
+      ...p,
+      nomeacoes: 0,
+      aceites: 0,
+      laudosEntregues: 0,
+      honorarios: 0,
+    }))
 
     pericias.forEach((p) => {
-      const dNomeacao = parseDateSafe(p.dataNomeacao)
-      if (dNomeacao) {
-        data[dNomeacao.getMonth()].novas += 1
-      }
+      const keyNomeacao = getKey(parseDateSafe(p.dataNomeacao))
+      const mNomeacao = data.find((m) => m.key === keyNomeacao)
+      if (mNomeacao) mNomeacao.nomeacoes += 1
 
       if (p.status === 'Concluído') {
-        const dConclusao = parseDateSafe(p.dataEntregaLaudo) || parseDateSafe(p.dataPericia)
-        if (dConclusao) {
-          data[dConclusao.getMonth()].concluidas += 1
-        }
+        const keyConclusao = getKey(
+          parseDateSafe(p.dataEntregaLaudo) || parseDateSafe(p.dataPericia),
+        )
+        const mConclusao = data.find((m) => m.key === keyConclusao)
+        if (mConclusao) mConclusao.laudosEntregues += 1
       }
     })
-
-    const currentMonth = new Date().getMonth()
-    const startIndex = (currentMonth - 5 + 12) % 12
-    const result = []
-    for (let i = 0; i < 6; i++) {
-      result.push(data[(startIndex + i) % 12])
-    }
-    return result
-  }, [pericias])
-
-  const produtividadeDocsData = useMemo(() => {
-    const months = [
-      'Jan',
-      'Fev',
-      'Mar',
-      'Abr',
-      'Mai',
-      'Jun',
-      'Jul',
-      'Ago',
-      'Set',
-      'Out',
-      'Nov',
-      'Dez',
-    ]
-    const data = months.map((m) => ({ month: m, peticoes: 0, laudos: 0 }))
 
     allDocs.forEach((doc) => {
-      const d = parseDateSafe(doc.created_at)
-      if (d) {
-        const idx = d.getMonth()
-        if (doc.tipo_documento === 'Laudo/Relatório') {
-          data[idx].laudos += 1
+      const key = getKey(parseDateSafe(doc.created_at))
+      const mDoc = data.find((m) => m.key === key)
+      if (mDoc && doc.tipo_documento === 'Petição') {
+        if (
+          doc.nome_documento.toLowerCase().includes('aceite') ||
+          doc.nome_documento.toLowerCase().includes('proposta')
+        ) {
+          mDoc.aceites += 1
         } else {
-          data[idx].peticoes += 1
+          mDoc.aceites += 0.5
         }
       }
     })
 
-    const currentMonth = new Date().getMonth()
-    const startIndex = (currentMonth - 5 + 12) % 12
-    const result = []
-    for (let i = 0; i < 6; i++) {
-      result.push(data[(startIndex + i) % 12])
-    }
-    return result
-  }, [allDocs])
+    lancamentos.forEach((l) => {
+      if (l.tipo === 'receita' && (l.status === 'recebido' || l.status === 'pago')) {
+        const key = getKey(parseDateSafe(l.data))
+        const m = data.find((m) => m.key === key)
+        if (m) m.honorarios += Number(l.valor) || 0
+      }
+    })
+
+    return data.map((m) => ({ ...m, aceites: Math.floor(m.aceites) }))
+  }, [pericias, allDocs, lancamentos, periodsConfig])
+
+  const chartData = useMemo(() => {
+    const data = periodsConfig.map((p) => ({ ...p, receitas: 0, despesas: 0, saldo: 0 }))
+    lancamentos.forEach((l) => {
+      const key = getKey(parseDateSafe(l.data))
+      const m = data.find((x) => x.key === key)
+      if (m && (l.status === 'recebido' || l.status === 'pago')) {
+        if (l.tipo === 'receita') m.receitas += Number(l.valor) || 0
+        else m.despesas += Number(l.valor) || 0
+      }
+    })
+    return data.map((d) => ({ ...d, saldo: d.receitas - d.despesas, month: d.label }))
+  }, [lancamentos, periodsConfig])
+
+  const periciasChartData = useMemo(() => {
+    const data = periodsConfig.map((p) => ({ ...p, concluidas: 0, novas: 0 }))
+    pericias.forEach((p) => {
+      const mNova = data.find((x) => x.key === getKey(parseDateSafe(p.dataNomeacao)))
+      if (mNova) mNova.novas += 1
+      if (p.status === 'Concluído') {
+        const mConcluida = data.find(
+          (x) =>
+            x.key === getKey(parseDateSafe(p.dataEntregaLaudo) || parseDateSafe(p.dataPericia)),
+        )
+        if (mConcluida) mConcluida.concluidas += 1
+      }
+    })
+    return data.map((d) => ({ ...d, month: d.label }))
+  }, [pericias, periodsConfig])
+
+  const produtividadeDocsData = useMemo(() => {
+    const data = periodsConfig.map((p) => ({ ...p, peticoes: 0, laudos: 0 }))
+    allDocs.forEach((doc) => {
+      const m = data.find((x) => x.key === getKey(parseDateSafe(doc.created_at)))
+      if (m) {
+        if (doc.tipo_documento === 'Laudo/Relatório') m.laudos += 1
+        else m.peticoes += 1
+      }
+    })
+    return data.map((d) => ({ ...d, month: d.label }))
+  }, [allDocs, periodsConfig])
 
   const kpis = useMemo(() => {
     let receitas = 0
@@ -297,9 +320,21 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard de Performance</h1>
-        <p className="text-muted-foreground">Resumo financeiro e indicadores de produtividade.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard de Performance</h1>
+          <p className="text-muted-foreground">Resumo financeiro e indicadores de produtividade.</p>
+        </div>
+        <Select value={dashboardPeriod} onValueChange={(v: any) => setDashboardPeriod(v)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Período" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="6m">Últimos 6 meses</SelectItem>
+            <SelectItem value="12m">Últimos 12 meses</SelectItem>
+            <SelectItem value="ytd">Ano Atual</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Finance KPIs */}
@@ -399,6 +434,84 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>Produtividade Histórica e Honorários</CardTitle>
+          <CardDescription>
+            Visão consolidada de nomeações, aceites, entregas e honorários recebidos (
+            {dashboardPeriod === '6m'
+              ? 'últimos 6 meses'
+              : dashboardPeriod === '12m'
+                ? 'últimos 12 meses'
+                : 'ano atual'}
+            ).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pl-2">
+          <ChartContainer
+            config={{
+              nomeacoes: { label: 'Nomeações', color: '#3b82f6' },
+              aceites: { label: 'Aceites', color: '#8b5cf6' },
+              laudosEntregues: { label: 'Laudos Entregues', color: '#10b981' },
+              honorarios: { label: 'Honorários (R$)', color: '#f59e0b' },
+            }}
+            className="h-[400px] w-full"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart
+                data={produtividadeHistoricaData}
+                margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="label" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis yAxisId="left" fontSize={12} tickLine={false} axisLine={false} width={40} />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => `R$ ${v}`}
+                  width={80}
+                />
+                <Tooltip content={<ChartTooltipContent />} />
+                <Legend />
+                <Bar
+                  yAxisId="left"
+                  dataKey="nomeacoes"
+                  fill="var(--color-nomeacoes)"
+                  radius={[4, 4, 0, 0]}
+                  barSize={20}
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="aceites"
+                  fill="var(--color-aceites)"
+                  radius={[4, 4, 0, 0]}
+                  barSize={20}
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="laudosEntregues"
+                  fill="var(--color-laudosEntregues)"
+                  radius={[4, 4, 0, 0]}
+                  barSize={20}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="honorarios"
+                  stroke="var(--color-honorarios)"
+                  strokeWidth={3}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-sm">
