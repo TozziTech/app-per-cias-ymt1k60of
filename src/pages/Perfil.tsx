@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { User, Lock, Camera } from 'lucide-react'
+import { User, Lock, Camera, PenTool } from 'lucide-react'
 
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase/client'
@@ -41,8 +41,61 @@ export default function Perfil() {
   const { toast } = useToast()
 
   const [isUploading, setIsUploading] = useState(false)
+  const [isUploadingSignature, setIsUploadingSignature] = useState(false)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isSavingPassword, setIsSavingPassword] = useState(false)
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function loadProfile() {
+      if (user?.id) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('signature_url')
+          .eq('id', user.id)
+          .single()
+        if (data?.signature_url) {
+          setSignatureUrl(data.signature_url)
+        }
+      }
+    }
+    loadProfile()
+  }, [user])
+
+  const handleSignatureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setIsUploadingSignature(true)
+      const file = event.target.files?.[0]
+      if (!file || !user) return
+
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}-sig-${Math.random()}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('signatures')
+        .upload(fileName, file)
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage.from('signatures').getPublicUrl(fileName)
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ signature_url: data.publicUrl })
+        .eq('id', user.id)
+      if (updateError) throw updateError
+
+      setSignatureUrl(data.publicUrl)
+      toast({ title: 'Assinatura atualizada com sucesso!' })
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao fazer upload da assinatura',
+        description: error.message,
+      })
+    } finally {
+      setIsUploadingSignature(false)
+    }
+  }
 
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
@@ -249,6 +302,82 @@ export default function Perfil() {
                 </Button>
               </form>
             </Form>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PenTool className="h-5 w-5 text-primary" />
+              Assinatura Digital
+            </CardTitle>
+            <CardDescription>
+              Faça upload da sua assinatura (imagem com fundo transparente recomendada) para
+              incluí-la automaticamente nos documentos e laudos gerados.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="border-2 border-dashed border-primary/20 rounded-lg p-8 flex flex-col items-center justify-center text-center bg-muted/10">
+              {signatureUrl ? (
+                <div className="space-y-6 w-full max-w-sm">
+                  <div className="bg-white p-4 rounded-md border shadow-sm">
+                    <img
+                      src={signatureUrl}
+                      alt="Assinatura"
+                      className="max-h-24 object-contain mx-auto"
+                    />
+                  </div>
+                  <div className="flex gap-3 justify-center">
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById('signature-upload')?.click()}
+                      disabled={isUploadingSignature}
+                    >
+                      {isUploadingSignature ? 'Enviando...' : 'Trocar Assinatura'}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={async () => {
+                        await supabase
+                          .from('profiles')
+                          .update({ signature_url: null })
+                          .eq('id', user!.id)
+                        setSignatureUrl(null)
+                        toast({ title: 'Assinatura removida.' })
+                      }}
+                    >
+                      Remover
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    <PenTool className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Nenhuma assinatura cadastrada.</p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+                      Sua assinatura será aplicada no rodapé dos documentos gerados.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => document.getElementById('signature-upload')?.click()}
+                    disabled={isUploadingSignature}
+                    className="mt-2"
+                  >
+                    {isUploadingSignature ? 'Enviando...' : 'Upload de Assinatura'}
+                  </Button>
+                </div>
+              )}
+              <input
+                id="signature-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleSignatureUpload}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

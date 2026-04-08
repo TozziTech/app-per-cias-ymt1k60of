@@ -638,6 +638,7 @@ export type Database = {
           id: string
           name: string | null
           role: string | null
+          signature_url: string | null
           updated_at: string
         }
         Insert: {
@@ -647,6 +648,7 @@ export type Database = {
           id: string
           name?: string | null
           role?: string | null
+          signature_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -656,6 +658,7 @@ export type Database = {
           id?: string
           name?: string | null
           role?: string | null
+          signature_url?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1079,6 +1082,7 @@ export const Constants = {
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
 //   avatar_url: text (nullable)
+//   signature_url: text (nullable)
 // Table: tarefa_comentarios
 //   id: uuid (not null, default: gen_random_uuid())
 //   tarefa_id: uuid (not null)

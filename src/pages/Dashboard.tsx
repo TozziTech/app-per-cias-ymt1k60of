@@ -182,6 +182,44 @@ export default function Dashboard() {
     return result
   }, [pericias])
 
+  const produtividadeDocsData = useMemo(() => {
+    const months = [
+      'Jan',
+      'Fev',
+      'Mar',
+      'Abr',
+      'Mai',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Set',
+      'Out',
+      'Nov',
+      'Dez',
+    ]
+    const data = months.map((m) => ({ month: m, peticoes: 0, laudos: 0 }))
+
+    allDocs.forEach((doc) => {
+      const d = parseDateSafe(doc.created_at)
+      if (d) {
+        const idx = d.getMonth()
+        if (doc.tipo_documento === 'Laudo/Relatório') {
+          data[idx].laudos += 1
+        } else {
+          data[idx].peticoes += 1
+        }
+      }
+    })
+
+    const currentMonth = new Date().getMonth()
+    const startIndex = (currentMonth - 5 + 12) % 12
+    const result = []
+    for (let i = 0; i < 6; i++) {
+      result.push(data[(startIndex + i) % 12])
+    }
+    return result
+  }, [allDocs])
+
   const kpis = useMemo(() => {
     let receitas = 0
     let despesas = 0
@@ -362,10 +400,10 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Balanço Mensal (Últimos 6 meses)</CardTitle>
+            <CardTitle>Balanço Financeiro</CardTitle>
             <CardDescription>Comparativo de Receitas e Despesas.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
@@ -435,6 +473,46 @@ export default function Dashboard() {
                     activeDot={{ r: 6 }}
                   />
                 </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Documentos e Laudos Entregues</CardTitle>
+            <CardDescription>Volume mensal de produção (Últimos 6 meses).</CardDescription>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <ChartContainer
+              config={{
+                peticoes: { label: 'Petições', color: '#8b5cf6' },
+                laudos: { label: 'Laudos', color: '#f59e0b' },
+              }}
+              className="h-[300px] w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={produtividadeDocsData}
+                  margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis fontSize={12} tickLine={false} axisLine={false} width={40} />
+                  <Tooltip content={<ChartTooltipContent />} />
+                  <Bar
+                    dataKey="peticoes"
+                    stackId="a"
+                    fill="var(--color-peticoes)"
+                    radius={[0, 0, 4, 4]}
+                  />
+                  <Bar
+                    dataKey="laudos"
+                    stackId="a"
+                    fill="var(--color-laudos)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>

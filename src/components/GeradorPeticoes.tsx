@@ -91,6 +91,7 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
   const [selectedTemplate, setSelectedTemplate] = useState('')
   const [generatedText, setGeneratedText] = useState('')
   const [peritoData, setPeritoData] = useState<any>(null)
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
 
@@ -122,6 +123,21 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
         .eq('pericia_id', pericia.id)
         .order('created_at', { ascending: false })
       if (hData) setHistorico(hData)
+
+      // Assinatura
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) {
+        const { data: pData } = await supabase
+          .from('profiles')
+          .select('signature_url')
+          .eq('id', user.id)
+          .single()
+        if (pData?.signature_url) {
+          setSignatureUrl(pData.signature_url)
+        }
+      }
     } catch (err) {
       setTemplates(STATIC_TEMPLATES)
     }
@@ -265,11 +281,20 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
 
   const handleDownloadDoc = () => {
     if (!generatedText) return
+
+    let htmlText = generatedText.replace(/\n/g, '<br>')
+    if (signatureUrl) {
+      htmlText = htmlText.replace(
+        '___________________________________________________',
+        `<br><br><div style="text-align: center; margin: 10px 0;"><img src="${signatureUrl}" style="max-height: 100px; width: auto;" alt="Assinatura" /></div>`,
+      )
+    }
+
     const htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
       <head><meta charset="utf-8"><title>Petição</title></head>
       <body style="font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; text-align: justify;">
-        ${generatedText.replace(/\n/g, '<br>')}
+        ${htmlText}
       </body>
       </html>
     `
@@ -303,6 +328,14 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
       return
     }
 
+    let htmlText = generatedText
+    if (signatureUrl) {
+      htmlText = htmlText.replace(
+        '___________________________________________________',
+        `\n\n<div style="text-align: center; margin: 10px 0;"><img src="${signatureUrl}" style="max-height: 100px; width: auto;" alt="Assinatura" /></div>`,
+      )
+    }
+
     const htmlContent = `
       <html>
         <head>
@@ -315,7 +348,7 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
             }
           </style>
         </head>
-        <body>${generatedText}</body>
+        <body>${htmlText}</body>
       </html>
     `
     printWindow.document.write(htmlContent)
