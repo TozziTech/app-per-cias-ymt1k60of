@@ -9,6 +9,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      lancamentos: {
+        Row: {
+          categoria: string
+          created_at: string
+          data: string
+          descricao: string
+          id: string
+          pericia_id: string | null
+          status: string
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          data: string
+          descricao: string
+          id?: string
+          pericia_id?: string | null
+          status: string
+          tipo: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          data?: string
+          descricao?: string
+          id?: string
+          pericia_id?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'lancamentos_pericia_id_fkey'
+            columns: ['pericia_id']
+            isOneToOne: false
+            referencedRelation: 'pericias'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       pericias: {
         Row: {
           advogado_autora: string | null
@@ -255,6 +302,17 @@ export const Constants = {
 // --- COLUMN TYPES (actual PostgreSQL types) ---
 // Use this to know the real database type when writing migrations.
 // "string" in TypeScript types above may be uuid, text, varchar, timestamptz, etc.
+// Table: lancamentos
+//   id: uuid (not null, default: gen_random_uuid())
+//   data: timestamp with time zone (not null)
+//   tipo: text (not null)
+//   categoria: text (not null)
+//   descricao: text (not null)
+//   valor: numeric (not null, default: 0)
+//   pericia_id: uuid (nullable)
+//   status: text (not null)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
 // Table: pericias
 //   id: uuid (not null, default: gen_random_uuid())
 //   codigo_interno: text (nullable)
@@ -288,10 +346,25 @@ export const Constants = {
 //   entrega_esclarecimentos: timestamp with time zone (nullable)
 
 // --- CONSTRAINTS ---
+// Table: lancamentos
+//   FOREIGN KEY lancamentos_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE SET NULL
+//   PRIMARY KEY lancamentos_pkey: PRIMARY KEY (id)
+//   CHECK lancamentos_status_check: CHECK ((status = ANY (ARRAY['pendente'::text, 'pago'::text, 'recebido'::text])))
+//   CHECK lancamentos_tipo_check: CHECK ((tipo = ANY (ARRAY['receita'::text, 'despesa'::text])))
 // Table: pericias
 //   PRIMARY KEY pericias_pkey: PRIMARY KEY (id)
 
 // --- ROW LEVEL SECURITY POLICIES ---
+// Table: lancamentos
+//   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_insert" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_update" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: pericias
 //   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true

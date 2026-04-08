@@ -47,23 +47,32 @@ export default function Index() {
 
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      if (values.email === 'admin@app.com') {
-        login({ id: '1', name: 'Administrador', email: values.email, role: 'administrador' })
-        navigate('/dashboard')
-      } else if (values.email === 'eng@app.com') {
-        login({ id: '2', name: 'Engenheiro Silva', email: values.email, role: 'engenheiro_perito' })
-        navigate('/dashboard')
-      } else {
+
+    try {
+      const { error } = await login(values.email, values.password)
+
+      if (error) {
         toast({
           variant: 'destructive',
           title: 'Erro de autenticação',
-          description: 'Credenciais inválidas. Tente admin@app.com ou eng@app.com.',
+          description: 'Credenciais inválidas. Verifique seu e-mail e senha.',
         })
+      } else {
+        toast({
+          title: 'Login realizado com sucesso!',
+          description: 'Bem-vindo ao SysPerícias.',
+        })
+        navigate('/dashboard')
       }
-    }, 800)
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro de conexão',
+        description: 'Não foi possível conectar ao servidor.',
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -137,8 +146,11 @@ export default function Index() {
           </CardContent>
           <CardFooter className="flex justify-center border-t p-4 bg-muted/20">
             <p className="text-sm text-muted-foreground text-center">
-              Dica: Use <strong>admin@app.com</strong> ou <strong>eng@app.com</strong> com qualquer
-              senha para testar.
+              Dica: Contas de teste
+              <br />
+              <strong>admin@app.com</strong> (Senha: admin123)
+              <br />
+              <strong>eng@app.com</strong> (Senha: engenheiro123)
             </p>
           </CardFooter>
         </Card>
