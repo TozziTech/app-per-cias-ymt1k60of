@@ -345,6 +345,7 @@ export type Database = {
           observacoes: string | null
           perito_associado: string | null
           perito_id: string | null
+          peticoes: Json | null
           prazo_entrega: string | null
           quantidade_parcelas: number | null
           status: string | null
@@ -383,6 +384,7 @@ export type Database = {
           observacoes?: string | null
           perito_associado?: string | null
           perito_id?: string | null
+          peticoes?: Json | null
           prazo_entrega?: string | null
           quantidade_parcelas?: number | null
           status?: string | null
@@ -421,6 +423,7 @@ export type Database = {
           observacoes?: string | null
           perito_associado?: string | null
           perito_id?: string | null
+          peticoes?: Json | null
           prazo_entrega?: string | null
           quantidade_parcelas?: number | null
           status?: string | null
@@ -922,6 +925,7 @@ export const Constants = {
 //   honorarios_parcelados: boolean (nullable, default: false)
 //   quantidade_parcelas: integer (nullable)
 //   adiantamento_solicitado: boolean (nullable, default: false)
+//   peticoes: jsonb (nullable, default: '[]'::jsonb)
 // Table: peritos
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)

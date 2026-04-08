@@ -16,6 +16,7 @@ import {
   Clock,
   Printer,
   Check,
+  MapPin,
 } from 'lucide-react'
 import { differenceInCalendarDays } from 'date-fns'
 
@@ -1151,7 +1152,27 @@ export default function Pericias() {
                   </div>
                   <div className="col-span-2">
                     <p className="text-muted-foreground">Endereço</p>
-                    <p className="font-medium">{selectedPericia.endereco || '-'}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{selectedPericia.endereco || '-'}</p>
+                      {selectedPericia.endereco && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                                selectedPericia.endereco +
+                                  (selectedPericia.cidade ? `, ${selectedPericia.cidade}` : ''),
+                              )}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-muted-foreground hover:text-primary hover:bg-muted p-1.5 rounded-md transition-colors shrink-0"
+                            >
+                              <MapPin className="h-4 w-4" />
+                            </a>
+                          </TooltipTrigger>
+                          <TooltipContent>Abrir no Google Maps</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
                   </div>
                 </div>
 
