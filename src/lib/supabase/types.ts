@@ -47,6 +47,36 @@ export type Database = {
           },
         ]
       }
+      cabecalhos_vara: {
+        Row: {
+          cidade: string | null
+          conteudo: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string | null
+          vara: string
+        }
+        Insert: {
+          cidade?: string | null
+          conteudo: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+          vara: string
+        }
+        Update: {
+          cidade?: string | null
+          conteudo?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+          vara?: string
+        }
+        Relationships: []
+      }
       contatos: {
         Row: {
           codigo_id: string | null
@@ -91,6 +121,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      historico_documentos: {
+        Row: {
+          created_at: string
+          id: string
+          nome_documento: string
+          pericia_id: string
+          tipo_documento: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome_documento: string
+          pericia_id: string
+          tipo_documento: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome_documento?: string
+          pericia_id?: string
+          tipo_documento?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'historico_documentos_pericia_id_fkey'
+            columns: ['pericia_id']
+            isOneToOne: false
+            referencedRelation: 'pericias'
+            referencedColumns: ['id']
+          },
+        ]
       }
       lancamento_categorias: {
         Row: {
@@ -859,6 +924,14 @@ export const Constants = {
 //   entity_id: uuid (not null)
 //   details: jsonb (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
+// Table: cabecalhos_vara
+//   id: uuid (not null, default: gen_random_uuid())
+//   vara: text (not null)
+//   cidade: text (nullable)
+//   conteudo: text (not null)
+//   user_id: uuid (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
 // Table: contatos
 //   id: uuid (not null, default: gen_random_uuid())
 //   tipo: text (not null, default: 'Outros'::text)
@@ -872,6 +945,13 @@ export const Constants = {
 //   telefone_celular: text (nullable)
 //   telefone_alternativo: text (nullable)
 //   codigo_id: text (nullable)
+// Table: historico_documentos
+//   id: uuid (not null, default: gen_random_uuid())
+//   pericia_id: uuid (not null)
+//   tipo_documento: text (not null)
+//   nome_documento: text (not null)
+//   user_id: uuid (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: lancamento_categorias
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)
@@ -1024,8 +1104,15 @@ export const Constants = {
 // Table: activity_logs
 //   PRIMARY KEY activity_logs_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY activity_logs_user_id_fkey: FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE SET NULL
+// Table: cabecalhos_vara
+//   PRIMARY KEY cabecalhos_vara_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY cabecalhos_vara_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 // Table: contatos
 //   PRIMARY KEY contatos_pkey: PRIMARY KEY (id)
+// Table: historico_documentos
+//   FOREIGN KEY historico_documentos_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE CASCADE
+//   PRIMARY KEY historico_documentos_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY historico_documentos_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 // Table: lancamento_categorias
 //   PRIMARY KEY lancamento_categorias_pkey: PRIMARY KEY (id)
 //   CHECK lancamento_categorias_tipo_check: CHECK ((tipo = ANY (ARRAY['receita'::text, 'despesa'::text])))
@@ -1075,10 +1162,25 @@ export const Constants = {
 //     WITH CHECK: true
 //   Policy "authenticated_select_logs" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: is_admin(auth.uid())
+// Table: cabecalhos_vara
+//   Policy "authenticated_delete_cabecalhos" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: (user_id = auth.uid())
+//   Policy "authenticated_insert_cabecalhos" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: (user_id = auth.uid())
+//   Policy "authenticated_select_cabecalhos" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_update_cabecalhos" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (user_id = auth.uid())
+//     WITH CHECK: (user_id = auth.uid())
 // Table: contatos
 //   Policy "authenticated_all_contatos" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: historico_documentos
+//   Policy "authenticated_insert_historico" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select_historico" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
 // Table: lancamento_categorias
 //   Policy "authenticated_insert_categorias" (INSERT, PERMISSIVE) roles={authenticated}
 //     WITH CHECK: true

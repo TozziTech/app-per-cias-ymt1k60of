@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { usePericias } from '@/contexts/PericiasContext'
 import { useLancamentos } from '@/hooks/use-lancamentos'
+import { supabase } from '@/lib/supabase/client'
 import {
   Bar,
   BarChart,
@@ -28,6 +29,7 @@ import {
   ListTodo,
   Percent,
   Banknote,
+  History,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Pericia } from '@/lib/types'
@@ -36,6 +38,19 @@ import { Link } from 'react-router-dom'
 export default function Dashboard() {
   const { pericias } = usePericias()
   const { lancamentos } = useLancamentos()
+  const [recentDocs, setRecentDocs] = useState<any[]>([])
+
+  useEffect(() => {
+    async function fetchDocs() {
+      const { data } = await supabase
+        .from('historico_documentos')
+        .select('*, pericia:pericias(numero_processo, vara)')
+        .order('created_at', { ascending: false })
+        .limit(10)
+      if (data) setRecentDocs(data)
+    }
+    fetchDocs()
+  }, [])
 
   const parseDateSafe = (d: string | Date | undefined | null): Date | null => {
     if (!d) return null
@@ -385,7 +400,49 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="shadow-sm flex flex-col h-[400px]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-primary" />
+              Documentos Recentes
+            </CardTitle>
+            <CardDescription>Últimas petições e laudos gerados.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-y-auto pr-2 space-y-4">
+            {recentDocs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-muted-foreground py-8 h-full">
+                <FileText className="w-12 h-12 mb-2 text-muted-foreground/50" />
+                <p>Nenhum documento gerado.</p>
+              </div>
+            ) : (
+              recentDocs.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-start gap-4 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                >
+                  <div className="mt-0.5">
+                    <FileText className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div className="flex-1 space-y-1 overflow-hidden">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium leading-none truncate">
+                        {doc.nome_documento}
+                      </p>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {new Date(doc.created_at).toLocaleDateString('pt-BR')}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      Proc: {doc.pericia?.numero_processo || 'S/N'}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
         <Card className="shadow-sm flex flex-col h-[400px]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

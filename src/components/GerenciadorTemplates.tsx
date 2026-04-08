@@ -36,7 +36,7 @@ export function GerenciadorTemplates({ templates, onTemplatesChange }: Gerenciad
   const handleNew = () => {
     setEditingId('new')
     setNome('')
-    setConteudo('[CABEÇALHO]\n\nEscreva sua petição aqui...\n\n[RODAPE]')
+    setConteudo('[CABEÇALHO]\n\nEscreva seu documento aqui...\n\n[RODAPE]')
   }
 
   const handleSave = async () => {
@@ -92,7 +92,7 @@ export function GerenciadorTemplates({ templates, onTemplatesChange }: Gerenciad
       </DialogTrigger>
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Gerenciar Modelos de Petição</DialogTitle>
+          <DialogTitle>Gerenciar Modelos de Documentos</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row gap-4 mt-4">
@@ -177,7 +177,7 @@ export function GerenciadorTemplates({ templates, onTemplatesChange }: Gerenciad
                   value={conteudo}
                   onChange={(e) => setConteudo(e.target.value)}
                   className="flex-1 min-h-[300px] font-mono text-sm leading-relaxed resize-none p-4"
-                  placeholder="Escreva o texto da petição aqui..."
+                  placeholder="Escreva o texto do documento aqui..."
                 />
                 <div className="flex justify-end gap-2 shrink-0 pt-2">
                   <Button variant="outline" onClick={() => setEditingId(null)}>

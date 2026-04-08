@@ -70,6 +70,18 @@ const STATIC_TEMPLATES = [
     conteudo:
       '[CABEÇALHO]\n\ninformar que os trabalhos periciais foram devidamente concluídos, com a apresentação do laudo conclusivo e eventuais esclarecimentos.\n\nRequer, assim, a liberação do saldo remanescente dos honorários periciais depositados, com a expedição do competente alvará em favor deste(a) subscritor(a).\n\n[RODAPE]',
   },
+  {
+    id: 'relatorio_vistoria',
+    nome: 'Relatório de Vistoria',
+    conteudo:
+      '[CABEÇALHO]\n\nRELATÓRIO DE VISTORIA\n\n1. INTRODUÇÃO\nAos [DATA_PERICIA], no endereço [ENDERECO_PERICIA], foi realizada vistoria técnica referente ao processo em epígrafe.\n\n2. CONSTATAÇÕES\nDurante a vistoria, constatou-se que...\n\n[RODAPE]',
+  },
+  {
+    id: 'laudo_pericial',
+    nome: 'Laudo Pericial (Estrutura Básica)',
+    conteudo:
+      '[CABEÇALHO]\n\nLAUDO PERICIAL\n\n1. OBJETIVO\nO presente laudo tem por objetivo...\n\n2. VISTORIA\nRealizada em [DATA_PERICIA], no local [ENDERECO_PERICIA]...\n\n3. METODOLOGIA\n...\n\n4. CONCLUSÃO\n...\n\n[RODAPE]',
+  },
 ]
 
 export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
@@ -213,14 +225,19 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
 
   const registerGeneration = async (templateName: string) => {
     try {
-      await logActivity(pericia.id, 'gerou_peticao', `Petição gerada: ${templateName}`)
+      const isLaudo =
+        templateName.toLowerCase().includes('laudo') ||
+        templateName.toLowerCase().includes('relatório')
+      const docType = isLaudo ? 'Laudo/Relatório' : 'Petição'
+
+      await logActivity(pericia.id, 'gerou_documento', `${docType} gerado: ${templateName}`)
       const {
         data: { user },
       } = await supabase.auth.getUser()
 
       const newItem = {
         pericia_id: pericia.id,
-        tipo_documento: 'Petição',
+        tipo_documento: docType,
         nome_documento: templateName,
         user_id: user?.id || null,
       }
@@ -260,7 +277,11 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `Peticao_${pericia.numeroProcesso || 'Sem_Numero'}.doc`
+    const isLaudo =
+      generatedText.toLowerCase().includes('laudo') ||
+      generatedText.toLowerCase().includes('relatório')
+    const prefix = isLaudo ? 'Documento' : 'Peticao'
+    link.download = `${prefix}_${pericia.numeroProcesso || 'Sem_Numero'}.doc`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -276,7 +297,7 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
         <Select value={selectedTemplate} onValueChange={setSelectedTemplate} disabled={isLoading}>
           <SelectTrigger className="w-full xl:w-[350px]">
             <SelectValue
-              placeholder={isLoading ? 'Carregando dados...' : 'Selecione o modelo de petição...'}
+              placeholder={isLoading ? 'Carregando dados...' : 'Selecione o modelo de documento...'}
             />
           </SelectTrigger>
           <SelectContent>
@@ -326,9 +347,9 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground text-center">
             <FileText className="h-12 w-12 mb-4 opacity-20" />
-            <p className="font-medium text-foreground">Gerador de Petições Inteligente</p>
+            <p className="font-medium text-foreground">Gerador de Documentos Inteligente</p>
             <p className="text-sm mt-2 max-w-sm">
-              Selecione um modelo acima para gerar a petição automaticamente com os dados do
+              Selecione um modelo acima para gerar o documento automaticamente com os dados do
               processo e do seu perfil profissional.
             </p>
           </div>
