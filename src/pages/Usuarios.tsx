@@ -9,8 +9,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, Shield, User as UserIcon } from 'lucide-react'
+import { Loader2, Shield, User as UserIcon, Trash } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -64,6 +65,28 @@ export default function Usuarios() {
     }
   }
 
+  const handleDeleteUser = async (profileId: string) => {
+    if (
+      !confirm(
+        'Deseja realmente excluir este usuário? Esta ação removerá o acesso dele ao sistema e não pode ser desfeita.',
+      )
+    )
+      return
+
+    try {
+      const { error } = await supabase.functions.invoke('delete-user', {
+        body: { userId: profileId },
+      })
+      if (error) throw error
+
+      setProfiles((prev) => prev.filter((p) => p.id !== profileId))
+      toast({ title: 'Usuário excluído com sucesso' })
+    } catch (e: any) {
+      console.error(e)
+      toast({ title: 'Erro ao excluir usuário', description: e.message, variant: 'destructive' })
+    }
+  }
+
   if (!isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 animate-in fade-in zoom-in duration-500">
@@ -108,6 +131,7 @@ export default function Usuarios() {
                     <TableHead>Email</TableHead>
                     <TableHead>Nível Atual</TableHead>
                     <TableHead className="w-[200px]">Alterar Acesso</TableHead>
+                    <TableHead className="text-right w-[80px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -142,6 +166,18 @@ export default function Usuarios() {
                             <SelectItem value="user">Usuário Padrão</SelectItem>
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:bg-destructive/10 h-8 w-8"
+                          onClick={() => handleDeleteUser(profile.id)}
+                          disabled={profile.id === user?.id}
+                          title="Excluir Usuário"
+                        >
+                          <Trash className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -1,5 +1,6 @@
 {
   "_versions": {
-    "notify-webhook": 2
+    "notify-webhook": 2,
+    "delete-user": 1
   }
 }

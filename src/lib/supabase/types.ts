@@ -195,6 +195,44 @@ export type Database = {
           },
         ]
       }
+      notificacoes: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          lida: boolean | null
+          link: string | null
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lida?: boolean | null
+          link?: string | null
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lida?: boolean | null
+          link?: string | null
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'notificacoes_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       pericia_anexos: {
         Row: {
           content_type: string
@@ -824,6 +862,14 @@ export const Constants = {
 //   anexo_url: text (nullable)
 //   anexo_nome: text (nullable)
 //   perito_id: uuid (nullable)
+// Table: notificacoes
+//   id: uuid (not null, default: gen_random_uuid())
+//   user_id: uuid (not null)
+//   titulo: text (not null)
+//   descricao: text (nullable)
+//   link: text (nullable)
+//   lida: boolean (nullable, default: false)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: pericia_anexos
 //   id: uuid (not null, default: gen_random_uuid())
 //   pericia_id: uuid (not null)
@@ -948,6 +994,9 @@ export const Constants = {
 //   FOREIGN KEY lancamentos_responsavel_id_fkey: FOREIGN KEY (responsavel_id) REFERENCES profiles(id) ON DELETE SET NULL
 //   CHECK lancamentos_status_check: CHECK ((status = ANY (ARRAY['pendente'::text, 'pago'::text, 'recebido'::text])))
 //   CHECK lancamentos_tipo_check: CHECK ((tipo = ANY (ARRAY['receita'::text, 'despesa'::text])))
+// Table: notificacoes
+//   PRIMARY KEY notificacoes_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY notificacoes_user_id_fkey: FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
 // Table: pericia_anexos
 //   FOREIGN KEY pericia_anexos_created_by_fkey: FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL
 //   FOREIGN KEY pericia_anexos_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE CASCADE
@@ -1000,6 +1049,16 @@ export const Constants = {
 //   Policy "authenticated_update_lancamentos" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: is_admin(auth.uid())
 //     WITH CHECK: is_admin(auth.uid())
+// Table: notificacoes
+//   Policy "notificacoes_delete_own" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: (auth.uid() = user_id)
+//   Policy "notificacoes_insert_internal" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "notificacoes_select_own" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: (auth.uid() = user_id)
+//   Policy "notificacoes_update_own" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (auth.uid() = user_id)
+//     WITH CHECK: (auth.uid() = user_id)
 // Table: pericia_anexos
 //   Policy "authenticated_delete_anexos" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -1159,12 +1218,77 @@ export const Constants = {
 //   END;
 //   $function$
 //
+// FUNCTION notify_tarefa_comentario()
+//   CREATE OR REPLACE FUNCTION public.notify_tarefa_comentario()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   DECLARE
+//       v_responsavel_id UUID;
+//       v_perito_associado_id UUID;
+//       v_titulo TEXT;
+//   BEGIN
+//       SELECT responsavel_id, perito_associado_id, titulo
+//       INTO v_responsavel_id, v_perito_associado_id, v_titulo
+//       FROM public.tarefas
+//       WHERE id = NEW.tarefa_id;
+//
+//       -- Notify responsavel if it's not them who commented
+//       IF v_responsavel_id IS NOT NULL AND v_responsavel_id != NEW.user_id THEN
+//           INSERT INTO public.notificacoes (user_id, titulo, descricao, link)
+//           VALUES (v_responsavel_id, 'Novo Comentário', 'Novo comentário na tarefa "' || v_titulo || '"', '/tarefas');
+//       END IF;
+//
+//       -- Notify perito associado if it's not them who commented
+//       IF v_perito_associado_id IS NOT NULL AND v_perito_associado_id != NEW.user_id THEN
+//           INSERT INTO public.notificacoes (user_id, titulo, descricao, link)
+//           VALUES (v_perito_associado_id, 'Novo Comentário', 'Novo comentário na tarefa "' || v_titulo || '"', '/tarefas');
+//       END IF;
+//
+//       RETURN NEW;
+//   END;
+//   $function$
+//
+// FUNCTION notify_tarefa_status_change()
+//   CREATE OR REPLACE FUNCTION public.notify_tarefa_status_change()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   DECLARE
+//       v_creator_id UUID;
+//   BEGIN
+//       v_creator_id := auth.uid();
+//
+//       IF OLD.status IS DISTINCT FROM NEW.status THEN
+//           -- Notify responsavel if it's not them who changed
+//           IF NEW.responsavel_id IS NOT NULL AND NEW.responsavel_id != v_creator_id THEN
+//               INSERT INTO public.notificacoes (user_id, titulo, descricao, link)
+//               VALUES (NEW.responsavel_id, 'Status da Tarefa Atualizado', 'A tarefa "' || NEW.titulo || '" mudou para ' || NEW.status, '/tarefas');
+//           END IF;
+//
+//           -- Notify perito associado if it's not them who changed
+//           IF NEW.perito_associado_id IS NOT NULL AND NEW.perito_associado_id != v_creator_id THEN
+//               INSERT INTO public.notificacoes (user_id, titulo, descricao, link)
+//               VALUES (NEW.perito_associado_id, 'Status da Tarefa Atualizado', 'A tarefa "' || NEW.titulo || '" mudou para ' || NEW.status, '/tarefas');
+//           END IF;
+//       END IF;
+//
+//       RETURN NEW;
+//   END;
+//   $function$
+//
 
 // --- TRIGGERS ---
 // Table: lancamentos
 //   lancamentos_activity_trigger: CREATE TRIGGER lancamentos_activity_trigger AFTER INSERT OR DELETE OR UPDATE ON public.lancamentos FOR EACH ROW EXECUTE FUNCTION log_lancamento_activity()
 // Table: pericias
 //   pericias_activity_trigger: CREATE TRIGGER pericias_activity_trigger AFTER INSERT OR DELETE OR UPDATE ON public.pericias FOR EACH ROW EXECUTE FUNCTION log_pericia_activity()
+// Table: tarefa_comentarios
+//   trigger_notify_tarefa_comentario: CREATE TRIGGER trigger_notify_tarefa_comentario AFTER INSERT ON public.tarefa_comentarios FOR EACH ROW EXECUTE FUNCTION notify_tarefa_comentario()
+// Table: tarefas
+//   trigger_notify_tarefa_status_change: CREATE TRIGGER trigger_notify_tarefa_status_change AFTER UPDATE ON public.tarefas FOR EACH ROW EXECUTE FUNCTION notify_tarefa_status_change()
 
 // --- INDEXES ---
 // Table: pericia_anexos
