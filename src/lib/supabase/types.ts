@@ -535,6 +535,36 @@ export type Database = {
         }
         Relationships: []
       }
+      peticao_templates: {
+        Row: {
+          conteudo: string
+          created_at: string
+          id: string
+          is_system: boolean | null
+          nome: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          id?: string
+          is_system?: boolean | null
+          nome: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean | null
+          nome?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -953,6 +983,14 @@ export const Constants = {
 //   cidade_estado: text (nullable)
 //   bairro: text (nullable)
 //   area_atuacao: text (nullable)
+// Table: peticao_templates
+//   id: uuid (not null, default: gen_random_uuid())
+//   nome: text (not null)
+//   conteudo: text (not null)
+//   user_id: uuid (nullable)
+//   is_system: boolean (nullable, default: false)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
 // Table: profiles
 //   id: uuid (not null)
 //   email: text (not null)
@@ -1015,6 +1053,9 @@ export const Constants = {
 //   PRIMARY KEY pericias_pkey: PRIMARY KEY (id)
 // Table: peritos
 //   PRIMARY KEY peritos_pkey: PRIMARY KEY (id)
+// Table: peticao_templates
+//   PRIMARY KEY peticao_templates_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY peticao_templates_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 // Table: profiles
 //   FOREIGN KEY profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 //   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
@@ -1088,6 +1129,16 @@ export const Constants = {
 //   Policy "authenticated_all_peritos" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: peticao_templates
+//   Policy "authenticated_delete_templates" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: (user_id = auth.uid())
+//   Policy "authenticated_insert_templates" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: (user_id = auth.uid())
+//   Policy "authenticated_select_templates" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: ((is_system = true) OR (user_id = auth.uid()))
+//   Policy "authenticated_update_templates" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (user_id = auth.uid())
+//     WITH CHECK: (user_id = auth.uid())
 // Table: profiles
 //   Policy "profiles_read_all" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
