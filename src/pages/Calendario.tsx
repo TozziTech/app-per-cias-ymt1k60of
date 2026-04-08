@@ -47,7 +47,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-type EventType = 'nomeacao' | 'pericia' | 'entrega'
+type EventType = 'nomeacao' | 'pericia' | 'entrega' | 'impugnacao' | 'esclarecimentos'
 
 interface CalendarEvent {
   id: string
@@ -160,6 +160,30 @@ export default function Calendario() {
           originalData: p,
         })
       }
+
+      const dtImpugnacao = parseDateSafe(p.prazo_entrega || p.prazoEntrega)
+      if (dtImpugnacao) {
+        evts.push({
+          id: `${p.id}-imp`,
+          date: dtImpugnacao,
+          type: 'impugnacao',
+          title: 'Prazo Impugnação',
+          processo,
+          originalData: p,
+        })
+      }
+
+      const dtEsclarecimentos = parseDateSafe(p.entrega_esclarecimentos || p.entregaEsclarecimentos)
+      if (dtEsclarecimentos) {
+        evts.push({
+          id: `${p.id}-esc`,
+          date: dtEsclarecimentos,
+          type: 'esclarecimentos',
+          title: 'Prazo Esclarecimentos',
+          processo,
+          originalData: p,
+        })
+      }
     })
     return evts.filter((e) => filterType === 'all' || e.type === filterType)
   }, [pericias, filterType])
@@ -192,6 +216,8 @@ export default function Calendario() {
       case 'pericia':
         return <CalendarIcon className="w-3 h-3 mr-1" />
       case 'entrega':
+      case 'impugnacao':
+      case 'esclarecimentos':
         return <AlertTriangle className="w-3 h-3 mr-1" />
       case 'nomeacao':
         return <FileText className="w-3 h-3 mr-1" />
@@ -228,6 +254,8 @@ export default function Calendario() {
               <SelectItem value="nomeacao">Apenas Nomeações</SelectItem>
               <SelectItem value="pericia">Visitas Técnicas</SelectItem>
               <SelectItem value="entrega">Prazos de Laudo</SelectItem>
+              <SelectItem value="impugnacao">Prazos de Impugnação</SelectItem>
+              <SelectItem value="esclarecimentos">Prazos de Esclarecimentos</SelectItem>
             </SelectContent>
           </Select>
 
@@ -277,6 +305,18 @@ export default function Calendario() {
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
             <span className="font-medium text-slate-700 dark:text-slate-300">Prazos de Laudo</span>
+          </div>
+        )}
+        {(filterType === 'all' || filterType === 'impugnacao') && (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-orange-500 shadow-sm"></div>
+            <span className="font-medium text-slate-700 dark:text-slate-300">Impugnações</span>
+          </div>
+        )}
+        {(filterType === 'all' || filterType === 'esclarecimentos') && (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-pink-500 shadow-sm"></div>
+            <span className="font-medium text-slate-700 dark:text-slate-300">Esclarecimentos</span>
           </div>
         )}
         <div className="flex items-center gap-2 ml-auto">
@@ -355,7 +395,11 @@ export default function Calendario() {
                               ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50'
                               : e.type === 'entrega'
                                 ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800/50'
-                                : 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50',
+                                : e.type === 'impugnacao'
+                                  ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 border border-orange-200 dark:border-orange-800/50'
+                                  : e.type === 'esclarecimentos'
+                                    ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-300 border border-pink-200 dark:border-pink-800/50'
+                                    : 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50',
                             urgent &&
                               'ring-1 ring-amber-400 dark:ring-amber-500 ring-offset-1 dark:ring-offset-slate-950',
                           )}
@@ -415,7 +459,11 @@ export default function Calendario() {
                               ? 'bg-blue-500 hover:bg-blue-600 text-white'
                               : e.type === 'entrega'
                                 ? 'bg-red-500 hover:bg-red-600 text-white'
-                                : 'bg-purple-500 hover:bg-purple-600 text-white',
+                                : e.type === 'impugnacao'
+                                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                                  : e.type === 'esclarecimentos'
+                                    ? 'bg-pink-500 hover:bg-pink-600 text-white'
+                                    : 'bg-purple-500 hover:bg-purple-600 text-white',
                           )}
                         >
                           {e.title}

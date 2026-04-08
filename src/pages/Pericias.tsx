@@ -14,6 +14,7 @@ import {
   Loader2,
   AlertCircle,
   Clock,
+  Printer,
 } from 'lucide-react'
 import { differenceInCalendarDays } from 'date-fns'
 
@@ -322,6 +323,152 @@ export default function Pericias() {
     return parsed ? parsed.toLocaleDateString('pt-BR') : '-'
   }
 
+  const handlePrintPdf = (pericia: Pericia) => {
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+
+    const html = `
+      <html>
+        <head>
+          <title>Relatório - ${pericia.codigoInterno || pericia.numeroProcesso}</title>
+          <style>
+            body { font-family: 'Helvetica', 'Arial', sans-serif; color: #333; line-height: 1.6; padding: 40px; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #D4AF37; padding-bottom: 20px; margin-bottom: 30px; }
+            .logo { font-size: 24px; font-weight: bold; color: #D4AF37; }
+            h1 { font-size: 20px; margin: 0; color: #4b5563; }
+            .section { margin-bottom: 20px; }
+            .section-title { font-size: 16px; font-weight: bold; background-color: #f3f4f6; padding: 8px 12px; border-left: 4px solid #D4AF37; margin-bottom: 10px; color: #374151; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+            .label { font-weight: bold; color: #6b7280; font-size: 12px; text-transform: uppercase; }
+            .value { font-size: 14px; margin-bottom: 10px; color: #111827; }
+            @media print {
+              body { padding: 0; }
+              .header { border-bottom: 2px solid #D4AF37 !important; }
+              .section-title { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; border-left: 4px solid #D4AF37 !important; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">SysPerícias</div>
+            <h1>Relatório de Perícia</h1>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">Dados Básicos</div>
+            <div class="grid">
+              <div>
+                <div class="label">Código Interno</div>
+                <div class="value">${pericia.codigoInterno || '-'}</div>
+              </div>
+              <div>
+                <div class="label">Número do Processo</div>
+                <div class="value">${pericia.numeroProcesso || '-'}</div>
+              </div>
+              <div>
+                <div class="label">Vara</div>
+                <div class="value">${pericia.vara || '-'}</div>
+              </div>
+              <div>
+                <div class="label">Cidade</div>
+                <div class="value">${pericia.cidade || '-'}</div>
+              </div>
+              <div>
+                <div class="label">Juiz</div>
+                <div class="value">${pericia.juiz || '-'}</div>
+              </div>
+              <div>
+                <div class="label">Status</div>
+                <div class="value">${pericia.status || '-'}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Datas Importantes</div>
+            <div class="grid">
+              <div>
+                <div class="label">Data Nomeação</div>
+                <div class="value">${renderDate(pericia.dataNomeacao)}</div>
+              </div>
+              <div>
+                <div class="label">Data Perícia</div>
+                <div class="value">${renderDate(pericia.dataPericia)}</div>
+              </div>
+              <div>
+                <div class="label">Entrega Laudo</div>
+                <div class="value">${renderDate(pericia.dataEntregaLaudo)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Envolvidos</div>
+            <div class="grid">
+              <div>
+                <div class="label">Advogado Autora</div>
+                <div class="value">${pericia.advogadoAutora || '-'}</div>
+              </div>
+              <div>
+                <div class="label">Advogado Ré</div>
+                <div class="value">${pericia.advogadoRe || '-'}</div>
+              </div>
+              <div>
+                <div class="label">Assistente Técnico Autora</div>
+                <div class="value">${pericia.assistenteTecnicoAutora || '-'}</div>
+              </div>
+              <div>
+                <div class="label">Assistente Técnico Ré</div>
+                <div class="value">${pericia.assistenteTecnicoRe || '-'}</div>
+              </div>
+              <div>
+                <div class="label">Perito Associado</div>
+                <div class="value">${pericia.peritoAssociado || '-'}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">Impugnação e Esclarecimentos</div>
+            <div class="grid">
+              <div>
+                <div class="label">Prazo de Entrega (Impugnação)</div>
+                <div class="value">${renderDate(pericia.prazoEntrega)}</div>
+              </div>
+              <div>
+                <div class="label">Entrega Impugnação</div>
+                <div class="value">${renderDate(pericia.entregaImpugnacao)}</div>
+              </div>
+              <div>
+                <div class="label">Entrega Esclarecimentos</div>
+                <div class="value">${renderDate(pericia.entregaEsclarecimentos)}</div>
+              </div>
+            </div>
+          </div>
+
+          ${
+            pericia.observacoes
+              ? `
+          <div class="section">
+            <div class="section-title">Observações</div>
+            <div class="value">${pericia.observacoes}</div>
+          </div>
+          `
+              : ''
+          }
+        </body>
+      </html>
+    `
+
+    printWindow.document.open()
+    printWindow.document.write(html)
+    printWindow.document.close()
+
+    setTimeout(() => {
+      printWindow.print()
+    }, 250)
+  }
+
   const formatLogAction = (action: string, entityType: string) => {
     if (action === 'download') return 'baixou o documento'
     if (action === 'visualizacao') return 'visualizou o documento'
@@ -416,6 +563,8 @@ export default function Pericias() {
                 <TableHead className="pl-4 sm:pl-6">Cód. Interno</TableHead>
                 <TableHead className="hidden md:table-cell">Processo</TableHead>
                 <TableHead className="hidden lg:table-cell">Vara</TableHead>
+                <TableHead className="hidden md:table-cell">Cidade</TableHead>
+                <TableHead className="hidden xl:table-cell">Perito Assoc.</TableHead>
                 <TableHead>Data Perícia</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right pr-4 sm:pr-6">Ações</TableHead>
@@ -424,7 +573,7 @@ export default function Pericias() {
             <TableBody>
               {filteredPericias.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                     Nenhuma perícia encontrada.
                   </TableCell>
                 </TableRow>
@@ -442,9 +591,11 @@ export default function Pericias() {
                       {pericia.numeroProcesso}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">{pericia.vara}</TableCell>
-                    <TableCell>
-                      {new Date(pericia.dataPericia).toLocaleDateString('pt-BR')}
+                    <TableCell className="hidden md:table-cell">{pericia.cidade || '-'}</TableCell>
+                    <TableCell className="hidden xl:table-cell text-muted-foreground truncate max-w-[120px]">
+                      {pericia.peritoAssociado || '-'}
                     </TableCell>
+                    <TableCell>{renderDate(pericia.dataPericia)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getStatusBadge(pericia.status)}
@@ -585,14 +736,25 @@ export default function Pericias() {
               </TabsList>
 
               <TabsContent value="detalhes" className="space-y-6 mt-0">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h3 className="text-lg font-semibold">{selectedPericia.codigoInterno}</h3>
                     <p className="text-sm text-muted-foreground">
                       {selectedPericia.numeroProcesso}
                     </p>
                   </div>
-                  {getStatusBadge(selectedPericia.status)}
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePrintPdf(selectedPericia)}
+                      className="shadow-sm"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Imprimir PDF
+                    </Button>
+                    {getStatusBadge(selectedPericia.status)}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm">

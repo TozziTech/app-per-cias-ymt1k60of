@@ -237,6 +237,7 @@ export type Database = {
           checklist: Json | null
           cidade: string | null
           codigo_interno: string | null
+          contato_perito_id: string | null
           created_at: string
           data_entrega_laudo: string | null
           data_impugnacao: string | null
@@ -270,6 +271,7 @@ export type Database = {
           checklist?: Json | null
           cidade?: string | null
           codigo_interno?: string | null
+          contato_perito_id?: string | null
           created_at?: string
           data_entrega_laudo?: string | null
           data_impugnacao?: string | null
@@ -303,6 +305,7 @@ export type Database = {
           checklist?: Json | null
           cidade?: string | null
           codigo_interno?: string | null
+          contato_perito_id?: string | null
           created_at?: string
           data_entrega_laudo?: string | null
           data_impugnacao?: string | null
@@ -329,6 +332,13 @@ export type Database = {
           vara?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: 'pericias_contato_perito_id_fkey'
+            columns: ['contato_perito_id']
+            isOneToOne: false
+            referencedRelation: 'contatos'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'pericias_perito_id_fkey'
             columns: ['perito_id']
@@ -672,6 +682,7 @@ export const Constants = {
 //   limites_esclarecimentos: text (nullable)
 //   entrega_esclarecimentos: timestamp with time zone (nullable)
 //   perito_id: uuid (nullable)
+//   contato_perito_id: uuid (nullable)
 // Table: peritos
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)
@@ -724,6 +735,7 @@ export const Constants = {
 //   FOREIGN KEY pericia_anexos_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE CASCADE
 //   PRIMARY KEY pericia_anexos_pkey: PRIMARY KEY (id)
 // Table: pericias
+//   FOREIGN KEY pericias_contato_perito_id_fkey: FOREIGN KEY (contato_perito_id) REFERENCES contatos(id) ON DELETE SET NULL
 //   FOREIGN KEY pericias_perito_id_fkey: FOREIGN KEY (perito_id) REFERENCES peritos(id) ON DELETE SET NULL
 //   PRIMARY KEY pericias_pkey: PRIMARY KEY (id)
 // Table: peritos
