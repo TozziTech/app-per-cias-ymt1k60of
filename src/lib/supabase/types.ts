@@ -39,6 +39,42 @@ export type Database = {
         }
         Relationships: []
       }
+      contatos: {
+        Row: {
+          created_at: string
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lancamento_categorias: {
         Row: {
           created_at: string
@@ -72,6 +108,7 @@ export type Database = {
           id: string
           parcelas: number | null
           pericia_id: string | null
+          perito_id: string | null
           recorrente: boolean | null
           responsavel_id: string | null
           status: string
@@ -90,6 +127,7 @@ export type Database = {
           id?: string
           parcelas?: number | null
           pericia_id?: string | null
+          perito_id?: string | null
           recorrente?: boolean | null
           responsavel_id?: string | null
           status: string
@@ -108,6 +146,7 @@ export type Database = {
           id?: string
           parcelas?: number | null
           pericia_id?: string | null
+          perito_id?: string | null
           recorrente?: boolean | null
           responsavel_id?: string | null
           status?: string
@@ -121,6 +160,13 @@ export type Database = {
             columns: ['pericia_id']
             isOneToOne: false
             referencedRelation: 'pericias'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'lancamentos_perito_id_fkey'
+            columns: ['perito_id']
+            isOneToOne: false
+            referencedRelation: 'peritos'
             referencedColumns: ['id']
           },
           {
@@ -201,6 +247,7 @@ export type Database = {
           numero_processo: string | null
           observacoes: string | null
           perito_associado: string | null
+          perito_id: string | null
           prazo_entrega: string | null
           status: string | null
           updated_at: string
@@ -233,6 +280,7 @@ export type Database = {
           numero_processo?: string | null
           observacoes?: string | null
           perito_associado?: string | null
+          perito_id?: string | null
           prazo_entrega?: string | null
           status?: string | null
           updated_at?: string
@@ -265,10 +313,61 @@ export type Database = {
           numero_processo?: string | null
           observacoes?: string | null
           perito_associado?: string | null
+          perito_id?: string | null
           prazo_entrega?: string | null
           status?: string | null
           updated_at?: string
           vara?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'pericias_perito_id_fkey'
+            columns: ['perito_id']
+            isOneToOne: false
+            referencedRelation: 'peritos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      peritos: {
+        Row: {
+          created_at: string
+          data_inicio: string | null
+          email: string | null
+          endereco: string | null
+          especialidade: string | null
+          id: string
+          nome: string
+          orcamento_previsto: number | null
+          status: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_inicio?: string | null
+          email?: string | null
+          endereco?: string | null
+          especialidade?: string | null
+          id?: string
+          nome: string
+          orcamento_previsto?: number | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_inicio?: string | null
+          email?: string | null
+          endereco?: string | null
+          especialidade?: string | null
+          id?: string
+          nome?: string
+          orcamento_previsto?: number | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -457,6 +556,16 @@ export const Constants = {
 //   entity_id: uuid (not null)
 //   details: jsonb (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
+// Table: contatos
+//   id: uuid (not null, default: gen_random_uuid())
+//   tipo: text (not null, default: 'Outros'::text)
+//   nome: text (not null)
+//   telefone: text (nullable)
+//   email: text (nullable)
+//   endereco: text (nullable)
+//   observacoes: text (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
 // Table: lancamento_categorias
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)
@@ -479,6 +588,7 @@ export const Constants = {
 //   parcelas: integer (nullable)
 //   anexo_url: text (nullable)
 //   anexo_nome: text (nullable)
+//   perito_id: uuid (nullable)
 // Table: pericia_anexos
 //   id: uuid (not null, default: gen_random_uuid())
 //   pericia_id: uuid (not null)
@@ -519,6 +629,19 @@ export const Constants = {
 //   entrega_impugnacao: timestamp with time zone (nullable)
 //   limites_esclarecimentos: text (nullable)
 //   entrega_esclarecimentos: timestamp with time zone (nullable)
+//   perito_id: uuid (nullable)
+// Table: peritos
+//   id: uuid (not null, default: gen_random_uuid())
+//   nome: text (not null)
+//   email: text (nullable)
+//   telefone: text (nullable)
+//   endereco: text (nullable)
+//   especialidade: text (nullable)
+//   status: text (nullable, default: 'Ativo'::text)
+//   data_inicio: date (nullable, default: CURRENT_DATE)
+//   orcamento_previsto: numeric (nullable, default: 0)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
 // Table: profiles
 //   id: uuid (not null)
 //   email: text (not null)
@@ -532,11 +655,14 @@ export const Constants = {
 // Table: activity_logs
 //   PRIMARY KEY activity_logs_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY activity_logs_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL
+// Table: contatos
+//   PRIMARY KEY contatos_pkey: PRIMARY KEY (id)
 // Table: lancamento_categorias
 //   PRIMARY KEY lancamento_categorias_pkey: PRIMARY KEY (id)
 //   CHECK lancamento_categorias_tipo_check: CHECK ((tipo = ANY (ARRAY['receita'::text, 'despesa'::text])))
 // Table: lancamentos
 //   FOREIGN KEY lancamentos_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE SET NULL
+//   FOREIGN KEY lancamentos_perito_id_fkey: FOREIGN KEY (perito_id) REFERENCES peritos(id) ON DELETE SET NULL
 //   PRIMARY KEY lancamentos_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY lancamentos_responsavel_id_fkey: FOREIGN KEY (responsavel_id) REFERENCES profiles(id) ON DELETE SET NULL
 //   CHECK lancamentos_status_check: CHECK ((status = ANY (ARRAY['pendente'::text, 'pago'::text, 'recebido'::text])))
@@ -546,7 +672,10 @@ export const Constants = {
 //   FOREIGN KEY pericia_anexos_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE CASCADE
 //   PRIMARY KEY pericia_anexos_pkey: PRIMARY KEY (id)
 // Table: pericias
+//   FOREIGN KEY pericias_perito_id_fkey: FOREIGN KEY (perito_id) REFERENCES peritos(id) ON DELETE SET NULL
 //   PRIMARY KEY pericias_pkey: PRIMARY KEY (id)
+// Table: peritos
+//   PRIMARY KEY peritos_pkey: PRIMARY KEY (id)
 // Table: profiles
 //   FOREIGN KEY profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 //   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
@@ -557,6 +686,10 @@ export const Constants = {
 //     WITH CHECK: true
 //   Policy "authenticated_select_logs" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
+// Table: contatos
+//   Policy "authenticated_all_contatos" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: lancamento_categorias
 //   Policy "authenticated_insert_categorias" (INSERT, PERMISSIVE) roles={authenticated}
 //     WITH CHECK: true
@@ -587,6 +720,10 @@ export const Constants = {
 //   Policy "authenticated_select" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 //   Policy "authenticated_update" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: peritos
+//   Policy "authenticated_all_peritos" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 // Table: profiles

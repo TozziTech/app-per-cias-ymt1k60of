@@ -7,7 +7,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 import { Badge } from '@/components/ui/badge'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { isBefore, addDays, parseISO, format } from 'date-fns'
+import { isBefore, addDays, parseISO, format, differenceInCalendarDays } from 'date-fns'
 
 const chartData = [
   { month: 'Jan', pericias: 12 },
@@ -109,13 +109,25 @@ export default function Dashboard() {
   const nextWeek = addDays(new Date(), 7)
   const notificacoes = dashboardPericias
     .filter((p) => {
-      const prazoStr = p.prazoEntrega || (p as any).prazo_entrega
+      const prazoStr =
+        p.prazoEntrega ||
+        (p as any).prazo_entrega ||
+        p.dataEntregaLaudo ||
+        (p as any).data_entrega_laudo
       if (p.status === 'Concluído' || !prazoStr) return false
       return isBefore(parseISO(prazoStr), nextWeek)
     })
     .sort((a, b) => {
-      const aPrazo = a.prazoEntrega || (a as any).prazo_entrega
-      const bPrazo = b.prazoEntrega || (b as any).prazo_entrega
+      const aPrazo =
+        a.prazoEntrega ||
+        (a as any).prazo_entrega ||
+        a.dataEntregaLaudo ||
+        (a as any).data_entrega_laudo
+      const bPrazo =
+        b.prazoEntrega ||
+        (b as any).prazo_entrega ||
+        b.dataEntregaLaudo ||
+        (b as any).data_entrega_laudo
       return new Date(aPrazo).getTime() - new Date(bPrazo).getTime()
     })
 
@@ -241,27 +253,66 @@ export default function Dashboard() {
             <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-400">
               <Bell className="h-5 w-5" /> Notificações e Prazos
             </CardTitle>
-            <CardDescription>Perícias vencendo nos próximos 7 dias</CardDescription>
+            <CardDescription>Perícias atrasadas ou vencendo nos próximos 7 dias</CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
             {notificacoes.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhum prazo próximo.
+                Nenhum prazo próximo ou em atraso.
               </p>
             ) : (
-              notificacoes.slice(0, 4).map((n) => (
-                <div key={n.id} className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">
-                      {n.numeroProcesso || (n as any).numero_processo || 'Sem número'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Prazo: {n.prazoEntrega ? format(parseISO(n.prazoEntrega), 'dd/MM/yyyy') : ''}
-                    </p>
+              notificacoes.slice(0, 4).map((n) => {
+                const prazoStr =
+                  n.prazoEntrega ||
+                  (n as any).prazo_entrega ||
+                  n.dataEntregaLaudo ||
+                  (n as any).data_entrega_laudo
+                const prazoDate = prazoStr ? parseISO(prazoStr) : null
+                const diff = prazoDate ? differenceInCalendarDays(prazoDate, new Date()) : null
+                const isOverdue = diff !== null && diff < 0
+                const isToday = diff === 0
+
+                return (
+                  <div
+                    key={n.id}
+                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        {n.numeroProcesso || (n as any).numero_processo || 'Sem número'}
+                        {isOverdue && (
+                          <AlertTriangle className="h-3 w-3 text-destructive animate-pulse" />
+                        )}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-muted-foreground">
+                          Prazo: {prazoDate ? format(prazoDate, 'dd/MM/yyyy') : ''}
+                        </span>
+                        {isOverdue ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] h-4 px-1 text-destructive border-destructive/30 bg-destructive/10"
+                          >
+                            Atrasado
+                          </Badge>
+                        ) : isToday ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] h-4 px-1 text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30"
+                          >
+                            Vence hoje
+                          </Badge>
+                        ) : diff !== null && diff <= 7 ? (
+                          <span className="text-amber-600 dark:text-amber-400 font-medium">
+                            Em {diff} dias
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    {getStatusBadge(n.status || 'Pendente')}
                   </div>
-                  {getStatusBadge(n.status || 'Pendente')}
-                </div>
-              ))
+                )
+              })
             )}
           </CardContent>
         </Card>

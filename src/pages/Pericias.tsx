@@ -12,7 +12,10 @@ import {
   Trash2,
   Download,
   Loader2,
+  AlertCircle,
+  Clock,
 } from 'lucide-react'
+import { differenceInCalendarDays } from 'date-fns'
 
 import { usePericias } from '@/contexts/PericiasContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -106,6 +109,24 @@ export default function Pericias() {
     const parsed = new Date(d)
     if (isNaN(parsed.getTime())) return null
     return new Date(parsed.getTime() + parsed.getTimezoneOffset() * 60000)
+  }
+
+  const getPrazoStatus = (p: Pericia) => {
+    if (p.status === 'Concluído') return null
+    const prazoStr =
+      p.prazoEntrega ||
+      (p as any).prazo_entrega ||
+      p.dataEntregaLaudo ||
+      (p as any).data_entrega_laudo
+    if (!prazoStr) return null
+
+    const prazo = parseDateSafe(prazoStr)
+    if (!prazo) return null
+
+    const diff = differenceInCalendarDays(prazo, new Date())
+    if (diff < 0) return { status: 'atrasado', dias: Math.abs(diff) }
+    if (diff <= 7) return { status: 'proximo', dias: diff }
+    return null
   }
 
   const handleExport = (pericia: any, type: 'nomeacao' | 'pericia' | 'entrega') => {
@@ -380,7 +401,39 @@ export default function Pericias() {
                     <TableCell>
                       {new Date(pericia.dataPericia).toLocaleDateString('pt-BR')}
                     </TableCell>
-                    <TableCell>{getStatusBadge(pericia.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(pericia.status)}
+                        {(() => {
+                          const prazoStatus = getPrazoStatus(pericia)
+                          if (prazoStatus?.status === 'atrasado') {
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertCircle className="h-4 w-4 text-destructive animate-pulse" />
+                                </TooltipTrigger>
+                                <TooltipContent>Atrasado há {prazoStatus.dias} dias</TooltipContent>
+                              </Tooltip>
+                            )
+                          }
+                          if (prazoStatus?.status === 'proximo') {
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Clock className="h-4 w-4 text-amber-500" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {prazoStatus.dias === 0
+                                    ? 'Vence hoje'
+                                    : `Vence em ${prazoStatus.dias} dias`}
+                                </TooltipContent>
+                              </Tooltip>
+                            )
+                          }
+                          return null
+                        })()}
+                      </div>
+                    </TableCell>
                     <TableCell
                       className="text-right pr-4 sm:pr-6"
                       onClick={(e) => e.stopPropagation()}
