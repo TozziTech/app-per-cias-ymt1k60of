@@ -47,6 +47,7 @@ import {
   Loader2,
   Eye,
   Plus,
+  CheckSquare,
 } from 'lucide-react'
 
 interface ChecklistItem {
