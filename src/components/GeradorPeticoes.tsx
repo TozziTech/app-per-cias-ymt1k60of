@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Copy, FileText, Loader2, FileWord } from 'lucide-react'
+import { Copy, FileText, Loader2, FileDown } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import { valorPorExtenso } from '@/lib/extenso'
@@ -178,7 +178,7 @@ export function GeradorPeticoes({ pericia }: GeradorPeticoesProps) {
             disabled={!generatedText}
             className="flex-1 sm:flex-none"
           >
-            <FileWord className="h-4 w-4 mr-2" /> Exportar DOC
+            <FileDown className="h-4 w-4 mr-2" /> Exportar DOC
           </Button>
         </div>
       </div>
