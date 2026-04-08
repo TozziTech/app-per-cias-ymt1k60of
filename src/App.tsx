@@ -18,7 +18,7 @@ import NotFound from './pages/NotFound'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-    <ThemeProvider defaultTheme="system" storageKey="app-pericias-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="app-pericias-theme">
       <AuthProvider>
         <PericiasProvider>
           <TooltipProvider>

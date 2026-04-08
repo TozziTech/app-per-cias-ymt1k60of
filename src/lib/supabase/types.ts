@@ -48,7 +48,7 @@ export type Database = {
           id: string
           pericia_id: string | null
           status: string
-          tipo: string
+          Status: string
           updated_at: string
           valor: number
         }
@@ -60,7 +60,7 @@ export type Database = {
           id?: string
           pericia_id?: string | null
           status: string
-          tipo: string
+          Status: string
           updated_at?: string
           valor?: number
         }
@@ -72,7 +72,7 @@ export type Database = {
           id?: string
           pericia_id?: string | null
           status?: string
-          tipo?: string
+          Status?: string
           updated_at?: string
           valor?: number
         }
@@ -414,7 +414,7 @@ export const Constants = {
 // Table: lancamentos
 //   id: uuid (not null, default: gen_random_uuid())
 //   data: timestamp with time zone (not null)
-//   tipo: text (not null)
+//   Status: text (not null)
 //   categoria: text (not null)
 //   descricao: text (not null)
 //   valor: numeric (not null, default: 0)
@@ -479,7 +479,7 @@ export const Constants = {
 //   FOREIGN KEY lancamentos_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE SET NULL
 //   PRIMARY KEY lancamentos_pkey: PRIMARY KEY (id)
 //   CHECK lancamentos_status_check: CHECK ((status = ANY (ARRAY['pendente'::text, 'pago'::text, 'recebido'::text])))
-//   CHECK lancamentos_tipo_check: CHECK ((tipo = ANY (ARRAY['receita'::text, 'despesa'::text])))
+//   CHECK lancamentos_tipo_check: CHECK (("Status" = ANY (ARRAY['receita'::text, 'despesa'::text])))
 // Table: pericia_anexos
 //   FOREIGN KEY pericia_anexos_created_by_fkey: FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL
 //   FOREIGN KEY pericia_anexos_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE CASCADE

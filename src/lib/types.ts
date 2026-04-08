@@ -39,6 +39,16 @@ export interface Lancamento {
     numero_processo: string
     vara: string
   }
+  responsavel_id?: string | null
+  recorrente?: boolean
+  frequencia_recorrencia?: string | null
+  parcelas?: number | null
+  anexo_url?: string | null
+  anexo_nome?: string | null
+  responsavel?: {
+    id: string
+    name: string
+  } | null
 }
 
 export interface PericiaAnexo {

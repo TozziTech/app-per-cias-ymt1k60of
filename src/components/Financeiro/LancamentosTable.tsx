@@ -19,24 +19,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Pencil, Trash2, ArrowUpCircle, ArrowDownCircle, Search, Download } from 'lucide-react'
+import {
+  Pencil,
+  Trash2,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Search,
+  Download,
+  Paperclip,
+} from 'lucide-react'
 import { Lancamento } from '@/lib/types'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
-interface LancamentosTableProps {
+interface Props {
   lancamentos: Lancamento[]
   isLoading: boolean
   onEdit: (l: Lancamento) => void
   onDelete: (id: string) => void
 }
 
-export function LancamentosTable({
-  lancamentos,
-  isLoading,
-  onEdit,
-  onDelete,
-}: LancamentosTableProps) {
+export function LancamentosTable({ lancamentos, isLoading, onEdit, onDelete }: Props) {
   const [filterTipo, setFilterTipo] = useState<string>('todos')
   const [filterMonth, setFilterMonth] = useState<string>('todos')
   const [search, setSearch] = useState('')
@@ -60,65 +63,25 @@ export function LancamentosTable({
   const filtered = useMemo(() => {
     return lancamentos.filter((l) => {
       if (filterTipo !== 'todos' && l.tipo !== filterTipo) return false
-
       if (filterMonth !== 'todos') {
         const d = new Date(l.data)
         if (isNaN(d.getTime()) || format(d, 'yyyy-MM') !== filterMonth) return false
       }
-
       if (search) {
         const term = search.toLowerCase()
         if (
           !l.descricao.toLowerCase().includes(term) &&
           !l.categoria.toLowerCase().includes(term) &&
           !(l.pericia?.numero_processo || '').toLowerCase().includes(term)
-        ) {
+        )
           return false
-        }
       }
-
       return true
     })
   }, [lancamentos, filterTipo, filterMonth, search])
 
-  const handleExportCSV = () => {
-    if (!filtered.length) return
-
-    const headers = [
-      'Data',
-      'Tipo',
-      'Categoria',
-      'Descrição',
-      'Valor',
-      'Status',
-      'Processo (Perícia)',
-    ]
-    const csvContent = [
-      headers.join(';'),
-      ...filtered.map((l) => {
-        const date = format(new Date(l.data), 'dd/MM/yyyy')
-        const tipo = l.tipo
-        const categoria = l.categoria
-        const descricao = `"${l.descricao.replace(/"/g, '""')}"`
-        const valor = l.valor.toString().replace('.', ',')
-        const status = l.status
-        const processo = l.pericia?.numero_processo ? `"${l.pericia.numero_processo}"` : ''
-        return [date, tipo, categoria, descricao, valor, status, processo].join(';')
-      }),
-    ].join('\n')
-
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.setAttribute('href', url)
-    link.setAttribute('download', `lancamentos_${format(new Date(), 'yyyy-MM-dd')}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
   return (
-    <Card className="shadow-sm">
+    <Card className="shadow-sm border-primary/20">
       <CardHeader className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4">
         <CardTitle>Histórico de Movimentações</CardTitle>
         <div className="flex flex-col sm:flex-row flex-wrap gap-2">
@@ -154,12 +117,7 @@ export function LancamentosTable({
               <SelectItem value="despesa">Despesas</SelectItem>
             </SelectContent>
           </Select>
-          <Button
-            variant="outline"
-            onClick={handleExportCSV}
-            className="gap-2 w-full sm:w-auto"
-            title="Exportar para CSV"
-          >
+          <Button variant="outline" className="gap-2 w-full sm:w-auto" title="Exportar para CSV">
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Exportar</span>
           </Button>
@@ -173,7 +131,8 @@ export function LancamentosTable({
                 <TableHead>Data</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Descrição/Perícia</TableHead>
-                <TableHead>Categoria</TableHead>
+                <TableHead>Categoria/Anexo</TableHead>
+                <TableHead>Responsável</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead className="w-[100px]"></TableHead>
@@ -182,13 +141,13 @@ export function LancamentosTable({
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                    Carregando lançamentos...
+                  <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
+                    Carregando...
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
                     Nenhum lançamento encontrado.
                   </TableCell>
                 </TableRow>
@@ -200,11 +159,11 @@ export function LancamentosTable({
                     </TableCell>
                     <TableCell>
                       {l.tipo === 'receita' ? (
-                        <div className="flex items-center text-emerald-600 font-medium text-sm">
+                        <div className="flex items-center text-emerald-500 text-sm">
                           <ArrowUpCircle className="mr-1 h-4 w-4" /> Receita
                         </div>
                       ) : (
-                        <div className="flex items-center text-rose-600 font-medium text-sm">
+                        <div className="flex items-center text-destructive text-sm">
                           <ArrowDownCircle className="mr-1 h-4 w-4" /> Despesa
                         </div>
                       )}
@@ -217,17 +176,31 @@ export function LancamentosTable({
                         </div>
                       )}
                     </TableCell>
-                    <TableCell>{l.categoria}</TableCell>
+                    <TableCell>
+                      <div>{l.categoria}</div>
+                      {l.anexo_url && (
+                        <a
+                          href={l.anexo_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                          title="Ver Anexo"
+                        >
+                          <Paperclip className="h-3 w-3" /> Anexo
+                        </a>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm">{l.responsavel?.name || '-'}</TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
                         className={cn(
                           'font-normal capitalize',
                           l.status === 'recebido'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            ? 'border-emerald-500/50 text-emerald-500'
                             : l.status === 'pago'
-                              ? 'bg-blue-50 text-blue-700 border-blue-200'
-                              : 'bg-amber-50 text-amber-700 border-amber-200',
+                              ? 'border-primary/50 text-primary'
+                              : 'border-amber-500/50 text-amber-500',
                         )}
                       >
                         {l.status}
@@ -236,7 +209,7 @@ export function LancamentosTable({
                     <TableCell
                       className={cn(
                         'text-right font-medium whitespace-nowrap',
-                        l.tipo === 'receita' ? 'text-emerald-600' : 'text-rose-600',
+                        l.tipo === 'receita' ? 'text-emerald-500' : 'text-destructive',
                       )}
                     >
                       {l.tipo === 'receita' ? '+' : '-'}
@@ -247,17 +220,17 @@ export function LancamentosTable({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-8 w-8 text-primary hover:text-primary"
                           onClick={() => onEdit(l)}
                         >
-                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 hover:text-red-600"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
                           onClick={() => {
-                            if (confirm('Tem certeza que deseja excluir?')) onDelete(l.id)
+                            if (confirm('Deseja excluir?')) onDelete(l.id)
                           }}
                         >
                           <Trash2 className="h-4 w-4" />

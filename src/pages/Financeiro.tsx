@@ -10,7 +10,7 @@ import { LancamentosTable } from '@/components/Financeiro/LancamentosTable'
 import { Lancamento } from '@/lib/types'
 
 export default function Financeiro() {
-  const { lancamentos, loading, addLancamento, updateLancamento, deleteLancamento } =
+  const { lancamentos, loading, addLancamentos, updateLancamento, deleteLancamento } =
     useLancamentos()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingLancamento, setEditingLancamento] = useState<Lancamento | undefined>(undefined)
@@ -99,14 +99,14 @@ export default function Financeiro() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-sm border-blue-100">
+        <Card className="shadow-sm border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Saldo Atual</CardTitle>
-            <Wallet className="h-4 w-4 text-blue-600" />
+            <Wallet className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div
-              className={`text-2xl font-bold ${kpis.saldo >= 0 ? 'text-blue-600' : 'text-rose-600'}`}
+              className={`text-2xl font-bold ${kpis.saldo >= 0 ? 'text-primary' : 'text-destructive'}`}
             >
               {formatCurrency(kpis.saldo)}
             </div>
@@ -114,13 +114,13 @@ export default function Financeiro() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-emerald-100">
+        <Card className="shadow-sm border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Receitas</CardTitle>
-            <TrendingUp className="h-4 w-4 text-emerald-600" />
+            <TrendingUp className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">
+            <div className="text-2xl font-bold text-emerald-500">
               {formatCurrency(kpis.receitas)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -129,24 +129,26 @@ export default function Financeiro() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-rose-100">
+        <Card className="shadow-sm border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Despesas</CardTitle>
-            <TrendingDown className="h-4 w-4 text-rose-600" />
+            <TrendingDown className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-rose-600">{formatCurrency(kpis.despesas)}</div>
+            <div className="text-2xl font-bold text-destructive">
+              {formatCurrency(kpis.despesas)}
+            </div>
             <p className="text-xs text-muted-foreground">+ {formatCurrency(kpis.aPagar)} a pagar</p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
+        <Card className="shadow-sm border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Provisão Futura</CardTitle>
-            <DollarSign className="h-4 w-4 text-amber-500" />
+            <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-500">
+            <div className="text-2xl font-bold text-primary">
               {formatCurrency(kpis.aReceber - kpis.aPagar)}
             </div>
             <p className="text-xs text-muted-foreground">A Receber - A Pagar</p>
@@ -164,9 +166,9 @@ export default function Financeiro() {
               config={{
                 receitas: {
                   label: 'Receitas',
-                  color: 'hsl(var(--emerald-500, 142.1 76.2% 36.3%))',
+                  color: 'hsl(var(--primary))',
                 },
-                despesas: { label: 'Despesas', color: 'hsl(var(--rose-500, 346.8 77.2% 49.8%))' },
+                despesas: { label: 'Despesas', color: 'hsl(var(--destructive))' },
               }}
               className="h-[250px] w-full"
             >
@@ -201,11 +203,11 @@ export default function Financeiro() {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         lancamento={editingLancamento}
-        onSave={async (data) => {
+        onSave={async (dataArray) => {
           if (editingLancamento) {
-            await updateLancamento(editingLancamento.id, data)
+            await updateLancamento(editingLancamento.id, dataArray[0])
           } else {
-            await addLancamento(data)
+            await addLancamentos(dataArray)
           }
           setIsFormOpen(false)
         }}

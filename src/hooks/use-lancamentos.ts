@@ -15,7 +15,8 @@ export function useLancamentos() {
         .from('lancamentos')
         .select(`
           *,
-          pericia:pericias(id, numero_processo, vara)
+          pericia:pericias(id, numero_processo, vara),
+          responsavel:profiles(id, name)
         `)
         .order('data', { ascending: false })
 
@@ -37,21 +38,19 @@ export function useLancamentos() {
     fetchLancamentos()
   }, [fetchLancamentos])
 
-  const addLancamento = async (lancamento: Partial<Lancamento>) => {
+  const addLancamentos = async (novosLancamentos: Partial<Lancamento>[]) => {
     try {
-      const { data, error } = await (supabase as any)
-        .from('lancamentos')
-        .insert(lancamento)
+      const { data, error } = await (supabase as any).from('lancamentos').insert(novosLancamentos)
         .select(`
           *,
-          pericia:pericias(id, numero_processo, vara)
+          pericia:pericias(id, numero_processo, vara),
+          responsavel:profiles(id, name)
         `)
-        .single()
 
       if (error) throw error
 
-      setLancamentos([data as any, ...lancamentos])
-      toast({ title: 'Lançamento salvo com sucesso' })
+      setLancamentos([...(data as any), ...lancamentos])
+      toast({ title: 'Lançamentos salvos com sucesso' })
       return { data, error: null }
     } catch (error: any) {
       toast({
@@ -71,7 +70,8 @@ export function useLancamentos() {
         .eq('id', id)
         .select(`
           *,
-          pericia:pericias(id, numero_processo, vara)
+          pericia:pericias(id, numero_processo, vara),
+          responsavel:profiles(id, name)
         `)
         .single()
 
@@ -112,7 +112,7 @@ export function useLancamentos() {
     lancamentos,
     loading,
     fetchLancamentos,
-    addLancamento,
+    addLancamentos,
     updateLancamento,
     deleteLancamento,
   }
