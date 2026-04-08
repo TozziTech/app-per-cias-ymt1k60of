@@ -516,6 +516,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefa_comentarios: {
+        Row: {
+          comentario: string
+          created_at: string
+          id: string
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          comentario: string
+          created_at?: string
+          id?: string
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          comentario?: string
+          created_at?: string
+          id?: string
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'tarefa_comentarios_tarefa_id_fkey'
+            columns: ['tarefa_id']
+            isOneToOne: false
+            referencedRelation: 'tarefas'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'tarefa_comentarios_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       tarefas: {
         Row: {
           created_at: string
@@ -858,6 +897,12 @@ export const Constants = {
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
 //   avatar_url: text (nullable)
+// Table: tarefa_comentarios
+//   id: uuid (not null, default: gen_random_uuid())
+//   tarefa_id: uuid (not null)
+//   user_id: uuid (not null)
+//   comentario: text (not null)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: tarefas
 //   id: uuid (not null, default: gen_random_uuid())
 //   titulo: text (not null)
@@ -904,6 +949,10 @@ export const Constants = {
 // Table: profiles
 //   FOREIGN KEY profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 //   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
+// Table: tarefa_comentarios
+//   PRIMARY KEY tarefa_comentarios_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY tarefa_comentarios_tarefa_id_fkey: FOREIGN KEY (tarefa_id) REFERENCES tarefas(id) ON DELETE CASCADE
+//   FOREIGN KEY tarefa_comentarios_user_id_fkey: FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
 // Table: tarefas
 //   FOREIGN KEY tarefas_pericia_id_fkey: FOREIGN KEY (pericia_id) REFERENCES pericias(id) ON DELETE SET NULL
 //   FOREIGN KEY tarefas_perito_associado_id_fkey: FOREIGN KEY (perito_associado_id) REFERENCES profiles(id) ON DELETE SET NULL
@@ -965,6 +1014,10 @@ export const Constants = {
 //     USING: (auth.uid() = id)
 //   Policy "profiles_update_own" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: (auth.uid() = id)
+// Table: tarefa_comentarios
+//   Policy "authenticated_all_tarefa_comentarios" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: tarefas
 //   Policy "authenticated_all_tarefas" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true

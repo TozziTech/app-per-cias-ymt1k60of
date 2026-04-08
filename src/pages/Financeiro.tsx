@@ -9,12 +9,14 @@ import { LancamentoForm } from '@/components/Financeiro/LancamentoForm'
 import { LancamentosTable } from '@/components/Financeiro/LancamentosTable'
 import { Lancamento } from '@/lib/types'
 import { exportToCsv } from '@/lib/export'
-import { Download } from 'lucide-react'
+import { Download, History } from 'lucide-react'
+import { AuditoriaDialog } from '@/components/Financeiro/AuditoriaDialog'
 
 export default function Financeiro() {
   const { lancamentos, loading, addLancamentos, updateLancamento, deleteLancamento } =
     useLancamentos()
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isAuditoriaOpen, setIsAuditoriaOpen] = useState(false)
   const [editingLancamento, setEditingLancamento] = useState<Lancamento | undefined>(undefined)
 
   const formatCurrency = (val: number) =>
@@ -110,14 +112,23 @@ export default function Financeiro() {
             Gerencie suas receitas e despesas vinculadas aos processos.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsAuditoriaOpen(true)}
+            className="shadow-sm"
+            title="Histórico de Auditoria"
+          >
+            <History className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Auditoria</span>
+          </Button>
           <Button variant="outline" onClick={handleExportExcel} className="shadow-sm">
             <Download className="mr-2 h-4 w-4" />
-            Exportar
+            <span className="hidden sm:inline">Exportar</span>
           </Button>
-          <Button onClick={handleOpenNew} className="gap-2">
+          <Button onClick={handleOpenNew} className="gap-2 shadow-sm">
             <Plus className="h-4 w-4" />
-            Novo Lançamento
+            <span className="hidden sm:inline">Novo Lançamento</span>
           </Button>
         </div>
       </div>
@@ -236,6 +247,8 @@ export default function Financeiro() {
           setIsFormOpen(false)
         }}
       />
+
+      <AuditoriaDialog open={isAuditoriaOpen} onOpenChange={setIsAuditoriaOpen} />
     </div>
   )
 }

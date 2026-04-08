@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Send, Loader2 } from 'lucide-react'
+import { Send, Loader2, Paperclip } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 interface Mensagem {
@@ -12,6 +12,8 @@ interface Mensagem {
   user_id: string
   comentario: string
   created_at: string
+  anexo_url?: string | null
+  anexo_nome?: string | null
   profiles?: {
     name: string
     avatar_url: string
@@ -22,7 +24,9 @@ export function ChatTarefa({ tarefaId }: { tarefaId: string }) {
   const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
@@ -96,7 +100,7 @@ export function ChatTarefa({ tarefaId }: { tarefaId: string }) {
 
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    if (!newMessage.trim() || !currentUserId) return
+    if (!newMessage.trim() || !currentUserId || uploading) return
 
     const messageText = newMessage
     setNewMessage('')
@@ -111,6 +115,44 @@ export function ChatTarefa({ tarefaId }: { tarefaId: string }) {
     } catch (error) {
       toast({ title: 'Erro ao enviar mensagem', variant: 'destructive' })
       setNewMessage(messageText)
+    }
+  }
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !currentUserId) return
+
+    setUploading(true)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`
+      const filePath = `${tarefaId}/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('tarefa_anexos')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('tarefa_anexos').getPublicUrl(filePath)
+
+      const { error } = await supabase.from('tarefa_comentarios').insert({
+        tarefa_id: tarefaId,
+        user_id: currentUserId,
+        comentario: newMessage.trim() || 'Arquivo anexado',
+        anexo_url: publicUrl,
+        anexo_nome: file.name,
+      })
+
+      if (error) throw error
+      setNewMessage('')
+    } catch (error: any) {
+      toast({ title: 'Erro ao enviar anexo', description: error.message, variant: 'destructive' })
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -129,6 +171,7 @@ export function ChatTarefa({ tarefaId }: { tarefaId: string }) {
           <div className="space-y-4 pb-2">
             {mensagens.map((msg) => {
               const isMine = msg.user_id === currentUserId
+              const isImage = msg.anexo_url && msg.anexo_url.match(/\.(jpeg|jpg|gif|png|webp)$/i)
               return (
                 <div
                   key={msg.id}
@@ -149,6 +192,31 @@ export function ChatTarefa({ tarefaId }: { tarefaId: string }) {
                     }`}
                   >
                     {msg.comentario}
+                    {msg.anexo_url && (
+                      <div className="mt-2">
+                        {isImage ? (
+                          <a href={msg.anexo_url} target="_blank" rel="noreferrer">
+                            <img
+                              src={msg.anexo_url}
+                              alt={msg.anexo_nome || 'Anexo'}
+                              className="max-w-[240px] rounded-md border border-black/10 dark:border-white/10"
+                            />
+                          </a>
+                        ) : (
+                          <a
+                            href={msg.anexo_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-2 p-2 bg-black/10 dark:bg-white/10 rounded-md hover:bg-black/20 dark:hover:bg-white/20 transition-colors"
+                          >
+                            <Paperclip className="h-4 w-4 shrink-0" />
+                            <span className="text-xs font-medium truncate max-w-[180px]">
+                              {msg.anexo_nome || 'Baixar Arquivo'}
+                            </span>
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <span className="text-[10px] text-zinc-400 mt-1">
                     {new Date(msg.created_at).toLocaleTimeString('pt-BR', {
@@ -165,16 +233,40 @@ export function ChatTarefa({ tarefaId }: { tarefaId: string }) {
       </ScrollArea>
       <div className="p-3 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800">
         <form onSubmit={handleSend} className="flex items-center gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileSelect}
+            accept="image/*,.pdf,.doc,.docx"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            title="Anexar arquivo"
+          >
+            {uploading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Paperclip className="h-5 w-5" />
+            )}
+          </Button>
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Digite seu comentário..."
             className="flex-1 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
+            disabled={uploading}
           />
           <Button
             type="submit"
             size="icon"
             className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={uploading}
           >
             <Send className="h-4 w-4" />
           </Button>
