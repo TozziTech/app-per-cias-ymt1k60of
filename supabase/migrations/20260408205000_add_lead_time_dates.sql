@@ -1,0 +1,2 @@
+ALTER TABLE public.pericias ADD COLUMN IF NOT EXISTS data_aceite TIMESTAMPTZ;
+ALTER TABLE public.pericias ADD COLUMN IF NOT EXISTS data_pagamento TIMESTAMPTZ;

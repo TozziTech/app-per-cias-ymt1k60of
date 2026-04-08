@@ -32,6 +32,7 @@ import {
   Percent,
   Banknote,
   History,
+  Timer,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Pericia } from '@/lib/types'
@@ -257,6 +258,87 @@ export default function Dashboard() {
 
     return { receitas, despesas, saldo: receitas - despesas, movimentado: receitas + despesas }
   }, [lancamentos])
+
+  const leadTimeData = useMemo(() => {
+    let nomeacaoAceite = { total: 0, count: 0 }
+    let aceitePericia = { total: 0, count: 0 }
+    let periciaLaudo = { total: 0, count: 0 }
+    let laudoImpugnacao = { total: 0, count: 0 }
+    let impugnacaoEsclarecimentos = { total: 0, count: 0 }
+    let esclarecimentosPagamento = { total: 0, count: 0 }
+
+    pericias.forEach((p) => {
+      const dNomeacao = parseDateSafe(p.dataNomeacao)
+      const dAceite = parseDateSafe(p.dataAceite)
+      const dPericia = parseDateSafe(p.dataPericia)
+      const dLaudo = parseDateSafe(p.dataEntregaLaudo)
+      const dImpugnacao = parseDateSafe(p.dataImpugnacao)
+      const dEsclarecimentos = parseDateSafe(p.entregaEsclarecimentos)
+      const dPagamento = parseDateSafe(p.dataPagamento)
+
+      if (dNomeacao && dAceite) {
+        nomeacaoAceite.total += Math.max(0, differenceInDays(dAceite, dNomeacao))
+        nomeacaoAceite.count += 1
+      }
+      if (dAceite && dPericia) {
+        aceitePericia.total += Math.max(0, differenceInDays(dPericia, dAceite))
+        aceitePericia.count += 1
+      }
+      if (dPericia && dLaudo) {
+        periciaLaudo.total += Math.max(0, differenceInDays(dLaudo, dPericia))
+        periciaLaudo.count += 1
+      }
+      if (dLaudo && dImpugnacao) {
+        laudoImpugnacao.total += Math.max(0, differenceInDays(dImpugnacao, dLaudo))
+        laudoImpugnacao.count += 1
+      }
+      if (dImpugnacao && dEsclarecimentos) {
+        impugnacaoEsclarecimentos.total += Math.max(
+          0,
+          differenceInDays(dEsclarecimentos, dImpugnacao),
+        )
+        impugnacaoEsclarecimentos.count += 1
+      }
+      if (dEsclarecimentos && dPagamento) {
+        esclarecimentosPagamento.total += Math.max(
+          0,
+          differenceInDays(dPagamento, dEsclarecimentos),
+        )
+        esclarecimentosPagamento.count += 1
+      }
+    })
+
+    return [
+      {
+        etapa: 'Nomeação → Aceite',
+        dias: nomeacaoAceite.count ? Math.round(nomeacaoAceite.total / nomeacaoAceite.count) : 0,
+      },
+      {
+        etapa: 'Aceite → Perícia',
+        dias: aceitePericia.count ? Math.round(aceitePericia.total / aceitePericia.count) : 0,
+      },
+      {
+        etapa: 'Perícia → Laudo',
+        dias: periciaLaudo.count ? Math.round(periciaLaudo.total / periciaLaudo.count) : 0,
+      },
+      {
+        etapa: 'Laudo → Contestação',
+        dias: laudoImpugnacao.count ? Math.round(laudoImpugnacao.total / laudoImpugnacao.count) : 0,
+      },
+      {
+        etapa: 'Contest. → Esclar.',
+        dias: impugnacaoEsclarecimentos.count
+          ? Math.round(impugnacaoEsclarecimentos.total / impugnacaoEsclarecimentos.count)
+          : 0,
+      },
+      {
+        etapa: 'Esclar. → Pagamento',
+        dias: esclarecimentosPagamento.count
+          ? Math.round(esclarecimentosPagamento.total / esclarecimentosPagamento.count)
+          : 0,
+      },
+    ]
+  }, [pericias])
 
   const periciasKpis = useMemo(() => {
     const total = pericias.length
@@ -631,6 +713,50 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Timer className="w-5 h-5 text-primary" />
+            Lead Time Médio por Etapa (Ciclo de Vida da Perícia)
+          </CardTitle>
+          <CardDescription>
+            Tempo médio em dias transcorridos entre os principais marcos do processo pericial.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pl-2">
+          <ChartContainer
+            config={{
+              dias: { label: 'Dias (Média)', color: '#0ea5e9' },
+            }}
+            className="h-[350px] w-full"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={leadTimeData}
+                layout="vertical"
+                margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis
+                  dataKey="etapa"
+                  type="category"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  width={130}
+                />
+                <Tooltip
+                  content={<ChartTooltipContent />}
+                  cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
+                />
+                <Bar dataKey="dias" fill="var(--color-dias)" radius={[0, 4, 4, 0]} barSize={30} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="shadow-sm flex flex-col h-[400px]">

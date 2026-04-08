@@ -31,6 +31,7 @@ const formSchema = z.object({
   vara: z.string().min(1, 'Vara é obrigatória'),
   cidade: z.string().optional(),
   dataNomeacao: z.date({ required_error: 'Obrigatório' }),
+  dataAceite: z.date().optional().nullable(),
   dataPericia: z.date({ required_error: 'Obrigatório' }),
   dataEntregaLaudo: z.date({ required_error: 'Obrigatório' }),
   honorarios: z.string().optional(),
@@ -46,6 +47,7 @@ const formSchema = z.object({
   entregaImpugnacao: z.date().optional().nullable(),
   limitesEsclarecimentos: z.string().optional(),
   entregaEsclarecimentos: z.date().optional().nullable(),
+  dataPagamento: z.date().optional().nullable(),
   honorariosParcelados: z.boolean().default(false),
   quantidadeParcelas: z.string().optional(),
   adiantamentoSolicitado: z.boolean().default(false),
@@ -136,6 +138,7 @@ export function PericiaForm({
         vara: pericia.vara || '',
         cidade: pericia.cidade || '',
         dataNomeacao: parseDateSafe(pericia.dataNomeacao),
+        dataAceite: parseDateSafe(pericia.dataAceite),
         dataPericia: parseDateSafe(pericia.dataPericia),
         dataEntregaLaudo: parseDateSafe(pericia.dataEntregaLaudo),
         honorarios: pericia.honorarios ? pericia.honorarios.toString() : '',
@@ -151,6 +154,7 @@ export function PericiaForm({
         entregaImpugnacao: parseDateSafe(pericia.entregaImpugnacao),
         limitesEsclarecimentos: pericia.limitesEsclarecimentos || '',
         entregaEsclarecimentos: parseDateSafe(pericia.entregaEsclarecimentos),
+        dataPagamento: parseDateSafe(pericia.dataPagamento),
         honorariosParcelados: pericia.honorariosParcelados || false,
         quantidadeParcelas: pericia.quantidadeParcelas ? pericia.quantidadeParcelas.toString() : '',
         adiantamentoSolicitado: pericia.adiantamentoSolicitado || false,
@@ -164,6 +168,7 @@ export function PericiaForm({
       const payload = {
         ...values,
         dataNomeacao: values.dataNomeacao ? format(values.dataNomeacao, 'yyyy-MM-dd') : '',
+        dataAceite: values.dataAceite ? format(values.dataAceite, 'yyyy-MM-dd') : undefined,
         dataPericia: values.dataPericia ? format(values.dataPericia, 'yyyy-MM-dd') : '',
         dataEntregaLaudo: values.dataEntregaLaudo
           ? format(values.dataEntregaLaudo, 'yyyy-MM-dd')
@@ -177,6 +182,9 @@ export function PericiaForm({
           : undefined,
         entregaEsclarecimentos: values.entregaEsclarecimentos
           ? format(values.entregaEsclarecimentos, 'yyyy-MM-dd')
+          : undefined,
+        dataPagamento: values.dataPagamento
+          ? format(values.dataPagamento, 'yyyy-MM-dd')
           : undefined,
         honorarios: values.honorarios ? parseFloat(values.honorarios.replace(',', '.')) : undefined,
         diasImpugnacao: values.diasImpugnacao ? parseInt(values.diasImpugnacao, 10) : undefined,
@@ -273,6 +281,7 @@ export function PericiaForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-primary/20 pt-6">
           <h3 className="md:col-span-2 font-semibold text-lg text-primary">Datas Principais</h3>
           <CustomDatePicker control={form.control} name="dataNomeacao" label="Data de Nomeação*" />
+          <CustomDatePicker control={form.control} name="dataAceite" label="Data do Aceite" />
           <CustomDatePicker control={form.control} name="dataPericia" label="Data da Perícia*" />
           <CustomDatePicker
             control={form.control}
@@ -351,6 +360,11 @@ export function PericiaForm({
             name="entregaEsclarecimentos"
             label="Entrega Esclarecimentos"
           />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-primary/20 pt-6 bg-muted/20 p-4 rounded-lg">
+          <h3 className="md:col-span-2 font-semibold text-lg text-primary">Pagamento</h3>
+          <CustomDatePicker control={form.control} name="dataPagamento" label="Data do Pagamento" />
         </div>
 
         <div className="space-y-4 border-t border-primary/20 pt-6">

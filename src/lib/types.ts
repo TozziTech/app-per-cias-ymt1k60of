@@ -103,6 +103,7 @@ export interface Pericia {
   vara: string
   cidade?: string
   dataNomeacao: string
+  dataAceite?: string
   dataPericia: string
   dataEntregaLaudo: string
   honorarios?: number
@@ -126,6 +127,7 @@ export interface Pericia {
   contato_perito_id?: string | null
   status_pagamento?: string
   statusPagamento?: string
+  dataPagamento?: string
   honorariosParcelados?: boolean
   quantidadeParcelas?: number
   adiantamentoSolicitado?: boolean

@@ -12,6 +12,7 @@ function mapToApp(data: any): Pericia {
     assistenteTecnicoAutora: data.assistente_autora ?? data.assistenteTecnicoAutora ?? '',
     assistenteTecnicoRe: data.assistente_re ?? data.assistenteTecnicoRe ?? '',
     dataNomeacao: data.data_nomeacao ?? data.dataNomeacao ?? '',
+    dataAceite: data.data_aceite ?? data.dataAceite ?? '',
     dataPericia: data.data_pericia ?? data.dataPericia ?? '',
     dataEntregaLaudo: data.data_entrega_laudo ?? data.dataEntregaLaudo ?? '',
     linkNuvem: data.link_nuvem ?? data.linkNuvem ?? '',
@@ -25,6 +26,7 @@ function mapToApp(data: any): Pericia {
     limitesEsclarecimentos: data.limites_esclarecimentos ?? data.limitesEsclarecimentos ?? '',
     entregaEsclarecimentos: data.entrega_esclarecimentos ?? data.entregaEsclarecimentos ?? '',
     statusPagamento: data.status_pagamento ?? data.statusPagamento ?? '',
+    dataPagamento: data.data_pagamento ?? data.dataPagamento ?? '',
     honorariosParcelados: data.honorarios_parcelados ?? data.honorariosParcelados ?? false,
     quantidadeParcelas: data.quantidade_parcelas ?? data.quantidadeParcelas,
     adiantamentoSolicitado: data.adiantamento_solicitado ?? data.adiantamentoSolicitado ?? false,
@@ -62,6 +64,10 @@ function mapToDB(data: any): any {
   if ('dataNomeacao' in data) {
     mapped.data_nomeacao = data.dataNomeacao || null
     delete mapped.dataNomeacao
+  }
+  if ('dataAceite' in data) {
+    mapped.data_aceite = data.dataAceite || null
+    delete mapped.dataAceite
   }
   if ('dataPericia' in data) {
     mapped.data_pericia = data.dataPericia || null
@@ -114,6 +120,10 @@ function mapToDB(data: any): any {
   if ('statusPagamento' in data) {
     mapped.status_pagamento = data.statusPagamento
     delete mapped.statusPagamento
+  }
+  if ('dataPagamento' in data) {
+    mapped.data_pagamento = data.dataPagamento || null
+    delete mapped.dataPagamento
   }
   if ('honorariosParcelados' in data) {
     mapped.honorarios_parcelados = data.honorariosParcelados
