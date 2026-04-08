@@ -31,7 +31,12 @@ export default function Peritos() {
     rg: '',
     data_nascimento: '',
     crea: '',
+    area_atuacao: '',
     endereco: '',
+    numero: '',
+    cep: '',
+    bairro: '',
+    cidade_estado: '',
     telefone: '',
     telefone_alternativo: '',
     email: '',
@@ -101,7 +106,12 @@ export default function Peritos() {
       rg: p.rg || '',
       data_nascimento: p.data_nascimento || '',
       crea: p.crea || '',
+      area_atuacao: p.area_atuacao || '',
       endereco: p.endereco || '',
+      numero: p.numero || '',
+      cep: p.cep || '',
+      bairro: p.bairro || '',
+      cidade_estado: p.cidade_estado || '',
       telefone: p.telefone || '',
       telefone_alternativo: p.telefone_alternativo || '',
       email: p.email || '',
@@ -203,6 +213,13 @@ export default function Peritos() {
                       onChange={(e) => setForm({ ...form, crea: e.target.value })}
                     />
                   </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Área de Atuação (Estado)</Label>
+                    <Input
+                      value={form.area_atuacao}
+                      onChange={(e) => setForm({ ...form, area_atuacao: e.target.value })}
+                    />
+                  </div>
 
                   {/* Dados Pessoais */}
                   <div className="col-span-full font-semibold text-primary/80 mt-4">
@@ -257,12 +274,43 @@ export default function Peritos() {
                       onChange={(e) => setForm({ ...form, telefone_alternativo: e.target.value })}
                     />
                   </div>
-                  <div className="space-y-2 col-span-full">
-                    <Label>Endereço Completo</Label>
-                    <Input
-                      value={form.endereco}
-                      onChange={(e) => setForm({ ...form, endereco: e.target.value })}
-                    />
+
+                  <div className="col-span-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                    <div className="space-y-2 sm:col-span-2 md:col-span-1">
+                      <Label>CEP</Label>
+                      <Input
+                        value={form.cep}
+                        onChange={(e) => setForm({ ...form, cep: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2 md:col-span-3">
+                      <Label>Endereço (Logradouro)</Label>
+                      <Input
+                        value={form.endereco}
+                        onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-1">
+                      <Label>Nr.</Label>
+                      <Input
+                        value={form.numero}
+                        onChange={(e) => setForm({ ...form, numero: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-1 md:col-span-1">
+                      <Label>Bairro</Label>
+                      <Input
+                        value={form.bairro}
+                        onChange={(e) => setForm({ ...form, bairro: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2 md:col-span-2">
+                      <Label>Cidade/Estado</Label>
+                      <Input
+                        value={form.cidade_estado}
+                        onChange={(e) => setForm({ ...form, cidade_estado: e.target.value })}
+                      />
+                    </div>
                   </div>
 
                   {/* Dados Bancários */}
@@ -327,33 +375,68 @@ export default function Peritos() {
             key={perito.id}
             className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 shadow-sm hover:shadow-md transition-all"
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-xl font-semibold text-foreground">{perito.nome}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {perito.especialidade || 'Especialidade não informada'}
-                </p>
+            <div className="flex justify-between items-start gap-4">
+              <div className="min-w-0">
+                <h3 className="text-xl font-semibold text-foreground truncate" title={perito.nome}>
+                  {perito.nome}
+                </h3>
+                <div className="flex flex-col gap-0.5 mt-1">
+                  <p
+                    className="text-sm text-muted-foreground truncate"
+                    title={perito.especialidade}
+                  >
+                    {perito.especialidade || 'Especialidade não informada'}
+                  </p>
+                  {perito.area_atuacao && (
+                    <p
+                      className="text-xs text-muted-foreground truncate"
+                      title={perito.area_atuacao}
+                    >
+                      Área: {perito.area_atuacao}
+                    </p>
+                  )}
+                </div>
               </div>
-              {perito.codigo_id && (
-                <Badge variant="outline" className="text-xs shrink-0">
-                  ID: {perito.codigo_id}
-                </Badge>
-              )}
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                {perito.codigo_id && (
+                  <Badge variant="outline" className="text-xs font-medium bg-primary/5">
+                    ID: {perito.codigo_id}
+                  </Badge>
+                )}
+                {perito.crea && (
+                  <Badge variant="secondary" className="text-xs font-medium">
+                    CREA: {perito.crea}
+                  </Badge>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2 text-sm text-muted-foreground mt-1">
               <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
+                <Phone className="w-4 h-4 shrink-0" />
                 <span>{perito.telefone || 'Sem telefone'}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                <span className="truncate" title={perito.endereco}>
-                  {perito.endereco || 'Local não informado'}
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
+                <span
+                  className="line-clamp-2"
+                  title={[
+                    perito.endereco,
+                    perito.numero,
+                    perito.bairro,
+                    perito.cidade_estado,
+                    perito.cep,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
+                >
+                  {[perito.endereco, perito.numero, perito.bairro, perito.cidade_estado, perito.cep]
+                    .filter(Boolean)
+                    .join(', ') || 'Local não informado'}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
+                <Mail className="w-4 h-4 shrink-0" />
                 <span className="truncate" title={perito.email}>
                   {perito.email || 'Sem e-mail'}
                 </span>
