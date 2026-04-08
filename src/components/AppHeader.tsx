@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Search, LogOut, User as UserIcon } from 'lucide-react'
+import { Search, LogOut, User as UserIcon, Sun, Moon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTheme } from '@/components/ThemeProvider'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -18,6 +19,7 @@ import { Badge } from '@/components/ui/badge'
 export function AppHeader() {
   const { user, logout } = useAuth()
   const location = useLocation()
+  const { theme, setTheme } = useTheme()
 
   const getPageTitle = () => {
     if (location.pathname.includes('/dashboard')) return 'Dashboard'
@@ -46,6 +48,17 @@ export function AppHeader() {
             className="w-64 rounded-full bg-muted/50 pl-8 focus-visible:bg-background"
           />
         </div>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="relative h-10 w-10 rounded-full text-muted-foreground hover:text-foreground"
+        >
+          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <span className="sr-only">Alternar tema</span>
+        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

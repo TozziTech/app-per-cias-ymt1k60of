@@ -157,6 +157,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string
           id: string
@@ -165,6 +166,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email: string
           id: string
@@ -173,6 +175,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -378,6 +381,7 @@ export const Constants = {
 //   role: text (nullable, default: 'user'::text)
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
+//   avatar_url: text (nullable)
 
 // --- CONSTRAINTS ---
 // Table: lancamentos
