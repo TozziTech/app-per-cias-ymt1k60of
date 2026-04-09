@@ -1,11 +1,17 @@
 // AVOID UPDATING THIS FILE DIRECTLY. It is automatically generated.
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '14.4'
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
@@ -39,11 +45,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'activity_logs_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -125,18 +131,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'captacao_pericias_perito_id_fkey'
-            columns: ['perito_id']
+            foreignKeyName: "captacao_pericias_perito_id_fkey"
+            columns: ["perito_id"]
             isOneToOne: false
-            referencedRelation: 'peritos'
-            referencedColumns: ['id']
+            referencedRelation: "peritos"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'captacao_pericias_responsavel_id_fkey'
-            columns: ['responsavel_id']
+            foreignKeyName: "captacao_pericias_responsavel_id_fkey"
+            columns: ["responsavel_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -212,11 +218,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'historico_documentos_pericia_id_fkey'
-            columns: ['pericia_id']
+            foreignKeyName: "historico_documentos_pericia_id_fkey"
+            columns: ["pericia_id"]
             isOneToOne: false
-            referencedRelation: 'pericias'
-            referencedColumns: ['id']
+            referencedRelation: "pericias"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -301,25 +307,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'lancamentos_pericia_id_fkey'
-            columns: ['pericia_id']
+            foreignKeyName: "lancamentos_pericia_id_fkey"
+            columns: ["pericia_id"]
             isOneToOne: false
-            referencedRelation: 'pericias'
-            referencedColumns: ['id']
+            referencedRelation: "pericias"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'lancamentos_perito_id_fkey'
-            columns: ['perito_id']
+            foreignKeyName: "lancamentos_perito_id_fkey"
+            columns: ["perito_id"]
             isOneToOne: false
-            referencedRelation: 'peritos'
-            referencedColumns: ['id']
+            referencedRelation: "peritos"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'lancamentos_responsavel_id_fkey'
-            columns: ['responsavel_id']
+            foreignKeyName: "lancamentos_responsavel_id_fkey"
+            columns: ["responsavel_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -353,11 +359,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'notificacoes_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "notificacoes_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -394,11 +400,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'pericia_anexos_pericia_id_fkey'
-            columns: ['pericia_id']
+            foreignKeyName: "pericia_anexos_pericia_id_fkey"
+            columns: ["pericia_id"]
             isOneToOne: false
-            referencedRelation: 'pericias'
-            referencedColumns: ['id']
+            referencedRelation: "pericias"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -426,18 +432,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'pericia_mensagens_pericia_id_fkey'
-            columns: ['pericia_id']
+            foreignKeyName: "pericia_mensagens_pericia_id_fkey"
+            columns: ["pericia_id"]
             isOneToOne: false
-            referencedRelation: 'pericias'
-            referencedColumns: ['id']
+            referencedRelation: "pericias"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'pericia_mensagens_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "pericia_mensagens_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -573,18 +579,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'pericias_contato_perito_id_fkey'
-            columns: ['contato_perito_id']
+            foreignKeyName: "pericias_contato_perito_id_fkey"
+            columns: ["contato_perito_id"]
             isOneToOne: false
-            referencedRelation: 'contatos'
-            referencedColumns: ['id']
+            referencedRelation: "contatos"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'pericias_perito_id_fkey'
-            columns: ['perito_id']
+            foreignKeyName: "pericias_perito_id_fkey"
+            columns: ["perito_id"]
             isOneToOne: false
-            referencedRelation: 'peritos'
-            referencedColumns: ['id']
+            referencedRelation: "peritos"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -774,18 +780,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'tarefa_comentarios_tarefa_id_fkey'
-            columns: ['tarefa_id']
+            foreignKeyName: "tarefa_comentarios_tarefa_id_fkey"
+            columns: ["tarefa_id"]
             isOneToOne: false
-            referencedRelation: 'tarefas'
-            referencedColumns: ['id']
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'tarefa_comentarios_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "tarefa_comentarios_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -831,25 +837,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'tarefas_pericia_id_fkey'
-            columns: ['pericia_id']
+            foreignKeyName: "tarefas_pericia_id_fkey"
+            columns: ["pericia_id"]
             isOneToOne: false
-            referencedRelation: 'pericias'
-            referencedColumns: ['id']
+            referencedRelation: "pericias"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'tarefas_perito_associado_id_fkey'
-            columns: ['perito_associado_id']
+            foreignKeyName: "tarefas_perito_associado_id_fkey"
+            columns: ["perito_associado_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'tarefas_responsavel_id_fkey'
-            columns: ['responsavel_id']
+            foreignKeyName: "tarefas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -869,31 +875,33 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
-    ? (DefaultSchema['Tables'] & DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -902,23 +910,23 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -927,23 +935,23 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -952,36 +960,36 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema['Enums']
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
-    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema['CompositeTypes']
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
-    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
@@ -989,6 +997,7 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
 
 // ====== DATABASE EXTENDED CONTEXT (auto-generated) ======
 // This section contains actual PostgreSQL column types, constraints, RLS policies,
@@ -1384,6 +1393,43 @@ export const Constants = {
 //     USING: (is_admin(auth.uid()) OR (perito_associado_id = auth.uid()) OR (responsavel_id = auth.uid()))
 
 // --- DATABASE FUNCTIONS ---
+// FUNCTION generate_codigo_interno()
+//   CREATE OR REPLACE FUNCTION public.generate_codigo_interno()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//   AS $function$
+//   DECLARE
+//     v_year text;
+//     v_seq int;
+//     v_last_code text;
+//     v_seq_str text;
+//   BEGIN
+//     IF NEW.codigo_interno IS NULL OR NEW.codigo_interno = '' THEN
+//       v_year := to_char(CURRENT_DATE, 'YYYY');
+//       
+//       -- Find the last generated code for the current year
+//       SELECT codigo_interno INTO v_last_code
+//       FROM public.pericias
+//       WHERE codigo_interno ~ ('^PER-' || v_year || '-\d+
+)
+//       ORDER BY length(codigo_interno) DESC, codigo_interno DESC
+//       LIMIT 1;
+//   
+//       IF v_last_code IS NOT NULL THEN
+//         -- Extract the numeric sequence and increment
+//         v_seq_str := regexp_replace(v_last_code, '^PER-\d{4}-', '');
+//         v_seq := cast(v_seq_str as int) + 1;
+//       ELSE
+//         v_seq := 1;
+//       END IF;
+//   
+//       -- Format to PER-YYYY-SEQ (ex: PER-2024-001)
+//       NEW.codigo_interno := 'PER-' || v_year || '-' || lpad(v_seq::text, 3, '0');
+//     END IF;
+//     RETURN NEW;
+//   END;
+//   $function$
+//   
 // FUNCTION handle_new_user()
 //   CREATE OR REPLACE FUNCTION public.handle_new_user()
 //    RETURNS trigger
@@ -1401,7 +1447,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//
+//   
 // FUNCTION is_admin(uuid)
 //   CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
 //    RETURNS boolean
@@ -1415,7 +1461,7 @@ export const Constants = {
 //     RETURN user_role IN ('Administrador', 'administrador', 'Gerente', 'Gestor');
 //   END;
 //   $function$
-//
+//   
 // FUNCTION log_lancamento_activity()
 //   CREATE OR REPLACE FUNCTION public.log_lancamento_activity()
 //    RETURNS trigger
@@ -1426,7 +1472,7 @@ export const Constants = {
 //       current_user_id UUID;
 //   BEGIN
 //       current_user_id := auth.uid();
-//
+//       
 //       IF TG_OP = 'INSERT' THEN
 //           INSERT INTO public.activity_logs (user_id, action, entity_type, entity_id, details)
 //           VALUES (current_user_id, 'criou', 'lançamento', NEW.id, jsonb_build_object('descricao', NEW.descricao, 'valor', NEW.valor));
@@ -1439,11 +1485,11 @@ export const Constants = {
 //           INSERT INTO public.activity_logs (user_id, action, entity_type, entity_id, details)
 //           VALUES (current_user_id, 'excluiu', 'lançamento', OLD.id, jsonb_build_object('descricao', OLD.descricao, 'valor', OLD.valor));
 //       END IF;
-//
+//       
 //       RETURN COALESCE(NEW, OLD);
 //   END;
 //   $function$
-//
+//   
 // FUNCTION log_pericia_activity()
 //   CREATE OR REPLACE FUNCTION public.log_pericia_activity()
 //    RETURNS trigger
@@ -1455,34 +1501,34 @@ export const Constants = {
 //       changed_fields JSONB;
 //   BEGIN
 //       current_user_id := auth.uid();
-//
+//       
 //       IF TG_OP = 'INSERT' THEN
 //           INSERT INTO public.activity_logs (user_id, action, entity_type, entity_id, details)
 //           VALUES (current_user_id, 'criou', 'perícia', NEW.id, jsonb_build_object('numero_processo', NEW.numero_processo));
 //       ELSIF TG_OP = 'UPDATE' THEN
 //           IF NEW IS DISTINCT FROM OLD THEN
 //               changed_fields := '{}'::jsonb;
-//
+//               
 //               IF NEW.status IS DISTINCT FROM OLD.status THEN
 //                   changed_fields := changed_fields || jsonb_build_object('status', NEW.status, 'status_anterior', OLD.status);
 //               END IF;
-//
+//               
 //               IF NEW.status_pagamento IS DISTINCT FROM OLD.status_pagamento THEN
 //                   changed_fields := changed_fields || jsonb_build_object('status_pagamento', NEW.status_pagamento, 'status_pagamento_anterior', OLD.status_pagamento);
 //               END IF;
-//
+//   
 //               IF NEW.perito_id IS DISTINCT FROM OLD.perito_id THEN
 //                   changed_fields := changed_fields || jsonb_build_object('perito_id', 'Atualizado');
 //               END IF;
-//
+//   
 //               IF NEW.checklist IS DISTINCT FROM OLD.checklist THEN
 //                   changed_fields := changed_fields || jsonb_build_object('tarefas', 'Atualizadas');
 //               END IF;
-//
+//               
 //               IF changed_fields = '{}'::jsonb THEN
 //                   changed_fields := jsonb_build_object('atualizacao', 'geral');
 //               END IF;
-//
+//   
 //               INSERT INTO public.activity_logs (user_id, action, entity_type, entity_id, details)
 //               VALUES (current_user_id, 'atualizou', 'perícia', NEW.id, changed_fields);
 //           END IF;
@@ -1490,11 +1536,11 @@ export const Constants = {
 //           INSERT INTO public.activity_logs (user_id, action, entity_type, entity_id, details)
 //           VALUES (current_user_id, 'excluiu', 'perícia', OLD.id, jsonb_build_object('numero_processo', OLD.numero_processo));
 //       END IF;
-//
+//       
 //       RETURN COALESCE(NEW, OLD);
 //   END;
 //   $function$
-//
+//   
 // FUNCTION notify_tarefa_comentario()
 //   CREATE OR REPLACE FUNCTION public.notify_tarefa_comentario()
 //    RETURNS trigger
@@ -1506,27 +1552,27 @@ export const Constants = {
 //       v_perito_associado_id UUID;
 //       v_titulo TEXT;
 //   BEGIN
-//       SELECT responsavel_id, perito_associado_id, titulo
-//       INTO v_responsavel_id, v_perito_associado_id, v_titulo
-//       FROM public.tarefas
+//       SELECT responsavel_id, perito_associado_id, titulo 
+//       INTO v_responsavel_id, v_perito_associado_id, v_titulo 
+//       FROM public.tarefas 
 //       WHERE id = NEW.tarefa_id;
-//
+//   
 //       -- Notify responsavel if it's not them who commented
 //       IF v_responsavel_id IS NOT NULL AND v_responsavel_id != NEW.user_id THEN
 //           INSERT INTO public.notificacoes (user_id, titulo, descricao, link)
 //           VALUES (v_responsavel_id, 'Novo Comentário', 'Novo comentário na tarefa "' || v_titulo || '"', '/tarefas');
 //       END IF;
-//
+//       
 //       -- Notify perito associado if it's not them who commented
 //       IF v_perito_associado_id IS NOT NULL AND v_perito_associado_id != NEW.user_id THEN
 //           INSERT INTO public.notificacoes (user_id, titulo, descricao, link)
 //           VALUES (v_perito_associado_id, 'Novo Comentário', 'Novo comentário na tarefa "' || v_titulo || '"', '/tarefas');
 //       END IF;
-//
+//   
 //       RETURN NEW;
 //   END;
 //   $function$
-//
+//   
 // FUNCTION notify_tarefa_status_change()
 //   CREATE OR REPLACE FUNCTION public.notify_tarefa_status_change()
 //    RETURNS trigger
@@ -1537,31 +1583,32 @@ export const Constants = {
 //       v_creator_id UUID;
 //   BEGIN
 //       v_creator_id := auth.uid();
-//
+//       
 //       IF OLD.status IS DISTINCT FROM NEW.status THEN
 //           -- Notify responsavel if it's not them who changed
 //           IF NEW.responsavel_id IS NOT NULL AND NEW.responsavel_id != v_creator_id THEN
 //               INSERT INTO public.notificacoes (user_id, titulo, descricao, link)
 //               VALUES (NEW.responsavel_id, 'Status da Tarefa Atualizado', 'A tarefa "' || NEW.titulo || '" mudou para ' || NEW.status, '/tarefas');
 //           END IF;
-//
+//           
 //           -- Notify perito associado if it's not them who changed
 //           IF NEW.perito_associado_id IS NOT NULL AND NEW.perito_associado_id != v_creator_id THEN
 //               INSERT INTO public.notificacoes (user_id, titulo, descricao, link)
 //               VALUES (NEW.perito_associado_id, 'Status da Tarefa Atualizado', 'A tarefa "' || NEW.titulo || '" mudou para ' || NEW.status, '/tarefas');
 //           END IF;
 //       END IF;
-//
+//       
 //       RETURN NEW;
 //   END;
 //   $function$
-//
+//   
 
 // --- TRIGGERS ---
 // Table: lancamentos
 //   lancamentos_activity_trigger: CREATE TRIGGER lancamentos_activity_trigger AFTER INSERT OR DELETE OR UPDATE ON public.lancamentos FOR EACH ROW EXECUTE FUNCTION log_lancamento_activity()
 // Table: pericias
 //   pericias_activity_trigger: CREATE TRIGGER pericias_activity_trigger AFTER INSERT OR DELETE OR UPDATE ON public.pericias FOR EACH ROW EXECUTE FUNCTION log_pericia_activity()
+//   set_codigo_interno: CREATE TRIGGER set_codigo_interno BEFORE INSERT ON public.pericias FOR EACH ROW EXECUTE FUNCTION generate_codigo_interno()
 // Table: tarefa_comentarios
 //   trigger_notify_tarefa_comentario: CREATE TRIGGER trigger_notify_tarefa_comentario AFTER INSERT ON public.tarefa_comentarios FOR EACH ROW EXECUTE FUNCTION notify_tarefa_comentario()
 // Table: tarefas
@@ -1572,3 +1619,4 @@ export const Constants = {
 //   CREATE INDEX idx_pericia_anexos_pericia_id ON public.pericia_anexos USING btree (pericia_id)
 // Table: peritos
 //   CREATE UNIQUE INDEX peritos_codigo_id_key ON public.peritos USING btree (codigo_id)
+

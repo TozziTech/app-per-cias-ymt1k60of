@@ -853,16 +853,17 @@ export default function Pericias() {
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="pl-4 sm:pl-6 py-2 h-10 text-xs">Cód. / Processo</TableHead>
+                <TableHead className="pl-4 sm:pl-6 py-2 h-10 text-xs">Código</TableHead>
+                <TableHead className="py-2 h-10 text-xs">Processo</TableHead>
                 <TableHead className="py-2 h-10 text-xs">Perito Associado</TableHead>
                 {!isPerito && (
                   <TableHead className="hidden xl:table-cell py-2 h-10 text-xs">
                     Honorários
                   </TableHead>
                 )}
-                <TableHead className="hidden lg:table-cell py-2 h-10 text-xs">Nomeação</TableHead>
-                <TableHead className="py-2 h-10 text-xs">Perícia</TableHead>
-                <TableHead className="py-2 h-10 text-xs">Entrega</TableHead>
+                <TableHead className="py-2 h-10 text-xs">
+                  Datas (Nomeação / Perícia / Entrega)
+                </TableHead>
                 <TableHead className="hidden md:table-cell py-2 h-10 text-xs">Pgto.</TableHead>
                 <TableHead className="py-2 h-10 text-xs">Status</TableHead>
                 <TableHead className="text-right pr-4 sm:pr-6 py-2 h-10 text-xs">Ações</TableHead>
@@ -871,7 +872,7 @@ export default function Pericias() {
             <TableBody>
               {filteredPericias.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                     Nenhuma perícia encontrada.
                   </TableCell>
                 </TableRow>
@@ -883,16 +884,20 @@ export default function Pericias() {
                     onClick={() => handleRowClick(pericia)}
                   >
                     <TableCell className="pl-4 sm:pl-6 py-2">
-                      <div className="font-medium text-xs">
+                      <div className="font-medium text-xs whitespace-nowrap">
                         {pericia.codigoInterno || 'Sem Cód.'}
                       </div>
-                      {pericia.numeroProcesso && (
+                    </TableCell>
+                    <TableCell className="py-2">
+                      {pericia.numeroProcesso ? (
                         <div
-                          className="text-[11px] text-muted-foreground truncate max-w-[130px]"
+                          className="text-xs text-muted-foreground truncate max-w-[150px]"
                           title={pericia.numeroProcesso}
                         >
                           {pericia.numeroProcesso}
                         </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell
@@ -906,105 +911,110 @@ export default function Pericias() {
                         {pericia.honorarios ? `R$ ${pericia.honorarios.toFixed(2)}` : '-'}
                       </TableCell>
                     )}
-                    <TableCell className="hidden lg:table-cell py-2 text-xs group/date">
-                      <div className="flex items-center justify-between gap-1">
-                        <span>{renderDate(pericia.dataNomeacao)}</span>
-                        {(pericia.dataNomeacao || pericia.data_nomeacao) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 opacity-0 group-hover/date:opacity-100 transition-opacity"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleExport(pericia, 'nomeacao')
-                                }}
-                              >
-                                <CalendarPlus className="h-3.5 w-3.5 text-blue-500" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Agenda: Nomeação</TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-2 text-xs group/date">
-                      <div className="flex items-center justify-between gap-1">
-                        <span>{renderDate(pericia.dataPericia)}</span>
-                        {(pericia.dataPericia || pericia.data_pericia) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 opacity-0 group-hover/date:opacity-100 transition-opacity"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleExport(pericia, 'pericia')
-                                }}
-                              >
-                                <CalendarPlus className="h-3.5 w-3.5 text-amber-500" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Agenda: Visita Técnica</TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-2 text-xs group/date">
-                      <div className="flex items-center justify-between gap-1">
-                        <div className="flex items-center gap-1.5">
-                          {renderDate(pericia.dataEntregaLaudo)}
-                          {(() => {
-                            const prazoStatus = getPrazoStatus(pericia)
-                            if (prazoStatus?.status === 'atrasado') {
-                              return (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <AlertCircle className="h-3.5 w-3.5 text-destructive animate-pulse" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    Atrasado há {prazoStatus.dias} dias
-                                  </TooltipContent>
-                                </Tooltip>
-                              )
-                            }
-                            if (prazoStatus?.status === 'proximo') {
-                              return (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Clock className="h-3.5 w-3.5 text-amber-500" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    {prazoStatus.dias === 0
-                                      ? 'Vence hoje'
-                                      : `Vence em ${prazoStatus.dias} dias`}
-                                  </TooltipContent>
-                                </Tooltip>
-                              )
-                            }
-                            return null
-                          })()}
+                    <TableCell className="py-2 text-xs min-w-[240px]">
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground w-16 shrink-0">Nomeação:</span>
+                          <span className="font-medium flex-1">
+                            {renderDate(pericia.dataNomeacao)}
+                          </span>
+                          {(pericia.dataNomeacao || pericia.data_nomeacao) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-6 w-6 shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleExport(pericia, 'nomeacao')
+                                  }}
+                                >
+                                  <CalendarPlus className="h-3.5 w-3.5 text-blue-500" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Agenda: Nomeação</TooltipContent>
+                            </Tooltip>
+                          )}
                         </div>
-                        {(pericia.dataEntregaLaudo || pericia.data_entrega_laudo) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 opacity-0 group-hover/date:opacity-100 transition-opacity"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleExport(pericia, 'entrega')
-                                }}
-                              >
-                                <CalendarPlus className="h-3.5 w-3.5 text-emerald-500" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Agenda: Prazo do Laudo</TooltipContent>
-                          </Tooltip>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground w-16 shrink-0">Perícia:</span>
+                          <span className="font-medium flex-1">
+                            {renderDate(pericia.dataPericia)}
+                          </span>
+                          {(pericia.dataPericia || pericia.data_pericia) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-6 w-6 shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleExport(pericia, 'pericia')
+                                  }}
+                                >
+                                  <CalendarPlus className="h-3.5 w-3.5 text-amber-500" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Agenda: Visita Técnica</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground w-16 shrink-0">Entrega:</span>
+                          <span className="font-medium flex-1 flex items-center gap-1.5">
+                            {renderDate(pericia.dataEntregaLaudo)}
+                            {(() => {
+                              const prazoStatus = getPrazoStatus(pericia)
+                              if (prazoStatus?.status === 'atrasado') {
+                                return (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <AlertCircle className="h-3.5 w-3.5 text-destructive animate-pulse" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      Atrasado há {prazoStatus.dias} dias
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )
+                              }
+                              if (prazoStatus?.status === 'proximo') {
+                                return (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Clock className="h-3.5 w-3.5 text-amber-500" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {prazoStatus.dias === 0
+                                        ? 'Vence hoje'
+                                        : `Vence em ${prazoStatus.dias} dias`}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )
+                              }
+                              return null
+                            })()}
+                          </span>
+                          {(pericia.dataEntregaLaudo || pericia.data_entrega_laudo) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-6 w-6 shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleExport(pericia, 'entrega')
+                                  }}
+                                >
+                                  <CalendarPlus className="h-3.5 w-3.5 text-emerald-500" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Agenda: Prazo do Laudo</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell
@@ -1074,19 +1084,19 @@ export default function Pericias() {
                       className="text-right pr-4 sm:pr-6 py-2"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex items-center justify-end gap-0.5">
+                      <div className="flex items-center justify-end gap-1">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
+                              className="h-8 w-8 hover:bg-muted"
                               onClick={() => {
                                 setPericiaToEdit(pericia)
                                 setIsSheetOpen(true)
                               }}
                             >
-                              <Edit className="h-3.5 w-3.5" />
+                              <Edit className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Editar</TooltipContent>
@@ -1098,13 +1108,13 @@ export default function Pericias() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   setPericiaToDelete(pericia)
                                 }}
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Excluir Perícia</TooltipContent>
