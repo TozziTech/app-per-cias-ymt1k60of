@@ -507,9 +507,58 @@ export default function Dashboard() {
     })
   }, [pericias])
 
-  const pendingPericias = pericias.filter(
-    (p) => p.status === 'Pendente' || p.status === 'Em Andamento',
-  )
+  const pendingPericias = useMemo(() => {
+    return pericias
+      .filter(
+        (p) => p.status === 'Pendente' || p.status === 'Em Andamento' || p.status === 'Agendado',
+      )
+      .map((p) => {
+        let daysToDeadline: number | null = null
+        let deadlineName: string = ''
+
+        const checkDate = (dateStr: string | undefined | null, name: string) => {
+          const d = parseDateSafe(dateStr)
+          if (d) {
+            const diff = differenceInDays(d, new Date())
+            if (daysToDeadline === null || diff < daysToDeadline) {
+              daysToDeadline = diff
+              deadlineName = name
+            }
+          }
+        }
+
+        checkDate(p.dataEntregaLaudo, 'Laudo')
+        checkDate(p.entregaImpugnacao, 'Contestação')
+        checkDate(p.entregaEsclarecimentos, 'Esclarecimentos')
+
+        let priority: 'urgente' | 'atencao' | 'normal' | 'atrasado' = 'normal'
+        if (daysToDeadline !== null) {
+          if (daysToDeadline < 0) priority = 'atrasado'
+          else if (daysToDeadline <= 2) priority = 'urgente'
+          else if (daysToDeadline <= 7) priority = 'atencao'
+        }
+
+        return {
+          ...p,
+          daysToDeadline,
+          priority,
+          deadlineName,
+        }
+      })
+      .sort((a, b) => {
+        const priorityOrder = { atrasado: 0, urgente: 1, atencao: 2, normal: 3 }
+        const diff = priorityOrder[a.priority] - priorityOrder[b.priority]
+        if (diff !== 0) return diff
+
+        if (a.daysToDeadline !== null && b.daysToDeadline !== null) {
+          return a.daysToDeadline - b.daysToDeadline
+        }
+        if (a.daysToDeadline !== null) return -1
+        if (b.daysToDeadline !== null) return 1
+
+        return 0
+      })
+  }, [pericias])
 
   const IDEAL_DAYS = {
     nomeacaoAceite: 5,
@@ -1354,9 +1403,9 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
-              Em Andamento / Pendentes
+              Prioridade de Entregas
             </CardTitle>
-            <CardDescription>Últimas perícias não finalizadas.</CardDescription>
+            <CardDescription>Perícias pendentes organizadas por prazo.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto pr-2">
             {pendingPericias.length === 0 ? (
@@ -1370,20 +1419,57 @@ export default function Dashboard() {
                   <Link
                     key={p.id}
                     to="/pericias"
-                    className="flex flex-col p-3 rounded-lg border hover:border-primary/50 transition-colors bg-card"
+                    className={`flex flex-col p-3 rounded-lg border transition-colors bg-card ${
+                      p.priority === 'atrasado'
+                        ? 'border-destructive/50 bg-destructive/10 hover:border-destructive'
+                        : p.priority === 'urgente'
+                          ? 'border-red-500/50 bg-red-500/10 hover:border-red-500'
+                          : p.priority === 'atencao'
+                            ? 'border-amber-500/50 bg-amber-500/10 hover:border-amber-500'
+                            : 'hover:border-primary/50'
+                    }`}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="font-semibold text-sm">
-                        {p.codigoInterno || 'S/ Código'}
+                    <div className="flex justify-between items-start mb-2 gap-2">
+                      <span className="font-semibold text-sm truncate">
+                        {p.numeroProcesso || p.codigoInterno || 'S/ Código'}
                       </span>
-                      <Badge variant="secondary" className="text-xs">
-                        {p.status}
-                      </Badge>
+                      <div className="shrink-0">
+                        {p.priority === 'atrasado' && (
+                          <Badge variant="destructive" className="text-[10px]">
+                            Atrasado ({Math.abs(p.daysToDeadline!)}d)
+                          </Badge>
+                        )}
+                        {p.priority === 'urgente' && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] bg-red-500 text-white border-red-500"
+                          >
+                            Urgente ({p.daysToDeadline}d)
+                          </Badge>
+                        )}
+                        {p.priority === 'atencao' && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] bg-amber-500 text-white border-amber-500"
+                          >
+                            Atenção ({p.daysToDeadline}d)
+                          </Badge>
+                        )}
+                        {p.priority === 'normal' && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {p.status}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground mb-1 truncate">
-                      Processo: {p.numeroProcesso}
-                    </span>
-                    <span className="text-xs text-muted-foreground truncate">Vara: {p.vara}</span>
+                    <div className="text-xs text-muted-foreground flex justify-between items-center">
+                      <span className="truncate mr-2">Vara: {p.vara}</span>
+                      {p.deadlineName && (
+                        <span className="font-medium text-foreground shrink-0">
+                          {p.deadlineName}
+                        </span>
+                      )}
+                    </div>
                   </Link>
                 ))}
               </div>
