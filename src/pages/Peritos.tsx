@@ -22,6 +22,7 @@ export default function Peritos() {
   const [tab, setTab] = useState('Ativas')
   const [isOpen, setIsOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [isLoadingCode, setIsLoadingCode] = useState(false)
 
   const emptyForm = {
     nome: '',
@@ -64,6 +65,38 @@ export default function Peritos() {
     fetchPeritos()
   }, [])
 
+  useEffect(() => {
+    if (isOpen && !editingId) {
+      const fetchNextCodigo = async () => {
+        setIsLoadingCode(true)
+        try {
+          const { data } = await supabase
+            .from('peritos')
+            .select('codigo_id')
+            .ilike('codigo_id', 'PER-%')
+
+          if (data && data.length > 0) {
+            const nums = data
+              .map((p) => parseInt(p.codigo_id?.replace('PER-', '') || '0', 10))
+              .filter((n) => !isNaN(n))
+            const maxNum = Math.max(0, ...nums)
+            setForm((prev) => ({
+              ...prev,
+              codigo_id: `PER-${String(maxNum + 1).padStart(3, '0')}`,
+            }))
+          } else {
+            setForm((prev) => ({ ...prev, codigo_id: 'PER-001' }))
+          }
+        } catch (error) {
+          console.error('Erro ao buscar próximo código:', error)
+        } finally {
+          setIsLoadingCode(false)
+        }
+      }
+      fetchNextCodigo()
+    }
+  }, [isOpen, editingId])
+
   const handleSave = async () => {
     if (!form.nome)
       return toast({ title: 'Erro', description: 'Nome é obrigatório', variant: 'destructive' })
@@ -84,7 +117,16 @@ export default function Peritos() {
     }
 
     if (error) {
-      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+      if (error.code === '23505' || error.message.includes('unique constraint')) {
+        toast({
+          title: 'Código Duplicado',
+          description:
+            'Este Código ID já foi utilizado. Feche e abra o formulário novamente para gerar um novo.',
+          variant: 'destructive',
+        })
+      } else {
+        toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+      }
     } else {
       toast({
         title: 'Sucesso',
@@ -201,7 +243,9 @@ export default function Peritos() {
                   <div className="space-y-2">
                     <Label>Código ID</Label>
                     <Input
-                      value={form.codigo_id}
+                      value={isLoadingCode ? 'Gerando...' : form.codigo_id}
+                      readOnly
+                      className="bg-muted font-mono"
                       onChange={(e) => setForm({ ...form, codigo_id: e.target.value })}
                     />
                   </div>
