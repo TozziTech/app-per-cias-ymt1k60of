@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { Pericia } from '@/lib/types'
 import {
@@ -28,6 +28,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { ChatPanel } from '@/components/ChatPanel'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -35,7 +36,20 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
-import { format, differenceInDays } from 'date-fns'
+import { cn } from '@/lib/utils'
+import {
+  format,
+  differenceInDays,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  isSameMonth,
+  isSameDay,
+  addMonths,
+  subMonths,
+} from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Briefcase,
@@ -57,6 +71,10 @@ import {
   AlertTriangle,
   Banknote,
   Scale,
+  LayoutList,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 
 interface ChecklistItem {
@@ -80,6 +98,9 @@ export default function PortalPerito() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [isPeritoVinculado, setIsPeritoVinculado] = useState(true)
   const [logsPericia, setLogsPericia] = useState<Record<string, any[]>>({})
+
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
+  const [currentMonth, setCurrentMonth] = useState(new Date())
 
   const loadLogs = async (periciaId: string) => {
     if (logsPericia[periciaId]) return
@@ -405,8 +426,508 @@ export default function PortalPerito() {
     return new Date(dateString).toLocaleDateString('pt-BR')
   }
 
+  const parseDateSafe = (d: string | Date | undefined | null): Date | null => {
+    if (!d) return null
+    const parsed = new Date(d)
+    if (isNaN(parsed.getTime())) return null
+    if (typeof d === 'string' && !d.includes('T')) {
+      return new Date(parsed.getTime() + parsed.getTimezoneOffset() * 60000)
+    }
+    return parsed
+  }
+
+  const calendarEvents = useMemo(() => {
+    const evts: any[] = []
+    filteredPericias.forEach((p) => {
+      const addEvent = (dateStr: any, title: string, type: string) => {
+        const date = parseDateSafe(dateStr)
+        if (date) {
+          evts.push({ id: `${p.id}-${type}`, date, title, type, pericia: p })
+        }
+      }
+      addEvent(p.dataPericia, 'Visita Técnica', 'pericia')
+      addEvent(p.dataEntregaLaudo, 'Entrega Laudo', 'entrega')
+      addEvent(p.entregaImpugnacao, 'Impugnação', 'impugnacao')
+      addEvent(p.entregaEsclarecimentos, 'Esclarecimentos', 'esclarecimentos')
+    })
+    return evts
+  }, [filteredPericias])
+
+  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1))
+  const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
+  const goToToday = () => setCurrentMonth(new Date())
+
+  const monthStart = startOfMonth(currentMonth)
+  const monthEnd = endOfMonth(monthStart)
+  const startDate = startOfWeek(monthStart)
+  const endDate = endOfWeek(monthEnd)
+
+  const calendarDays = eachDayOfInterval({ start: startDate, end: endDate })
+
+  const getEventsForDay = (day: Date) => calendarEvents.filter((e) => isSameDay(e.date, day))
+
+  const renderPericiaSheetContent = (pericia: any) => (
+    <SheetContent className="sm:max-w-xl w-full flex flex-col bg-white dark:bg-zinc-950 p-0 border-l border-zinc-200 dark:border-zinc-800">
+      <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+        <SheetHeader>
+          <div className="flex items-center justify-between">
+            <Badge variant="outline" className={getStatusColor(pericia.status || 'Pendente')}>
+              {pericia.status || 'Pendente'}
+            </Badge>
+            <div className="flex gap-2">
+              {pericia.status !== 'Concluído' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => updateStatus(pericia.id, 'Concluído')}
+                  className="h-8 gap-1 border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Marcar Concluído
+                </Button>
+              )}
+            </div>
+          </div>
+          <SheetTitle className="text-xl mt-3">{pericia.numeroProcesso}</SheetTitle>
+          <SheetDescription>
+            {pericia.vara} • {pericia.cidade}
+          </SheetDescription>
+        </SheetHeader>
+      </div>
+
+      <Tabs defaultValue="detalhes" className="flex-1 flex flex-col min-h-0">
+        <div className="px-6 pt-4">
+          <TabsList className="flex flex-wrap w-full bg-zinc-100 dark:bg-zinc-900 h-auto p-1">
+            <TabsTrigger value="detalhes" className="flex-1 text-xs sm:text-sm">
+              Detalhes
+            </TabsTrigger>
+            <TabsTrigger value="tarefas" className="flex-1 text-xs sm:text-sm">
+              Tarefas
+            </TabsTrigger>
+            <TabsTrigger value="documentos" className="flex-1 text-xs sm:text-sm">
+              Docs
+            </TabsTrigger>
+            <TabsTrigger value="mensagens" className="flex-1 text-xs sm:text-sm">
+              Chat
+            </TabsTrigger>
+            <TabsTrigger value="peticoes" className="flex-1 text-xs sm:text-sm">
+              Petições
+            </TabsTrigger>
+            <TabsTrigger
+              value="historico"
+              className="flex-1 text-xs sm:text-sm"
+              onClick={() => loadLogs(pericia.id)}
+            >
+              Histórico
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <ScrollArea className="flex-1 p-6">
+          <TabsContent value="detalhes" className="mt-0 h-full">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1 uppercase tracking-wider">
+                      Honorários
+                    </p>
+                    <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
+                      {formatCurrency(Number(pericia.honorarios))}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1 uppercase tracking-wider">
+                      Status Pagamento
+                    </p>
+                    <Badge
+                      variant="outline"
+                      className="bg-white dark:bg-zinc-900 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400"
+                    >
+                      {pericia.status_pagamento || pericia.statusPagamento || 'Pendente'}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50 flex flex-col justify-center">
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1 uppercase tracking-wider">
+                    Adiantamento (50%)
+                  </p>
+                  <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                    {pericia.adiantamentoSolicitado ? 'Solicitado' : 'Não Solicitado'}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
+                  Informações Gerais
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-zinc-500 mb-1">Endereço da Perícia</p>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-zinc-400 mt-0.5 shrink-0" />
+                      <p className="text-sm font-medium">{pericia.endereco || 'Não informado'}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-500 mb-1">Justiça Gratuita</p>
+                    <Badge
+                      variant={pericia.justicaGratuita ? 'default' : 'secondary'}
+                      className="mt-1"
+                    >
+                      {pericia.justicaGratuita ? 'Sim' : 'Não'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
+                  Cronograma e Prazos
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
+                  <div>
+                    <p className="text-xs text-zinc-500 mb-1">Data de Nomeação</p>
+                    <p className="text-sm font-medium">{formatDate(pericia.dataNomeacao)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-500 mb-1">Data da Perícia</p>
+                    <p className="text-sm font-medium">{formatDate(pericia.dataPericia)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-500 mb-1">Entrega do Laudo</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">{formatDate(pericia.dataEntregaLaudo)}</p>
+                      {(() => {
+                        const deadlineInfo = getDeadlineInfo(
+                          pericia.dataEntregaLaudo,
+                          pericia.status,
+                        )
+                        if (!deadlineInfo) return null
+                        return (
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] h-5 px-1.5 ${deadlineInfo.className}`}
+                          >
+                            {deadlineInfo.label}
+                          </Badge>
+                        )
+                      })()}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-500 mb-1">Entrega Impugnação</p>
+                    <p className="text-sm font-medium">{formatDate(pericia.entregaImpugnacao)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-500 mb-1">Entrega Esclarecimentos</p>
+                    <p className="text-sm font-medium">
+                      {formatDate(pericia.entregaEsclarecimentos)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
+                  Partes Envolvidas
+                </h4>
+                <div className="space-y-4">
+                  <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg flex items-center gap-3 border border-zinc-100 dark:border-zinc-800">
+                    <Scale className="h-5 w-5 text-zinc-400" />
+                    <div>
+                      <p className="text-xs text-zinc-500 font-medium mb-0.5 uppercase tracking-wider">
+                        Juiz
+                      </p>
+                      <p className="text-sm font-medium">{pericia.juiz || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                      <p className="text-xs text-zinc-500 font-medium mb-1 uppercase tracking-wider">
+                        Parte Autora
+                      </p>
+                      <p className="text-sm font-medium">{pericia.advogadoAutora || '-'}</p>
+                      {pericia.assistenteTecnicoAutora && (
+                        <p className="text-xs text-zinc-500 mt-1">
+                          Assistente: {pericia.assistenteTecnicoAutora}
+                        </p>
+                      )}
+                    </div>
+                    <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                      <p className="text-xs text-zinc-500 font-medium mb-1 uppercase tracking-wider">
+                        Parte Ré
+                      </p>
+                      <p className="text-sm font-medium">{pericia.advogadoRe || '-'}</p>
+                      {pericia.assistenteTecnicoRe && (
+                        <p className="text-xs text-zinc-500 mt-1">
+                          Assistente: {pericia.assistenteTecnicoRe}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {pericia.observacoes && (
+                <div>
+                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
+                    Observações
+                  </h4>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">
+                    {pericia.observacoes}
+                  </p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="tarefas" className="mt-0 h-full flex flex-col space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Input
+                placeholder="Nova tarefa..."
+                value={newTaskText}
+                onChange={(e) => setNewTaskText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addTask(pericia)
+                }}
+              />
+              <Button size="icon" onClick={() => addTask(pericia)}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {normalizeChecklist(pericia.checklist).length === 0 ? (
+              <p className="text-sm text-zinc-500 text-center py-8">Nenhuma tarefa cadastrada.</p>
+            ) : (
+              <div className="space-y-3">
+                {normalizeChecklist(pericia.checklist).map((item, index) => (
+                  <div
+                    key={item.id}
+                    className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors ${item.done ? 'bg-zinc-50 dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800' : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-sm'}`}
+                  >
+                    <Checkbox
+                      id={`check-${pericia.id}-${index}`}
+                      checked={item.done}
+                      onCheckedChange={() =>
+                        toggleChecklistItem(pericia.id, index, pericia.checklist)
+                      }
+                      className="mt-1"
+                    />
+                    <Label
+                      htmlFor={`check-${pericia.id}-${index}`}
+                      className={`text-sm leading-snug cursor-pointer ${item.done ? 'text-zinc-400 line-through' : 'text-zinc-700 dark:text-zinc-300 font-medium'}`}
+                    >
+                      {item.text}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="documentos" className="mt-0 h-full space-y-4">
+            <div className="border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-zinc-50 dark:bg-zinc-900/30">
+              <div className="p-3 bg-blue-500/10 rounded-full mb-3">
+                <Upload className="h-6 w-6 text-blue-500" />
+              </div>
+              <h3 className="font-medium mb-1">Upload de Arquivo</h3>
+              <p className="text-xs text-zinc-500 mb-4">
+                Envie laudos, petições ou recibos (PDF, DOCX, Imagens)
+              </p>
+              <div className="relative">
+                <Input
+                  type="file"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleFileUpload(pericia.id, e.target.files[0])
+                    }
+                  }}
+                  disabled={uploadingId === pericia.id}
+                />
+                <Button disabled={uploadingId === pericia.id}>
+                  {uploadingId === pericia.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando...
+                    </>
+                  ) : (
+                    'Selecionar Arquivo'
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-3 mt-6">
+              <h4 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                Arquivos Anexados ({pericia.anexos?.length || 0})
+              </h4>
+              {pericia.anexos?.length === 0 ? (
+                <p className="text-sm text-zinc-500 text-center py-4">Nenhum documento anexado.</p>
+              ) : (
+                pericia.anexos?.map((anexo: any) => (
+                  <div
+                    key={anexo.id}
+                    className="flex items-center justify-between p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <FileText className="h-8 w-8 text-blue-500 shrink-0" />
+                      <div className="overflow-hidden">
+                        <p className="text-sm font-medium truncate" title={anexo.file_name}>
+                          {anexo.file_name}
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          {(anexo.size / 1024 / 1024).toFixed(2)} MB •{' '}
+                          {new Date(anexo.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 shrink-0 ml-2">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleViewAnexo(anexo.file_path)}
+                      >
+                        <Eye className="h-4 w-4 text-zinc-500" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                        onClick={() =>
+                          handleDeleteAnexo(anexo.id, anexo.file_path, pericia.id, anexo.file_name)
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="mensagens" className="mt-0 h-full">
+            {currentUser && <ChatPanel periciaId={pericia.id} currentUserId={currentUser.id} />}
+          </TabsContent>
+
+          <TabsContent value="peticoes" className="mt-0 h-full">
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
+                Histórico de Petições
+              </h4>
+              {(() => {
+                const peticoesPericia = peticoes.filter((p) => p.periciaId === pericia.id)
+                if (peticoesPericia.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center text-center py-8 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+                      <FileText className="h-8 w-8 text-zinc-300 mb-2" />
+                      <p className="text-sm text-zinc-500">
+                        Nenhuma petição registrada nesta perícia.
+                      </p>
+                    </div>
+                  )
+                }
+                return (
+                  <div className="space-y-3">
+                    {peticoesPericia.map((pet) => (
+                      <div
+                        key={pet.id}
+                        className="flex flex-col p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm"
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                            {pet.titulo}
+                          </p>
+                          <Badge
+                            variant="outline"
+                            className={
+                              pet.status.toLowerCase() === 'concluído' ||
+                              pet.status.toLowerCase() === 'protocolada'
+                                ? 'text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30'
+                                : 'text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-950/30'
+                            }
+                          >
+                            {pet.status}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-zinc-500 mt-2">
+                          <Calendar className="h-3 w-3" />
+                          {formatDate(pet.data)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="historico" className="mt-0 h-full">
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
+                Histórico de Auditoria
+              </h4>
+              {!logsPericia[pericia.id] ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+                </div>
+              ) : logsPericia[pericia.id].length === 0 ? (
+                <p className="text-sm text-zinc-500 text-center py-8 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+                  Nenhum registro de auditoria encontrado.
+                </p>
+              ) : (
+                <div className="relative border-l border-zinc-200 dark:border-zinc-800 ml-3 space-y-6 pb-4">
+                  {logsPericia[pericia.id].map((log: any) => (
+                    <div key={log.id} className="relative pl-6">
+                      <div className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-zinc-200 dark:bg-zinc-700 border-2 border-white dark:border-zinc-950" />
+                      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mb-1">
+                        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                          {log.user?.name || 'Sistema'}
+                        </span>
+                        <span className="text-xs text-zinc-500">
+                          {format(new Date(log.created_at), "dd/MM/yyyy 'às' HH:mm")}
+                        </span>
+                      </div>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        {log.action === 'criou' && 'Criou o registro da perícia.'}
+                        {log.action === 'atualizou' && 'Atualizou informações da perícia.'}
+                        {log.action === 'excluiu' && 'Excluiu a perícia.'}
+                        {!['criou', 'atualizou', 'excluiu'].includes(log.action) &&
+                          `Realizou a ação: ${log.action}`}
+                      </p>
+                      {log.details && Object.keys(log.details).length > 0 && (
+                        <div className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg text-xs text-zinc-600 dark:text-zinc-400 space-y-1.5 border border-zinc-100 dark:border-zinc-800">
+                          {Object.entries(log.details).map(([k, v]) => (
+                            <div key={k} className="flex flex-col">
+                              <span className="font-medium text-zinc-900 dark:text-zinc-300 capitalize">
+                                {k.replace(/_/g, ' ')}:
+                              </span>
+                              {typeof v === 'object' && v !== null ? (
+                                <span className="break-words text-zinc-500">
+                                  {JSON.stringify(v)}
+                                </span>
+                              ) : (
+                                <span className="break-words text-zinc-500">{String(v)}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </ScrollArea>
+      </Tabs>
+    </SheetContent>
+  )
+
   return (
-    <div className="container mx-auto p-4 max-w-7xl space-y-6">
+    <div className="container mx-auto p-4 max-w-7xl space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
@@ -502,7 +1023,7 @@ export default function PortalPerito() {
 
         <TabsContent value="pericias" className="space-y-6 m-0">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-            <div className="relative w-full sm:max-w-md">
+            <div className="relative w-full sm:max-w-md flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
               <Input
                 placeholder="Buscar por processo, partes, vara ou cidade..."
@@ -511,14 +1032,37 @@ export default function PortalPerito() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button
-              variant="outline"
-              onClick={handleExportCsv}
-              className="gap-2 shrink-0 w-full sm:w-auto"
-            >
-              <Download className="h-4 w-4" />
-              Exportar Relatório (CSV)
-            </Button>
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
+              <ToggleGroup
+                type="single"
+                value={viewMode}
+                onValueChange={(v) => v && setViewMode(v as any)}
+                className="bg-zinc-100 dark:bg-zinc-800/50 p-1 rounded-lg"
+              >
+                <ToggleGroupItem
+                  value="list"
+                  aria-label="Lista"
+                  className="h-8 px-3 data-[state=on]:bg-white dark:data-[state=on]:bg-zinc-900 data-[state=on]:shadow-sm"
+                >
+                  <LayoutList className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="calendar"
+                  aria-label="Calendário"
+                  className="h-8 px-3 data-[state=on]:bg-white dark:data-[state=on]:bg-zinc-900 data-[state=on]:shadow-sm"
+                >
+                  <CalendarDays className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <Button
+                variant="outline"
+                onClick={handleExportCsv}
+                className="gap-2 shrink-0 h-10 w-full sm:w-auto"
+              >
+                <Download className="h-4 w-4" />
+                Exportar CSV
+              </Button>
+            </div>
           </div>
 
           {loading ? (
@@ -535,8 +1079,8 @@ export default function PortalPerito() {
                 Você ainda não possui perícias atribuídas ou a busca não retornou resultados.
               </p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          ) : viewMode === 'list' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-in fade-in duration-300">
               {filteredPericias.map((pericia) => (
                 <Card
                   key={pericia.id}
@@ -621,523 +1165,133 @@ export default function PortalPerito() {
                           Ver Detalhes / Área de Trabalho
                         </Button>
                       </SheetTrigger>
-                      <SheetContent className="sm:max-w-xl w-full flex flex-col bg-white dark:bg-zinc-950 p-0 border-l border-zinc-200 dark:border-zinc-800">
-                        <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
-                          <SheetHeader>
-                            <div className="flex items-center justify-between">
-                              <Badge
-                                variant="outline"
-                                className={getStatusColor(pericia.status || 'Pendente')}
-                              >
-                                {pericia.status || 'Pendente'}
-                              </Badge>
-                              <div className="flex gap-2">
-                                {pericia.status !== 'Concluído' && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => updateStatus(pericia.id, 'Concluído')}
-                                    className="h-8 gap-1 border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-                                  >
-                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                    Marcar Concluído
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                            <SheetTitle className="text-xl mt-3">
-                              {pericia.numeroProcesso}
-                            </SheetTitle>
-                            <SheetDescription>
-                              {pericia.vara} • {pericia.cidade}
-                            </SheetDescription>
-                          </SheetHeader>
-                        </div>
-
-                        <Tabs defaultValue="detalhes" className="flex-1 flex flex-col min-h-0">
-                          <div className="px-6 pt-4">
-                            <TabsList className="flex flex-wrap w-full bg-zinc-100 dark:bg-zinc-900 h-auto p-1">
-                              <TabsTrigger value="detalhes" className="flex-1 text-xs sm:text-sm">
-                                Detalhes
-                              </TabsTrigger>
-                              <TabsTrigger value="tarefas" className="flex-1 text-xs sm:text-sm">
-                                Tarefas
-                              </TabsTrigger>
-                              <TabsTrigger value="documentos" className="flex-1 text-xs sm:text-sm">
-                                Docs
-                              </TabsTrigger>
-                              <TabsTrigger value="mensagens" className="flex-1 text-xs sm:text-sm">
-                                Chat
-                              </TabsTrigger>
-                              <TabsTrigger value="peticoes" className="flex-1 text-xs sm:text-sm">
-                                Petições
-                              </TabsTrigger>
-                              <TabsTrigger
-                                value="historico"
-                                className="flex-1 text-xs sm:text-sm"
-                                onClick={() => loadLogs(pericia.id)}
-                              >
-                                Histórico
-                              </TabsTrigger>
-                            </TabsList>
-                          </div>
-
-                          <ScrollArea className="flex-1 p-6">
-                            <TabsContent value="detalhes" className="mt-0 h-full">
-                              <div className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50 flex items-center justify-between">
-                                    <div>
-                                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1 uppercase tracking-wider">
-                                        Honorários
-                                      </p>
-                                      <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
-                                        {formatCurrency(Number(pericia.honorarios))}
-                                      </p>
-                                    </div>
-                                    <div className="text-right">
-                                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1 uppercase tracking-wider">
-                                        Status Pagamento
-                                      </p>
-                                      <Badge
-                                        variant="outline"
-                                        className="bg-white dark:bg-zinc-900 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400"
-                                      >
-                                        {pericia.status_pagamento ||
-                                          pericia.statusPagamento ||
-                                          'Pendente'}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                  <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50 flex flex-col justify-center">
-                                    <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1 uppercase tracking-wider">
-                                      Adiantamento (50%)
-                                    </p>
-                                    <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                                      {pericia.adiantamentoSolicitado
-                                        ? 'Solicitado'
-                                        : 'Não Solicitado'}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
-                                    Informações Gerais
-                                  </h4>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
-                                    <div className="sm:col-span-2">
-                                      <p className="text-xs text-zinc-500 mb-1">
-                                        Endereço da Perícia
-                                      </p>
-                                      <div className="flex items-start gap-2">
-                                        <MapPin className="h-4 w-4 text-zinc-400 mt-0.5 shrink-0" />
-                                        <p className="text-sm font-medium">
-                                          {pericia.endereco || 'Não informado'}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-zinc-500 mb-1">Justiça Gratuita</p>
-                                      <Badge
-                                        variant={pericia.justicaGratuita ? 'default' : 'secondary'}
-                                        className="mt-1"
-                                      >
-                                        {pericia.justicaGratuita ? 'Sim' : 'Não'}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
-                                    Cronograma e Prazos
-                                  </h4>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
-                                    <div>
-                                      <p className="text-xs text-zinc-500 mb-1">Data de Nomeação</p>
-                                      <p className="text-sm font-medium">
-                                        {formatDate(pericia.dataNomeacao)}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-zinc-500 mb-1">Data da Perícia</p>
-                                      <p className="text-sm font-medium">
-                                        {formatDate(pericia.dataPericia)}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-zinc-500 mb-1">Entrega do Laudo</p>
-                                      <div className="flex items-center gap-2">
-                                        <p className="text-sm font-medium">
-                                          {formatDate(pericia.dataEntregaLaudo)}
-                                        </p>
-                                        {(() => {
-                                          const deadlineInfo = getDeadlineInfo(
-                                            pericia.dataEntregaLaudo,
-                                            pericia.status,
-                                          )
-                                          if (!deadlineInfo) return null
-                                          return (
-                                            <Badge
-                                              variant="outline"
-                                              className={`text-[10px] h-5 px-1.5 ${deadlineInfo.className}`}
-                                            >
-                                              {deadlineInfo.label}
-                                            </Badge>
-                                          )
-                                        })()}
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-zinc-500 mb-1">
-                                        Entrega Impugnação
-                                      </p>
-                                      <p className="text-sm font-medium">
-                                        {formatDate(pericia.entregaImpugnacao)}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-zinc-500 mb-1">
-                                        Entrega Esclarecimentos
-                                      </p>
-                                      <p className="text-sm font-medium">
-                                        {formatDate(pericia.entregaEsclarecimentos)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
-                                    Partes Envolvidas
-                                  </h4>
-                                  <div className="space-y-4">
-                                    <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg flex items-center gap-3 border border-zinc-100 dark:border-zinc-800">
-                                      <Scale className="h-5 w-5 text-zinc-400" />
-                                      <div>
-                                        <p className="text-xs text-zinc-500 font-medium mb-0.5 uppercase tracking-wider">
-                                          Juiz
-                                        </p>
-                                        <p className="text-sm font-medium">{pericia.juiz || '-'}</p>
-                                      </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                      <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800">
-                                        <p className="text-xs text-zinc-500 font-medium mb-1 uppercase tracking-wider">
-                                          Parte Autora
-                                        </p>
-                                        <p className="text-sm font-medium">
-                                          {pericia.advogadoAutora || '-'}
-                                        </p>
-                                        {pericia.assistenteTecnicoAutora && (
-                                          <p className="text-xs text-zinc-500 mt-1">
-                                            Assistente: {pericia.assistenteTecnicoAutora}
-                                          </p>
-                                        )}
-                                      </div>
-                                      <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800">
-                                        <p className="text-xs text-zinc-500 font-medium mb-1 uppercase tracking-wider">
-                                          Parte Ré
-                                        </p>
-                                        <p className="text-sm font-medium">
-                                          {pericia.advogadoRe || '-'}
-                                        </p>
-                                        {pericia.assistenteTecnicoRe && (
-                                          <p className="text-xs text-zinc-500 mt-1">
-                                            Assistente: {pericia.assistenteTecnicoRe}
-                                          </p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {pericia.observacoes && (
-                                  <div>
-                                    <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
-                                      Observações
-                                    </h4>
-                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">
-                                      {pericia.observacoes}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            </TabsContent>
-
-                            <TabsContent
-                              value="tarefas"
-                              className="mt-0 h-full flex flex-col space-y-4"
-                            >
-                              <div className="flex items-center gap-2 mb-2">
-                                <Input
-                                  placeholder="Nova tarefa..."
-                                  value={newTaskText}
-                                  onChange={(e) => setNewTaskText(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') addTask(pericia)
-                                  }}
-                                />
-                                <Button size="icon" onClick={() => addTask(pericia)}>
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </div>
-
-                              {normalizeChecklist(pericia.checklist).length === 0 ? (
-                                <p className="text-sm text-zinc-500 text-center py-8">
-                                  Nenhuma tarefa cadastrada.
-                                </p>
-                              ) : (
-                                <div className="space-y-3">
-                                  {normalizeChecklist(pericia.checklist).map((item, index) => (
-                                    <div
-                                      key={item.id}
-                                      className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors ${item.done ? 'bg-zinc-50 dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800' : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-sm'}`}
-                                    >
-                                      <Checkbox
-                                        id={`check-${pericia.id}-${index}`}
-                                        checked={item.done}
-                                        onCheckedChange={() =>
-                                          toggleChecklistItem(pericia.id, index, pericia.checklist)
-                                        }
-                                        className="mt-1"
-                                      />
-                                      <Label
-                                        htmlFor={`check-${pericia.id}-${index}`}
-                                        className={`text-sm leading-snug cursor-pointer ${item.done ? 'text-zinc-400 line-through' : 'text-zinc-700 dark:text-zinc-300 font-medium'}`}
-                                      >
-                                        {item.text}
-                                      </Label>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </TabsContent>
-
-                            <TabsContent value="documentos" className="mt-0 h-full space-y-4">
-                              <div className="border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-zinc-50 dark:bg-zinc-900/30">
-                                <div className="p-3 bg-blue-500/10 rounded-full mb-3">
-                                  <Upload className="h-6 w-6 text-blue-500" />
-                                </div>
-                                <h3 className="font-medium mb-1">Upload de Arquivo</h3>
-                                <p className="text-xs text-zinc-500 mb-4">
-                                  Envie laudos, petições ou recibos (PDF, DOCX, Imagens)
-                                </p>
-                                <div className="relative">
-                                  <Input
-                                    type="file"
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    onChange={(e) => {
-                                      if (e.target.files && e.target.files[0]) {
-                                        handleFileUpload(pericia.id, e.target.files[0])
-                                      }
-                                    }}
-                                    disabled={uploadingId === pericia.id}
-                                  />
-                                  <Button disabled={uploadingId === pericia.id}>
-                                    {uploadingId === pericia.id ? (
-                                      <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />{' '}
-                                        Enviando...
-                                      </>
-                                    ) : (
-                                      'Selecionar Arquivo'
-                                    )}
-                                  </Button>
-                                </div>
-                              </div>
-
-                              <div className="space-y-3 mt-6">
-                                <h4 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                                  Arquivos Anexados ({pericia.anexos?.length || 0})
-                                </h4>
-                                {pericia.anexos?.length === 0 ? (
-                                  <p className="text-sm text-zinc-500 text-center py-4">
-                                    Nenhum documento anexado.
-                                  </p>
-                                ) : (
-                                  pericia.anexos?.map((anexo: any) => (
-                                    <div
-                                      key={anexo.id}
-                                      className="flex items-center justify-between p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm"
-                                    >
-                                      <div className="flex items-center gap-3 overflow-hidden">
-                                        <FileText className="h-8 w-8 text-blue-500 shrink-0" />
-                                        <div className="overflow-hidden">
-                                          <p
-                                            className="text-sm font-medium truncate"
-                                            title={anexo.file_name}
-                                          >
-                                            {anexo.file_name}
-                                          </p>
-                                          <p className="text-xs text-zinc-500">
-                                            {(anexo.size / 1024 / 1024).toFixed(2)} MB •{' '}
-                                            {new Date(anexo.created_at).toLocaleDateString()}
-                                          </p>
-                                        </div>
-                                      </div>
-                                      <div className="flex gap-1 shrink-0 ml-2">
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          onClick={() => handleViewAnexo(anexo.file_path)}
-                                        >
-                                          <Eye className="h-4 w-4 text-zinc-500" />
-                                        </Button>
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          className="hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-                                          onClick={() =>
-                                            handleDeleteAnexo(
-                                              anexo.id,
-                                              anexo.file_path,
-                                              pericia.id,
-                                              anexo.file_name,
-                                            )
-                                          }
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            </TabsContent>
-
-                            <TabsContent value="mensagens" className="mt-0 h-full">
-                              {currentUser && (
-                                <ChatPanel periciaId={pericia.id} currentUserId={currentUser.id} />
-                              )}
-                            </TabsContent>
-
-                            <TabsContent value="peticoes" className="mt-0 h-full">
-                              <div className="space-y-4">
-                                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
-                                  Histórico de Petições
-                                </h4>
-                                {(() => {
-                                  const peticoesPericia = peticoes.filter(
-                                    (p) => p.periciaId === pericia.id,
-                                  )
-                                  if (peticoesPericia.length === 0) {
-                                    return (
-                                      <div className="flex flex-col items-center justify-center text-center py-8 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
-                                        <FileText className="h-8 w-8 text-zinc-300 mb-2" />
-                                        <p className="text-sm text-zinc-500">
-                                          Nenhuma petição registrada nesta perícia.
-                                        </p>
-                                      </div>
-                                    )
-                                  }
-                                  return (
-                                    <div className="space-y-3">
-                                      {peticoesPericia.map((pet) => (
-                                        <div
-                                          key={pet.id}
-                                          className="flex flex-col p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm"
-                                        >
-                                          <div className="flex justify-between items-start mb-1">
-                                            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                                              {pet.titulo}
-                                            </p>
-                                            <Badge
-                                              variant="outline"
-                                              className={
-                                                pet.status.toLowerCase() === 'concluído' ||
-                                                pet.status.toLowerCase() === 'protocolada'
-                                                  ? 'text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30'
-                                                  : 'text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-950/30'
-                                              }
-                                            >
-                                              {pet.status}
-                                            </Badge>
-                                          </div>
-                                          <div className="flex items-center gap-1 text-xs text-zinc-500 mt-2">
-                                            <Calendar className="h-3 w-3" />
-                                            {formatDate(pet.data)}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )
-                                })()}
-                              </div>
-                            </TabsContent>
-
-                            <TabsContent value="historico" className="mt-0 h-full">
-                              <div className="space-y-4">
-                                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
-                                  Histórico de Auditoria
-                                </h4>
-                                {!logsPericia[pericia.id] ? (
-                                  <div className="flex justify-center py-8">
-                                    <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
-                                  </div>
-                                ) : logsPericia[pericia.id].length === 0 ? (
-                                  <p className="text-sm text-zinc-500 text-center py-8 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
-                                    Nenhum registro de auditoria encontrado.
-                                  </p>
-                                ) : (
-                                  <div className="relative border-l border-zinc-200 dark:border-zinc-800 ml-3 space-y-6 pb-4">
-                                    {logsPericia[pericia.id].map((log: any) => (
-                                      <div key={log.id} className="relative pl-6">
-                                        <div className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-zinc-200 dark:bg-zinc-700 border-2 border-white dark:border-zinc-950" />
-                                        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mb-1">
-                                          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                                            {log.user?.name || 'Sistema'}
-                                          </span>
-                                          <span className="text-xs text-zinc-500">
-                                            {format(
-                                              new Date(log.created_at),
-                                              "dd/MM/yyyy 'às' HH:mm",
-                                            )}
-                                          </span>
-                                        </div>
-                                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                          {log.action === 'criou' && 'Criou o registro da perícia.'}
-                                          {log.action === 'atualizou' &&
-                                            'Atualizou informações da perícia.'}
-                                          {log.action === 'excluiu' && 'Excluiu a perícia.'}
-                                          {!['criou', 'atualizou', 'excluiu'].includes(
-                                            log.action,
-                                          ) && `Realizou a ação: ${log.action}`}
-                                        </p>
-                                        {log.details && Object.keys(log.details).length > 0 && (
-                                          <div className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg text-xs text-zinc-600 dark:text-zinc-400 space-y-1.5 border border-zinc-100 dark:border-zinc-800">
-                                            {Object.entries(log.details).map(([k, v]) => (
-                                              <div key={k} className="flex flex-col">
-                                                <span className="font-medium text-zinc-900 dark:text-zinc-300 capitalize">
-                                                  {k.replace(/_/g, ' ')}:
-                                                </span>
-                                                {typeof v === 'object' && v !== null ? (
-                                                  <span className="break-words text-zinc-500">
-                                                    {JSON.stringify(v)}
-                                                  </span>
-                                                ) : (
-                                                  <span className="break-words text-zinc-500">
-                                                    {String(v)}
-                                                  </span>
-                                                )}
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </TabsContent>
-                          </ScrollArea>
-                        </Tabs>
-                      </SheetContent>
+                      {renderPericiaSheetContent(pericia)}
                     </Sheet>
                   </CardFooter>
                 </Card>
               ))}
+            </div>
+          ) : (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={goToToday}>
+                    Hoje
+                  </Button>
+                  <div className="flex items-center border rounded-md overflow-hidden bg-background">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-none"
+                      onClick={prevMonth}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="w-36 text-center font-medium text-sm capitalize">
+                      {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-none"
+                      onClick={nextMonth}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs bg-zinc-50 dark:bg-zinc-900/50 p-2 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-zinc-500"></div>Visita Técnica
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>Entrega Laudo
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-orange-500"></div>Impugnação
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-pink-500"></div>Esclarecimentos
+                  </div>
+                </div>
+              </div>
+
+              <Card className="shadow-sm border-zinc-200 dark:border-zinc-800 overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="grid grid-cols-7 gap-px bg-zinc-200 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-800">
+                    {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((d) => (
+                      <div
+                        key={d}
+                        className="bg-zinc-50 dark:bg-zinc-900/80 py-3 text-center text-sm font-semibold text-zinc-500 dark:text-zinc-400"
+                      >
+                        {d}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-px bg-zinc-200 dark:bg-zinc-800">
+                    {calendarDays.map((day, i) => {
+                      const dayEvents = getEventsForDay(day)
+                      const isCurrentMonth = isSameMonth(day, currentMonth)
+                      const isToday = isSameDay(day, new Date())
+
+                      return (
+                        <div
+                          key={i}
+                          className={cn(
+                            'bg-white dark:bg-zinc-950 min-h-[120px] p-2 transition-colors relative group',
+                            !isCurrentMonth &&
+                              'text-zinc-400 bg-zinc-50/50 dark:bg-zinc-900/50 dark:text-zinc-600',
+                            isToday && 'bg-zinc-100/50 dark:bg-zinc-800/40',
+                          )}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <span
+                              className={cn(
+                                'text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full',
+                                isToday && 'bg-primary text-primary-foreground shadow-sm',
+                              )}
+                            >
+                              {format(day, 'd')}
+                            </span>
+                            {dayEvents.length > 0 && (
+                              <Badge
+                                variant="secondary"
+                                className="text-[10px] px-1.5 py-0 h-5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
+                              >
+                                {dayEvents.length}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            {dayEvents.map((e) => (
+                              <Sheet key={e.id}>
+                                <SheetTrigger asChild>
+                                  <div
+                                    className={cn(
+                                      'text-[10px] px-1.5 py-1 rounded-sm truncate font-medium cursor-pointer hover:opacity-80 transition-opacity border shadow-sm',
+                                      e.type === 'pericia'
+                                        ? 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700/50'
+                                        : e.type === 'entrega'
+                                          ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 border-red-200 dark:border-red-800/30'
+                                          : e.type === 'impugnacao'
+                                            ? 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 border-orange-200 dark:border-orange-800/30'
+                                            : 'bg-pink-50 text-pink-700 dark:bg-pink-900/20 dark:text-pink-300 border-pink-200 dark:border-pink-800/30',
+                                    )}
+                                    title={`${e.title}: ${e.pericia.numeroProcesso}`}
+                                  >
+                                    {e.title}: {e.pericia.numeroProcesso}
+                                  </div>
+                                </SheetTrigger>
+                                {renderPericiaSheetContent(e.pericia)}
+                              </Sheet>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
         </TabsContent>
