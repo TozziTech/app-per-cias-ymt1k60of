@@ -25,6 +25,7 @@ export interface ChecklistItem {
   id: string
   texto: string
   concluido: boolean
+  observacao?: string
 }
 
 export type LancamentoTipo = 'receita' | 'despesa'

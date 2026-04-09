@@ -435,6 +435,33 @@ export default function Dashboard() {
     return { total, concluidas, emAndamento, taxaConclusao }
   }, [pericias])
 
+  const vistoriasMes = useMemo(() => {
+    const today = new Date()
+    const currentMonth = today.getMonth()
+    const currentYear = today.getFullYear()
+
+    let concluidasMes = 0
+    let totalMes = 0
+
+    pericias.forEach((p) => {
+      const dPericia = parseDateSafe(p.dataPericia)
+      if (
+        dPericia &&
+        dPericia.getMonth() === currentMonth &&
+        dPericia.getFullYear() === currentYear
+      ) {
+        totalMes++
+        const hasChecklist = p.checklist && p.checklist.length > 0
+        const isChecklistComplete = hasChecklist && p.checklist.every((item) => item.concluido)
+        if (isChecklistComplete || p.status === 'Concluído') {
+          concluidasMes++
+        }
+      }
+    })
+
+    return { concluidasMes, totalMes }
+  }, [pericias])
+
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
 
@@ -697,7 +724,23 @@ export default function Dashboard() {
       </div>
 
       {/* Productivity KPIs */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+        <Card className="shadow-sm bg-muted/30">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Vistorias do Mês</CardTitle>
+            <CheckSquare className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-500">
+              {vistoriasMes.concluidasMes}{' '}
+              <span className="text-sm font-normal text-muted-foreground">
+                / {vistoriasMes.totalMes}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Concluídas (Checklist)</p>
+          </CardContent>
+        </Card>
+
         <Card className="shadow-sm bg-muted/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Perícias</CardTitle>
@@ -720,7 +763,7 @@ export default function Dashboard() {
 
         <Card className="shadow-sm bg-muted/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Em Andamento / Pendentes</CardTitle>
+            <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
             <ListTodo className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>

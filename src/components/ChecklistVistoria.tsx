@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, CheckSquare, Printer, MapPin, Users, Loader2 } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import { Plus, Trash2, CheckSquare, Printer, MapPin, Users, Loader2, FileText } from 'lucide-react'
 import { Pericia } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 
@@ -27,6 +28,7 @@ export function ChecklistVistoria({ pericia, onUpdate }: ChecklistVistoriaProps)
   const { toast } = useToast()
   const [newItemText, setNewItemText] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
+  const [expandedObs, setExpandedObs] = useState<string | null>(null)
 
   const items = pericia?.checklist || []
 
@@ -53,6 +55,20 @@ export function ChecklistVistoria({ pericia, onUpdate }: ChecklistVistoriaProps)
       toast({ title: 'Erro', description: 'Falha ao atualizar item.', variant: 'destructive' })
     } finally {
       setIsUpdating(false)
+    }
+  }
+
+  const handleUpdateObs = async (id: string, observacao: string) => {
+    if (!pericia) return
+    const newItems = items.map((item) => (item.id === id ? { ...item, observacao } : item))
+    try {
+      await onUpdate(pericia.id, { checklist: newItems })
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Falha ao atualizar observação.',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -105,8 +121,10 @@ export function ChecklistVistoria({ pericia, onUpdate }: ChecklistVistoriaProps)
             .checklist { margin-top: 30px; }
             .checklist-title { font-size: 18px; font-weight: bold; background-color: #f3f4f6; padding: 8px 12px; border-left: 4px solid #D4AF37; margin-bottom: 15px; color: #374151; }
             .checklist-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-            .check-item { display: flex; align-items: center; margin-bottom: 8px; }
+            .check-item-container { margin-bottom: 12px; }
+            .check-item { display: flex; align-items: center; }
             .box { width: 16px; height: 16px; border: 1px solid #000; margin-right: 10px; display: inline-block; text-align: center; line-height: 16px; font-size: 14px; }
+            .obs-item { margin-left: 28px; font-size: 12px; color: #4b5563; font-style: italic; margin-top: 4px; }
             .obs-section { margin-top: 40px; }
             .obs-box { border: 1px solid #ccc; height: 150px; margin-top: 10px; }
             @media print {
@@ -160,9 +178,12 @@ export function ChecklistVistoria({ pericia, onUpdate }: ChecklistVistoriaProps)
               ${items
                 .map(
                   (item) => `
-                <div class="check-item">
-                  <div class="box">${item.concluido ? 'X' : '&nbsp;'}</div>
-                  <span>${item.texto}</span>
+                <div class="check-item-container">
+                  <div class="check-item">
+                    <div class="box">${item.concluido ? 'X' : '&nbsp;'}</div>
+                    <span>${item.texto}</span>
+                  </div>
+                  ${item.observacao ? `<div class="obs-item">Obs: ${item.observacao.replace(/\n/g, '<br/>')}</div>` : ''}
                 </div>
               `,
                 )
@@ -257,35 +278,60 @@ export function ChecklistVistoria({ pericia, onUpdate }: ChecklistVistoriaProps)
           {items.map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between group p-2 rounded-md hover:bg-muted/50 transition-colors border border-transparent hover:border-border"
+              className="flex flex-col p-2 rounded-md hover:bg-muted/50 transition-colors border border-transparent hover:border-border group"
             >
-              <div className="flex items-center space-x-3 overflow-hidden flex-1 pr-2">
-                <Checkbox
-                  id={`chk-${item.id}`}
-                  checked={item.concluido}
-                  onCheckedChange={() => handleToggle(item.id)}
-                  disabled={isUpdating}
-                />
-                <label
-                  htmlFor={`chk-${item.id}`}
-                  className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer select-none transition-colors truncate ${
-                    item.concluido ? 'line-through text-muted-foreground' : 'text-foreground'
-                  }`}
-                  title={item.texto}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3 overflow-hidden flex-1 pr-2">
+                  <Checkbox
+                    id={`chk-${item.id}`}
+                    checked={item.concluido}
+                    onCheckedChange={() => handleToggle(item.id)}
+                    disabled={isUpdating}
+                  />
+                  <label
+                    htmlFor={`chk-${item.id}`}
+                    className={`text-sm font-medium leading-none cursor-pointer select-none transition-colors truncate ${
+                      item.concluido ? 'line-through text-muted-foreground' : 'text-foreground'
+                    }`}
+                    title={item.texto}
+                  >
+                    {item.texto}
+                  </label>
+                </div>
+                <div
+                  className={`flex items-center gap-1 transition-opacity ${expandedObs === item.id || item.observacao ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                 >
-                  {item.texto}
-                </label>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-7 w-7 ${item.observacao ? 'text-primary' : 'text-muted-foreground'}`}
+                    onClick={() => setExpandedObs(expandedObs === item.id ? null : item.id)}
+                    title={item.observacao ? 'Editar Observação' : 'Adicionar Observação'}
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                    onClick={() => handleRemove(item.id)}
+                    disabled={isUpdating}
+                    title="Remover item"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
-                onClick={() => handleRemove(item.id)}
-                disabled={isUpdating}
-                title="Remover item"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              {(expandedObs === item.id || item.observacao) && (
+                <div className="pl-7 pr-8 pt-2 animate-in slide-in-from-top-1">
+                  <Textarea
+                    placeholder="Adicionar anotações ou observações para este item..."
+                    defaultValue={item.observacao}
+                    className="text-xs min-h-[60px] resize-none"
+                    onBlur={(e) => handleUpdateObs(item.id, e.target.value)}
+                  />
+                </div>
+              )}
             </div>
           ))}
           {items.length === 0 && (
