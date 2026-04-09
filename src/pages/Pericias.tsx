@@ -82,6 +82,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { PericiaForm } from '@/components/PericiaForm'
 import { GeradorPeticoes } from '@/components/GeradorPeticoes'
+import { ChecklistVistoria } from '@/components/ChecklistVistoria'
 import { exportToCsv } from '@/lib/export'
 import { supabase } from '@/lib/supabase/client'
 
@@ -1372,12 +1373,15 @@ export default function Pericias() {
 
           {selectedPericia && (
             <Tabs defaultValue="detalhes" className="w-full mt-6 pb-12">
-              <TabsList className="w-full grid grid-cols-3 mb-4 h-auto">
+              <TabsList className="w-full grid grid-cols-2 lg:grid-cols-4 mb-4 h-auto gap-1">
                 <TabsTrigger value="detalhes" className="text-xs sm:text-sm py-2">
                   Detalhes e Arquivos
                 </TabsTrigger>
                 <TabsTrigger value="gerador" className="text-xs sm:text-sm py-2">
                   Gerador de Petições
+                </TabsTrigger>
+                <TabsTrigger value="checklist" className="text-xs sm:text-sm py-2">
+                  Checklist de Vistoria
                 </TabsTrigger>
                 <TabsTrigger value="historico" className="text-xs sm:text-sm py-2">
                   Histórico de Acesso
@@ -1926,6 +1930,10 @@ export default function Pericias() {
 
               <TabsContent value="gerador" className="space-y-6 mt-0">
                 <GeradorPeticoes pericia={selectedPericia} />
+              </TabsContent>
+
+              <TabsContent value="checklist" className="space-y-6 mt-0">
+                <ChecklistVistoria />
               </TabsContent>
 
               <TabsContent value="historico" className="space-y-6 mt-0">
