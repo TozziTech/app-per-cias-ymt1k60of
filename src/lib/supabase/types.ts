@@ -521,6 +521,7 @@ export type Database = {
       }
       peritos: {
         Row: {
+          aceite: string | null
           agencia: string | null
           area_atuacao: string | null
           bairro: string | null
@@ -539,6 +540,7 @@ export type Database = {
           endereco: string | null
           especialidade: string | null
           id: string
+          justificativa_recusa: string | null
           nome: string
           numero: string | null
           observacoes: string | null
@@ -549,6 +551,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aceite?: string | null
           agencia?: string | null
           area_atuacao?: string | null
           bairro?: string | null
@@ -567,6 +570,7 @@ export type Database = {
           endereco?: string | null
           especialidade?: string | null
           id?: string
+          justificativa_recusa?: string | null
           nome: string
           numero?: string | null
           observacoes?: string | null
@@ -577,6 +581,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aceite?: string | null
           agencia?: string | null
           area_atuacao?: string | null
           bairro?: string | null
@@ -595,6 +600,7 @@ export type Database = {
           endereco?: string | null
           especialidade?: string | null
           id?: string
+          justificativa_recusa?: string | null
           nome?: string
           numero?: string | null
           observacoes?: string | null
@@ -1074,6 +1080,8 @@ export const Constants = {
 //   cidade_estado: text (nullable)
 //   bairro: text (nullable)
 //   area_atuacao: text (nullable)
+//   aceite: text (nullable, default: 'Aceito'::text)
+//   justificativa_recusa: text (nullable)
 // Table: peticao_templates
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)

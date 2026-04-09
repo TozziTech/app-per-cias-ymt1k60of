@@ -51,6 +51,8 @@ const formSchema = z.object({
   honorariosParcelados: z.boolean().default(false),
   quantidadeParcelas: z.string().optional(),
   adiantamentoSolicitado: z.boolean().default(false),
+  aceite: z.string().optional().default('Pendente'),
+  justificativa_recusa: z.string().optional(),
   checklist: z.array(
     z.object({
       id: z.string(),
@@ -158,6 +160,8 @@ export function PericiaForm({
         honorariosParcelados: pericia.honorariosParcelados || false,
         quantidadeParcelas: pericia.quantidadeParcelas ? pericia.quantidadeParcelas.toString() : '',
         adiantamentoSolicitado: pericia.adiantamentoSolicitado || false,
+        aceite: pericia.aceite || 'Pendente',
+        justificativa_recusa: pericia.justificativa_recusa || '',
         checklist: pericia.checklist || [],
       })
     }
@@ -193,6 +197,8 @@ export function PericiaForm({
           ? parseInt(values.quantidadeParcelas, 10)
           : undefined,
         adiantamentoSolicitado: values.adiantamentoSolicitado,
+        aceite: values.aceite,
+        justificativa_recusa: values.aceite === 'Recusado' ? values.justificativa_recusa : null,
         status: (values.status || 'Agendado') as any,
         perito_id: values.perito_id || null,
         peritoAssociado:
@@ -224,14 +230,30 @@ export function PericiaForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8 pt-4 pb-12">
+        <div className="col-span-full grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 p-4 bg-muted/30 rounded-lg border border-border">
+          <CustomSelect
+            control={form.control}
+            name="aceite"
+            label="Aprovação do Cadastro"
+            options={['Pendente', 'Aceito', 'Recusado']}
+          />
+          {form.watch('aceite') === 'Recusado' && (
+            <CustomInput
+              control={form.control}
+              name="justificativa_recusa"
+              label="Justificativa da Recusa"
+            />
+          )}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CustomInput control={form.control} name="codigoInterno" label="Código Interno" />
           <CustomSelect
             control={form.control}
             name="status"
             label="Status"
             options={['Agendado', 'Em Andamento', 'Laudo Entregue', 'Concluído', 'Pendente']}
           />
-          <CustomInput control={form.control} name="codigoInterno" label="Código Interno" />
           <CustomInput control={form.control} name="numeroProcesso" label="Número do Processo" />
           <div className="flex items-end pb-2">
             <CustomCheckbox

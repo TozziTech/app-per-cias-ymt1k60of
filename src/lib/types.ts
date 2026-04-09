@@ -131,4 +131,6 @@ export interface Pericia {
   honorariosParcelados?: boolean
   quantidadeParcelas?: number
   adiantamentoSolicitado?: boolean
+  aceite?: string
+  justificativa_recusa?: string
 }

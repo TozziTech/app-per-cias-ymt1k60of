@@ -27,10 +27,6 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 const REGIOES_DISPONIVEIS = [
-  'Norte',
-  'Sul',
-  'Leste',
-  'Oeste',
   'Nordeste',
   'Noroeste',
   'Sudeste',
@@ -40,6 +36,17 @@ const REGIOES_DISPONIVEIS = [
   'Capital',
   'Interior',
   'Litoral',
+]
+
+const ESPECIALIDADES_PREDEFINIDAS = [
+  'Engenharia Civil',
+  'Engenharia Mecânica',
+  'Engenharia Elétrica',
+  'Engenharia Ambiental',
+  'Engenharia de Segurança do Trabalho',
+  'Arquitetura',
+  'Medicina',
+  'Contabilidade',
 ]
 
 export default function Peritos() {
@@ -77,8 +84,6 @@ export default function Peritos() {
     conta: '',
     observacoes: '',
     status: 'Ativo',
-    aceite: 'Aceito',
-    justificativa_recusa: '',
   }
 
   const [form, setForm] = useState(emptyForm)
@@ -276,8 +281,6 @@ export default function Peritos() {
       conta: p.conta || '',
       observacoes: p.observacoes || '',
       status: p.status || 'Ativo',
-      aceite: p.aceite || 'Aceito',
-      justificativa_recusa: p.justificativa_recusa || '',
     })
     setEditingId(p.id)
     parseAreaAtuacao(p.area_atuacao || '')
@@ -359,43 +362,14 @@ export default function Peritos() {
                   </TabsList>
 
                   <TabsContent value="dados" className="space-y-4">
-                    <div className="col-span-full grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 p-4 bg-muted/30 rounded-lg border">
-                      <div className="space-y-2">
-                        <Label>Aprovação do Cadastro</Label>
-                        <Select
-                          value={form.aceite}
-                          onValueChange={(val) =>
-                            setForm({
-                              ...form,
-                              aceite: val,
-                              justificativa_recusa:
-                                val === 'Aceito' ? '' : form.justificativa_recusa,
-                            })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Aceito">Aceito</SelectItem>
-                            <SelectItem value="Recusado">Recusado</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Justificativa da Recusa</Label>
-                        <Input
-                          value={form.justificativa_recusa}
-                          onChange={(e) =>
-                            setForm({ ...form, justificativa_recusa: e.target.value })
-                          }
-                          disabled={form.aceite !== 'Recusado'}
-                          placeholder={
-                            form.aceite === 'Recusado'
-                              ? 'Motivo da recusa...'
-                              : 'Apenas para recusas'
-                          }
-                        />
+                    <div className="col-span-full mb-2">
+                      <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg flex flex-col items-center justify-center">
+                        <Label className="text-xs uppercase tracking-widest text-primary/70 mb-1">
+                          ID do Perito
+                        </Label>
+                        <div className="text-2xl font-mono font-bold text-primary">
+                          {isLoadingCode ? 'Gerando...' : form.codigo_id}
+                        </div>
                       </div>
                     </div>
 
@@ -412,13 +386,44 @@ export default function Peritos() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Código ID (Interno)</Label>
-                        <Input
-                          value={isLoadingCode ? 'Gerando...' : form.codigo_id}
-                          readOnly
-                          className="bg-muted font-mono"
-                          onChange={(e) => setForm({ ...form, codigo_id: e.target.value })}
-                        />
+                        <Label>Especialidade</Label>
+                        <Select
+                          value={
+                            ESPECIALIDADES_PREDEFINIDAS.includes(form.especialidade)
+                              ? form.especialidade
+                              : form.especialidade
+                                ? 'Outra'
+                                : ''
+                          }
+                          onValueChange={(val) => {
+                            if (val !== 'Outra') {
+                              setForm({ ...form, especialidade: val })
+                            } else {
+                              setForm({ ...form, especialidade: '' })
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ESPECIALIDADES_PREDEFINIDAS.map((esp) => (
+                              <SelectItem key={esp} value={esp}>
+                                {esp}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="Outra">Outra...</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {(!ESPECIALIDADES_PREDEFINIDAS.includes(form.especialidade) ||
+                          form.especialidade === '') && (
+                          <Input
+                            className="mt-2"
+                            placeholder="Digite a especialidade..."
+                            value={form.especialidade}
+                            onChange={(e) => setForm({ ...form, especialidade: e.target.value })}
+                          />
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label>Status</Label>
@@ -437,57 +442,39 @@ export default function Peritos() {
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>Especialidade</Label>
-                        <datalist id="especialidades-list">
-                          <option value="Engenharia Civil" />
-                          <option value="Engenharia Mecânica" />
-                          <option value="Engenharia Elétrica" />
-                          <option value="Engenharia Ambiental" />
-                          <option value="Engenharia de Segurança do Trabalho" />
-                          <option value="Arquitetura" />
-                          <option value="Medicina" />
-                          <option value="Contabilidade" />
-                        </datalist>
-                        <Input
-                          list="especialidades-list"
-                          placeholder="Selecione ou digite..."
-                          value={form.especialidade}
-                          onChange={(e) => setForm({ ...form, especialidade: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>CREA</Label>
-                        <Input
-                          value={form.crea}
-                          onChange={(e) => setForm({ ...form, crea: e.target.value })}
-                        />
-                      </div>
-
                       <div className="col-span-full font-semibold text-primary/80 mt-4">
                         Dados Pessoais
                       </div>
-                      <div className="space-y-2">
-                        <Label>CPF</Label>
-                        <Input
-                          value={form.cpf}
-                          onChange={(e) => setForm({ ...form, cpf: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>RG</Label>
-                        <Input
-                          value={form.rg}
-                          onChange={(e) => setForm({ ...form, rg: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <Label>Data de Nascimento</Label>
-                        <Input
-                          type="date"
-                          value={form.data_nascimento}
-                          onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })}
-                        />
+                      <div className="col-span-full grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div className="space-y-2">
+                          <Label>CPF</Label>
+                          <Input
+                            value={form.cpf}
+                            onChange={(e) => setForm({ ...form, cpf: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>RG</Label>
+                          <Input
+                            value={form.rg}
+                            onChange={(e) => setForm({ ...form, rg: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>CREA</Label>
+                          <Input
+                            value={form.crea}
+                            onChange={(e) => setForm({ ...form, crea: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Data Nasc.</Label>
+                          <Input
+                            type="date"
+                            value={form.data_nascimento}
+                            onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })}
+                          />
+                        </div>
                       </div>
 
                       <div className="col-span-full font-semibold text-primary/80 mt-4">
@@ -751,11 +738,6 @@ export default function Peritos() {
                     className="text-xs font-medium bg-primary/5 print:border-slate-300 print:text-black"
                   >
                     ID: {perito.codigo_id}
-                  </Badge>
-                )}
-                {perito.aceite === 'Recusado' && (
-                  <Badge variant="destructive" className="text-[10px]">
-                    Recusado
                   </Badge>
                 )}
               </div>

@@ -1204,6 +1204,32 @@ export default function Pericias() {
                 </div>
 
                 <div className="border-t pt-4 grid grid-cols-2 gap-4 text-sm">
+                  <h4 className="col-span-2 font-medium">Aprovação</h4>
+                  <div>
+                    <p className="text-muted-foreground">Status</p>
+                    <p className="font-medium mt-1">
+                      {selectedPericia.aceite === 'Aceito' ? (
+                        <Badge className="bg-emerald-500">Aceito</Badge>
+                      ) : selectedPericia.aceite === 'Recusado' ? (
+                        <Badge variant="destructive">Recusado</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-amber-600 border-amber-300">
+                          Pendente
+                        </Badge>
+                      )}
+                    </p>
+                  </div>
+                  {selectedPericia.aceite === 'Recusado' && (
+                    <div>
+                      <p className="text-muted-foreground">Justificativa</p>
+                      <p className="font-medium mt-1">
+                        {selectedPericia.justificativa_recusa || '-'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t pt-4 grid grid-cols-2 gap-4 text-sm">
                   <h4 className="col-span-2 font-medium">Datas Principais</h4>
                   <div>
                     <p className="text-muted-foreground">Nomeação</p>
