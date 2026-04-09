@@ -266,7 +266,7 @@ export async function logActivity(
 export async function getPericiaLogs(periciaId: string): Promise<any[]> {
   const { data, error } = await supabase
     .from('activity_logs')
-    .select('*')
+    .select('*, user:profiles(name)')
     .eq('entity_id', periciaId)
     .order('created_at', { ascending: false })
 

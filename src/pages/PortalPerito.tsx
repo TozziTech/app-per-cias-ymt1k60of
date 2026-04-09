@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { Pericia } from '@/lib/types'
-import { updatePericia, uploadAnexo, deleteAnexo, getAnexoUrl } from '@/services/pericias'
+import {
+  updatePericia,
+  uploadAnexo,
+  deleteAnexo,
+  getAnexoUrl,
+  getPericiaLogs,
+} from '@/services/pericias'
 import { exportToCsv } from '@/lib/export'
 import {
   Card,
@@ -71,6 +77,17 @@ export default function PortalPerito() {
 
   const [isAdmin, setIsAdmin] = useState(false)
   const [isPeritoVinculado, setIsPeritoVinculado] = useState(true)
+  const [logsPericia, setLogsPericia] = useState<Record<string, any[]>>({})
+
+  const loadLogs = async (periciaId: string) => {
+    if (logsPericia[periciaId]) return
+    try {
+      const logs = await getPericiaLogs(periciaId)
+      setLogsPericia((prev) => ({ ...prev, [periciaId]: logs }))
+    } catch (e) {
+      console.error('Erro ao carregar logs:', e)
+    }
+  }
 
   useEffect(() => {
     fetchData()
@@ -611,11 +628,26 @@ export default function PortalPerito() {
 
                         <Tabs defaultValue="detalhes" className="flex-1 flex flex-col min-h-0">
                           <div className="px-6 pt-4">
-                            <TabsList className="grid w-full grid-cols-4 bg-zinc-100 dark:bg-zinc-900">
-                              <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
-                              <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
-                              <TabsTrigger value="documentos">Documentos</TabsTrigger>
-                              <TabsTrigger value="mensagens">Chat</TabsTrigger>
+                            <TabsList className="flex flex-wrap w-full bg-zinc-100 dark:bg-zinc-900 h-auto p-1">
+                              <TabsTrigger value="detalhes" className="flex-1 text-xs sm:text-sm">
+                                Detalhes
+                              </TabsTrigger>
+                              <TabsTrigger value="tarefas" className="flex-1 text-xs sm:text-sm">
+                                Tarefas
+                              </TabsTrigger>
+                              <TabsTrigger value="documentos" className="flex-1 text-xs sm:text-sm">
+                                Docs
+                              </TabsTrigger>
+                              <TabsTrigger value="mensagens" className="flex-1 text-xs sm:text-sm">
+                                Chat
+                              </TabsTrigger>
+                              <TabsTrigger
+                                value="historico"
+                                className="flex-1 text-xs sm:text-sm"
+                                onClick={() => loadLogs(pericia.id)}
+                              >
+                                Histórico
+                              </TabsTrigger>
                             </TabsList>
                           </div>
 
@@ -866,6 +898,71 @@ export default function PortalPerito() {
                               {currentUser && (
                                 <ChatPanel periciaId={pericia.id} currentUserId={currentUser.id} />
                               )}
+                            </TabsContent>
+
+                            <TabsContent value="historico" className="mt-0 h-full">
+                              <div className="space-y-4">
+                                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
+                                  Histórico de Auditoria
+                                </h4>
+                                {!logsPericia[pericia.id] ? (
+                                  <div className="flex justify-center py-8">
+                                    <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+                                  </div>
+                                ) : logsPericia[pericia.id].length === 0 ? (
+                                  <p className="text-sm text-zinc-500 text-center py-8 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+                                    Nenhum registro de auditoria encontrado.
+                                  </p>
+                                ) : (
+                                  <div className="relative border-l border-zinc-200 dark:border-zinc-800 ml-3 space-y-6 pb-4">
+                                    {logsPericia[pericia.id].map((log: any) => (
+                                      <div key={log.id} className="relative pl-6">
+                                        <div className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-zinc-200 dark:bg-zinc-700 border-2 border-white dark:border-zinc-950" />
+                                        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mb-1">
+                                          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                            {log.user?.name || 'Sistema'}
+                                          </span>
+                                          <span className="text-xs text-zinc-500">
+                                            {format(
+                                              new Date(log.created_at),
+                                              "dd/MM/yyyy 'às' HH:mm",
+                                            )}
+                                          </span>
+                                        </div>
+                                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                          {log.action === 'criou' && 'Criou o registro da perícia.'}
+                                          {log.action === 'atualizou' &&
+                                            'Atualizou informações da perícia.'}
+                                          {log.action === 'excluiu' && 'Excluiu a perícia.'}
+                                          {!['criou', 'atualizou', 'excluiu'].includes(
+                                            log.action,
+                                          ) && `Realizou a ação: ${log.action}`}
+                                        </p>
+                                        {log.details && Object.keys(log.details).length > 0 && (
+                                          <div className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg text-xs text-zinc-600 dark:text-zinc-400 space-y-1.5 border border-zinc-100 dark:border-zinc-800">
+                                            {Object.entries(log.details).map(([k, v]) => (
+                                              <div key={k} className="flex flex-col">
+                                                <span className="font-medium text-zinc-900 dark:text-zinc-300 capitalize">
+                                                  {k.replace(/_/g, ' ')}:
+                                                </span>
+                                                {typeof v === 'object' && v !== null ? (
+                                                  <span className="break-words text-zinc-500">
+                                                    {JSON.stringify(v)}
+                                                  </span>
+                                                ) : (
+                                                  <span className="break-words text-zinc-500">
+                                                    {String(v)}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </TabsContent>
                           </ScrollArea>
                         </Tabs>
