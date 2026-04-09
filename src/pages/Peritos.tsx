@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { MapPin, Phone, Mail, Trash, Edit, Search, Plus, X } from 'lucide-react'
+import { MapPin, Phone, Mail, Trash, Edit, Search, Plus, X, FileText } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -26,6 +26,22 @@ import {
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
+const REGIOES_DISPONIVEIS = [
+  'Norte',
+  'Sul',
+  'Leste',
+  'Oeste',
+  'Nordeste',
+  'Noroeste',
+  'Sudeste',
+  'Sudoeste',
+  'Centro-Oeste',
+  'Metropolitana',
+  'Capital',
+  'Interior',
+  'Litoral',
+]
+
 export default function Peritos() {
   const [peritos, setPeritos] = useState<any[]>([])
   const [search, setSearch] = useState('')
@@ -36,8 +52,7 @@ export default function Peritos() {
 
   const [estados, setEstados] = useState<any[]>([])
   const [selectedEstados, setSelectedEstados] = useState<string[]>([])
-  const [cidadesPorEstado, setCidadesPorEstado] = useState<Record<string, any[]>>({})
-  const [selectedCidades, setSelectedCidades] = useState<string[]>([])
+  const [selectedRegioes, setSelectedRegioes] = useState<string[]>([])
 
   const emptyForm = {
     nome: '',
@@ -62,6 +77,8 @@ export default function Peritos() {
     conta: '',
     observacoes: '',
     status: 'Ativo',
+    aceite: 'Aceito',
+    justificativa_recusa: '',
   }
 
   const [form, setForm] = useState(emptyForm)
@@ -87,19 +104,6 @@ export default function Peritos() {
       .then((data) => setEstados(data))
       .catch((e) => console.error('Erro ao buscar estados:', e))
   }, [])
-
-  useEffect(() => {
-    selectedEstados.forEach((uf) => {
-      if (!cidadesPorEstado[uf]) {
-        fetch(
-          `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`,
-        )
-          .then((r) => r.json())
-          .then((data) => setCidadesPorEstado((prev) => ({ ...prev, [uf]: data })))
-          .catch((e) => console.error(`Erro ao buscar cidades de ${uf}:`, e))
-      }
-    })
-  }, [selectedEstados])
 
   useEffect(() => {
     if (isOpen && !editingId) {
@@ -135,33 +139,33 @@ export default function Peritos() {
 
   const parseAreaAtuacao = (str: string) => {
     const ufSet = new Set<string>()
-    const cityArr: string[] = []
+    const regArr: string[] = []
     if (str) {
       str.split(' | ').forEach((part) => {
-        const [ufPart, citiesPart] = part.split(': ')
+        const [ufPart, regionsPart] = part.split(': ')
         if (ufPart) {
           const uf = ufPart.replace(' (Todo o estado)', '').trim()
           ufSet.add(uf)
-          if (citiesPart) {
-            citiesPart.split(', ').forEach((city) => {
-              cityArr.push(`${uf}-${city.trim()}`)
+          if (regionsPart) {
+            regionsPart.split(', ').forEach((reg) => {
+              regArr.push(`${uf}-${reg.trim()}`)
             })
           }
         }
       })
     }
     setSelectedEstados(Array.from(ufSet))
-    setSelectedCidades(cityArr)
+    setSelectedRegioes(regArr)
   }
 
   const formatAreaAtuacao = () => {
     const result: string[] = []
     selectedEstados.forEach((uf) => {
-      const cities = selectedCidades
+      const regions = selectedRegioes
         .filter((sc) => sc.startsWith(`${uf}-`))
         .map((sc) => sc.substring(uf.length + 1))
-      if (cities.length > 0) {
-        result.push(`${uf}: ${cities.join(', ')}`)
+      if (regions.length > 0) {
+        result.push(`${uf}: ${regions.join(', ')}`)
       } else {
         result.push(`${uf} (Todo o estado)`)
       }
@@ -243,7 +247,7 @@ export default function Peritos() {
       setForm(emptyForm)
       setEditingId(null)
       setSelectedEstados([])
-      setSelectedCidades([])
+      setSelectedRegioes([])
       fetchPeritos()
     }
   }
@@ -272,6 +276,8 @@ export default function Peritos() {
       conta: p.conta || '',
       observacoes: p.observacoes || '',
       status: p.status || 'Ativo',
+      aceite: p.aceite || 'Aceito',
+      justificativa_recusa: p.justificativa_recusa || '',
     })
     setEditingId(p.id)
     parseAreaAtuacao(p.area_atuacao || '')
@@ -297,8 +303,8 @@ export default function Peritos() {
   })
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div className="space-y-6 print:space-y-2">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
         <div className="flex bg-slate-200 dark:bg-slate-900/80 p-1 rounded-lg border border-slate-300 dark:border-slate-800">
           <button
             onClick={() => setTab('Ativas')}
@@ -318,6 +324,11 @@ export default function Peritos() {
               className="pl-9 bg-background/50 border-border"
             />
           </div>
+
+          <Button variant="outline" onClick={() => window.print()} className="hidden sm:flex">
+            <FileText className="w-4 h-4 mr-2" /> PDF
+          </Button>
+
           <Dialog
             open={isOpen}
             onOpenChange={(val) => {
@@ -326,7 +337,7 @@ export default function Peritos() {
                 setEditingId(null)
                 setForm(emptyForm)
                 setSelectedEstados([])
-                setSelectedCidades([])
+                setSelectedRegioes([])
               }
             }}
           >
@@ -348,19 +359,60 @@ export default function Peritos() {
                   </TabsList>
 
                   <TabsContent value="dados" className="space-y-4">
+                    <div className="col-span-full grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 p-4 bg-muted/30 rounded-lg border">
+                      <div className="space-y-2">
+                        <Label>Aprovação do Cadastro</Label>
+                        <Select
+                          value={form.aceite}
+                          onValueChange={(val) =>
+                            setForm({
+                              ...form,
+                              aceite: val,
+                              justificativa_recusa:
+                                val === 'Aceito' ? '' : form.justificativa_recusa,
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Aceito">Aceito</SelectItem>
+                            <SelectItem value="Recusado">Recusado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Justificativa da Recusa</Label>
+                        <Input
+                          value={form.justificativa_recusa}
+                          onChange={(e) =>
+                            setForm({ ...form, justificativa_recusa: e.target.value })
+                          }
+                          disabled={form.aceite !== 'Recusado'}
+                          placeholder={
+                            form.aceite === 'Recusado'
+                              ? 'Motivo da recusa...'
+                              : 'Apenas para recusas'
+                          }
+                        />
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="col-span-full font-semibold text-primary/80 mt-2">
                         Dados Profissionais
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2 md:col-span-2">
                         <Label>Nome Completo</Label>
                         <Input
                           value={form.nome}
                           onChange={(e) => setForm({ ...form, nome: e.target.value })}
                         />
                       </div>
+
                       <div className="space-y-2">
-                        <Label>Código ID</Label>
+                        <Label>Código ID (Interno)</Label>
                         <Input
                           value={isLoadingCode ? 'Gerando...' : form.codigo_id}
                           readOnly
@@ -368,6 +420,23 @@ export default function Peritos() {
                           onChange={(e) => setForm({ ...form, codigo_id: e.target.value })}
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label>Status</Label>
+                        <Select
+                          value={form.status}
+                          onValueChange={(val) => setForm({ ...form, status: val })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Ativo">Ativo</SelectItem>
+                            <SelectItem value="Inativo">Inativo</SelectItem>
+                            <SelectItem value="Arquivado">Arquivado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
                       <div className="space-y-2">
                         <Label>Especialidade</Label>
                         <datalist id="especialidades-list">
@@ -493,32 +562,34 @@ export default function Peritos() {
                       <div className="col-span-full font-semibold text-primary/80 mt-4">
                         Dados Bancários
                       </div>
-                      <div className="space-y-2">
-                        <Label>Banco</Label>
-                        <Input
-                          value={form.banco}
-                          onChange={(e) => setForm({ ...form, banco: e.target.value })}
-                        />
+                      <div className="col-span-full grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>Banco</Label>
+                          <Input
+                            value={form.banco}
+                            onChange={(e) => setForm({ ...form, banco: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Agência</Label>
+                          <Input
+                            value={form.agencia}
+                            onChange={(e) => setForm({ ...form, agencia: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Conta</Label>
+                          <Input
+                            value={form.conta}
+                            onChange={(e) => setForm({ ...form, conta: e.target.value })}
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-2">
+                      <div className="col-span-full sm:col-span-2 md:col-span-1 space-y-2">
                         <Label>Chave Pix</Label>
                         <Input
                           value={form.chave_pix}
                           onChange={(e) => setForm({ ...form, chave_pix: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Agência</Label>
-                        <Input
-                          value={form.agencia}
-                          onChange={(e) => setForm({ ...form, agencia: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Conta</Label>
-                        <Input
-                          value={form.conta}
-                          onChange={(e) => setForm({ ...form, conta: e.target.value })}
                         />
                       </div>
 
@@ -553,8 +624,8 @@ export default function Peritos() {
                                 if (c) setSelectedEstados([...selectedEstados, uf.sigla])
                                 else {
                                   setSelectedEstados(selectedEstados.filter((s) => s !== uf.sigla))
-                                  setSelectedCidades(
-                                    selectedCidades.filter((sc) => !sc.startsWith(`${uf}-`)),
+                                  setSelectedRegioes(
+                                    selectedRegioes.filter((sc) => !sc.startsWith(`${uf}-`)),
                                   )
                                 }
                               }}
@@ -567,9 +638,9 @@ export default function Peritos() {
 
                     {selectedEstados.length > 0 && (
                       <div className="space-y-4">
-                        <Label className="text-base">Cidades Específicas</Label>
+                        <Label className="text-base">Regiões Específicas</Label>
                         <p className="text-sm text-muted-foreground">
-                          Selecione as cidades. Caso não selecione nenhuma, consideraremos atuação
+                          Selecione as regiões. Caso não selecione nenhuma, consideraremos atuação
                           em todo o estado.
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -577,42 +648,42 @@ export default function Peritos() {
                             <div key={uf} className="p-4 border rounded-lg bg-card shadow-sm">
                               <h4 className="font-semibold mb-3 flex items-center gap-2">
                                 <Badge variant="outline">{uf}</Badge>
-                                Cidades
+                                Regiões
                               </h4>
                               <Select
                                 onValueChange={(val) => {
-                                  if (!selectedCidades.includes(`${uf}-${val}`)) {
-                                    setSelectedCidades([...selectedCidades, `${uf}-${val}`])
+                                  if (!selectedRegioes.includes(`${uf}-${val}`)) {
+                                    setSelectedRegioes([...selectedRegioes, `${uf}-${val}`])
                                   }
                                 }}
                               >
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Adicionar cidade..." />
+                                  <SelectValue placeholder="Adicionar região..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {cidadesPorEstado[uf]?.map((c) => (
-                                    <SelectItem key={c.nome} value={c.nome}>
-                                      {c.nome}
+                                  {REGIOES_DISPONIVEIS.map((reg) => (
+                                    <SelectItem key={reg} value={reg}>
+                                      {reg}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
                               <div className="flex flex-wrap gap-2 mt-3">
-                                {selectedCidades
+                                {selectedRegioes
                                   .filter((sc) => sc.startsWith(`${uf}-`))
                                   .map((sc) => {
-                                    const cityName = sc.substring(uf.length + 1)
+                                    const regionName = sc.substring(uf.length + 1)
                                     return (
                                       <Badge
                                         key={sc}
                                         variant="secondary"
                                         className="flex items-center gap-1.5 py-1"
                                       >
-                                        {cityName}
+                                        {regionName}
                                         <button
                                           onClick={() =>
-                                            setSelectedCidades(
-                                              selectedCidades.filter((x) => x !== sc),
+                                            setSelectedRegioes(
+                                              selectedRegioes.filter((x) => x !== sc),
                                             )
                                           }
                                           className="text-muted-foreground hover:text-foreground rounded-full hover:bg-muted p-0.5"
@@ -642,27 +713,30 @@ export default function Peritos() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 print:grid-cols-2 print:gap-4 print:text-black">
         {filtered.map((perito) => (
           <div
             key={perito.id}
-            className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 shadow-sm hover:shadow-md transition-all"
+            className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 shadow-sm hover:shadow-md transition-all print:break-inside-avoid print:border-slate-300 print:shadow-none"
           >
             <div className="flex justify-between items-start gap-4">
               <div className="min-w-0">
-                <h3 className="text-xl font-semibold text-foreground truncate" title={perito.nome}>
+                <h3
+                  className="text-xl font-semibold text-foreground truncate print:text-black"
+                  title={perito.nome}
+                >
                   {perito.nome}
                 </h3>
                 <div className="flex flex-col gap-0.5 mt-1">
                   <p
-                    className="text-sm text-muted-foreground truncate"
+                    className="text-sm text-muted-foreground truncate print:text-slate-700"
                     title={perito.especialidade}
                   >
                     {perito.especialidade || 'Especialidade não informada'}
                   </p>
                   {perito.area_atuacao && (
                     <p
-                      className="text-xs text-muted-foreground line-clamp-2 mt-0.5"
+                      className="text-xs text-muted-foreground line-clamp-2 mt-0.5 print:text-slate-700"
                       title={perito.area_atuacao}
                     >
                       Área: {perito.area_atuacao}
@@ -672,17 +746,28 @@ export default function Peritos() {
               </div>
               <div className="flex flex-col items-end gap-1.5 shrink-0">
                 {perito.codigo_id && (
-                  <Badge variant="outline" className="text-xs font-medium bg-primary/5">
+                  <Badge
+                    variant="outline"
+                    className="text-xs font-medium bg-primary/5 print:border-slate-300 print:text-black"
+                  >
                     ID: {perito.codigo_id}
+                  </Badge>
+                )}
+                {perito.aceite === 'Recusado' && (
+                  <Badge variant="destructive" className="text-[10px]">
+                    Recusado
                   </Badge>
                 )}
               </div>
             </div>
 
-            <div className="space-y-2 text-sm text-muted-foreground mt-1">
+            <div className="space-y-2 text-sm text-muted-foreground mt-1 print:text-slate-700">
               {perito.crea && (
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs font-medium">
+                  <Badge
+                    variant="secondary"
+                    className="text-xs font-medium print:bg-slate-100 print:text-black"
+                  >
                     CREA: {perito.crea}
                   </Badge>
                 </div>
@@ -718,7 +803,7 @@ export default function Peritos() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end mt-auto pt-4 border-t border-border/50 gap-2">
+            <div className="flex items-center justify-end mt-auto pt-4 border-t border-border/50 gap-2 print:hidden">
               <Button
                 variant="outline"
                 size="icon"
@@ -746,7 +831,7 @@ export default function Peritos() {
           </div>
         ))}
         {filtered.length === 0 && (
-          <div className="col-span-full text-center py-12 text-muted-foreground">
+          <div className="col-span-full text-center py-12 text-muted-foreground print:hidden">
             Nenhum perito encontrado nesta aba.
           </div>
         )}

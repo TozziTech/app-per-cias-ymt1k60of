@@ -20,20 +20,20 @@ import {
 
 const formSchema = z.object({
   status: z.string().optional().default('Agendado'),
-  codigoInterno: z.string().min(1, 'Código Interno é obrigatório'),
-  numeroProcesso: z.string().min(1, 'Número do Processo é obrigatório'),
+  codigoInterno: z.string().optional(),
+  numeroProcesso: z.string().optional(),
   justicaGratuita: z.boolean().default(false),
   juiz: z.string().optional(),
   advogadoAutora: z.string().optional(),
   advogadoRe: z.string().optional(),
   assistenteTecnicoAutora: z.string().optional(),
   assistenteTecnicoRe: z.string().optional(),
-  vara: z.string().min(1, 'Vara é obrigatória'),
+  vara: z.string().optional(),
   cidade: z.string().optional(),
-  dataNomeacao: z.date({ required_error: 'Obrigatório' }),
+  dataNomeacao: z.date().optional().nullable(),
   dataAceite: z.date().optional().nullable(),
-  dataPericia: z.date({ required_error: 'Obrigatório' }),
-  dataEntregaLaudo: z.date({ required_error: 'Obrigatório' }),
+  dataPericia: z.date().optional().nullable(),
+  dataEntregaLaudo: z.date().optional().nullable(),
   honorarios: z.string().optional(),
   endereco: z.string().optional(),
   observacoes: z.string().optional(),
@@ -167,12 +167,12 @@ export function PericiaForm({
     try {
       const payload = {
         ...values,
-        dataNomeacao: values.dataNomeacao ? format(values.dataNomeacao, 'yyyy-MM-dd') : '',
-        dataAceite: values.dataAceite ? format(values.dataAceite, 'yyyy-MM-dd') : undefined,
-        dataPericia: values.dataPericia ? format(values.dataPericia, 'yyyy-MM-dd') : '',
+        dataNomeacao: values.dataNomeacao ? format(values.dataNomeacao, 'yyyy-MM-dd') : null,
+        dataAceite: values.dataAceite ? format(values.dataAceite, 'yyyy-MM-dd') : null,
+        dataPericia: values.dataPericia ? format(values.dataPericia, 'yyyy-MM-dd') : null,
         dataEntregaLaudo: values.dataEntregaLaudo
           ? format(values.dataEntregaLaudo, 'yyyy-MM-dd')
-          : '',
+          : null,
         dataImpugnacao: values.dataImpugnacao
           ? format(values.dataImpugnacao, 'yyyy-MM-dd')
           : undefined,
@@ -231,8 +231,8 @@ export function PericiaForm({
             label="Status"
             options={['Agendado', 'Em Andamento', 'Laudo Entregue', 'Concluído', 'Pendente']}
           />
-          <CustomInput control={form.control} name="codigoInterno" label="Código Interno*" />
-          <CustomInput control={form.control} name="numeroProcesso" label="Número do Processo*" />
+          <CustomInput control={form.control} name="codigoInterno" label="Código Interno" />
+          <CustomInput control={form.control} name="numeroProcesso" label="Número do Processo" />
           <div className="flex items-end pb-2">
             <CustomCheckbox
               control={form.control}
@@ -243,8 +243,22 @@ export function PericiaForm({
           <CustomSelect
             control={form.control}
             name="vara"
-            label="Vara*"
-            options={['Cível', 'Criminal', 'Trabalhista', 'Família', 'Outra']}
+            label="Vara"
+            options={[
+              'Vara Civil',
+              'Vara da Fazenda',
+              '1ª Vara',
+              '2ª Vara',
+              '3ª Vara',
+              '4ª Vara',
+              '5ª Vara',
+              '6ª Vara',
+              '7ª Vara',
+              '8ª Vara',
+              '9ª Vara',
+              '10ª Vara',
+              'Outra',
+            ]}
           />
           <CustomInput control={form.control} name="cidade" label="Cidade" />
           <CustomInput control={form.control} name="juiz" label="Juiz" />
@@ -280,13 +294,13 @@ export function PericiaForm({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-primary/20 pt-6">
           <h3 className="md:col-span-2 font-semibold text-lg text-primary">Datas Principais</h3>
-          <CustomDatePicker control={form.control} name="dataNomeacao" label="Data de Nomeação*" />
+          <CustomDatePicker control={form.control} name="dataNomeacao" label="Data de Nomeação" />
           <CustomDatePicker control={form.control} name="dataAceite" label="Data do Aceite" />
-          <CustomDatePicker control={form.control} name="dataPericia" label="Data da Perícia*" />
+          <CustomDatePicker control={form.control} name="dataPericia" label="Data da Perícia" />
           <CustomDatePicker
             control={form.control}
             name="dataEntregaLaudo"
-            label="Data de Entrega do Laudo*"
+            label="Data de Entrega do Laudo"
           />
         </div>
 
