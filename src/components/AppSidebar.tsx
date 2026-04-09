@@ -26,18 +26,33 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 
-const navItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, adminOnly: false },
-  { title: 'Tarefas', url: '/tarefas', icon: CheckSquare, adminOnly: false },
-  { title: 'Financeiro', url: '/financeiro', icon: DollarSign, adminOnly: false },
-  { title: 'Cadastro de Perícias', url: '/pericias', icon: FileText, adminOnly: true },
-  { title: 'Peritos Associados', url: '/peritos', icon: Users, adminOnly: true },
-  { title: 'Contatos', url: '/contatos', icon: BookOpen, adminOnly: true },
-  { title: 'Portal do Perito', url: '/portal-perito', icon: Briefcase, adminOnly: false },
-  { title: 'Calendário', url: '/calendario', icon: Calendar, adminOnly: false },
-  { title: 'Usuários e Acessos', url: '/usuarios', icon: Shield, adminOnly: true },
-  { title: 'Auditoria', url: '/auditoria', icon: Activity, adminOnly: true },
-  { title: 'Configurações', url: '#', icon: Settings, adminOnly: true },
+const menuGroups = [
+  {
+    label: 'Operação',
+    items: [
+      { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, adminOnly: false },
+      { title: 'Gerenciamento de Perícias', url: '/pericias', icon: FileText, adminOnly: true },
+      { title: 'Portal do Perito', url: '/portal-perito', icon: Briefcase, adminOnly: false },
+      { title: 'Calendário', url: '/calendario', icon: Calendar, adminOnly: false },
+      { title: 'Tarefas', url: '/tarefas', icon: CheckSquare, adminOnly: false },
+    ],
+  },
+  {
+    label: 'Cadastro',
+    items: [
+      { title: 'Cadastro de Peritos', url: '/peritos', icon: Users, adminOnly: true },
+      { title: 'Financeiro', url: '/financeiro', icon: DollarSign, adminOnly: false },
+      { title: 'Agenda', url: '/contatos', icon: BookOpen, adminOnly: true },
+    ],
+  },
+  {
+    label: 'Governança e Admin',
+    items: [
+      { title: 'Usuários e Acesso', url: '/usuarios', icon: Shield, adminOnly: true },
+      { title: 'Auditoria', url: '/auditoria', icon: Activity, adminOnly: true },
+      { title: 'Configurações', url: '#', icon: Settings, adminOnly: true },
+    ],
+  },
 ]
 
 export function AppSidebar() {
@@ -48,8 +63,6 @@ export function AppSidebar() {
     user?.role === 'Gerente' ||
     user?.role === 'Gestor'
 
-  const visibleItems = navItems.filter((item) => !item.adminOnly || isAdmin)
-
   return (
     <Sidebar>
       <SidebarHeader className="border-b p-4">
@@ -59,30 +72,38 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {visibleItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className={({ isActive }) =>
-                        isActive
-                          ? 'bg-zinc-200/60 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium'
-                          : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium'
-                      }
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {menuGroups.map((group) => {
+          const visibleItems = group.items.filter((item) => !item.adminOnly || isAdmin)
+
+          if (visibleItems.length === 0) return null
+
+          return (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {visibleItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to={item.url}
+                          className={({ isActive }) =>
+                            isActive
+                              ? 'bg-zinc-200/60 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium'
+                              : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium'
+                          }
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )
+        })}
       </SidebarContent>
     </Sidebar>
   )
