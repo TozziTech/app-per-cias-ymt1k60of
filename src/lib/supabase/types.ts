@@ -380,6 +380,7 @@ export type Database = {
       }
       pericias: {
         Row: {
+          aceite: string | null
           adiantamento_solicitado: boolean | null
           advogado_autora: string | null
           advogado_re: string | null
@@ -406,6 +407,7 @@ export type Database = {
           id: string
           juiz: string | null
           justica_gratuita: boolean | null
+          justificativa_recusa: string | null
           limites_esclarecimentos: string | null
           link_nuvem: string | null
           numero_processo: string | null
@@ -421,6 +423,7 @@ export type Database = {
           vara: string | null
         }
         Insert: {
+          aceite?: string | null
           adiantamento_solicitado?: boolean | null
           advogado_autora?: string | null
           advogado_re?: string | null
@@ -447,6 +450,7 @@ export type Database = {
           id?: string
           juiz?: string | null
           justica_gratuita?: boolean | null
+          justificativa_recusa?: string | null
           limites_esclarecimentos?: string | null
           link_nuvem?: string | null
           numero_processo?: string | null
@@ -462,6 +466,7 @@ export type Database = {
           vara?: string | null
         }
         Update: {
+          aceite?: string | null
           adiantamento_solicitado?: boolean | null
           advogado_autora?: string | null
           advogado_re?: string | null
@@ -488,6 +493,7 @@ export type Database = {
           id?: string
           juiz?: string | null
           justica_gratuita?: boolean | null
+          justificativa_recusa?: string | null
           limites_esclarecimentos?: string | null
           link_nuvem?: string | null
           numero_processo?: string | null
@@ -1053,6 +1059,8 @@ export const Constants = {
 //   peticoes: jsonb (nullable, default: '[]'::jsonb)
 //   data_aceite: timestamp with time zone (nullable)
 //   data_pagamento: timestamp with time zone (nullable)
+//   aceite: text (nullable, default: 'Pendente'::text)
+//   justificativa_recusa: text (nullable)
 // Table: peritos
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)

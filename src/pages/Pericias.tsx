@@ -210,6 +210,27 @@ export default function Pericias() {
     })
   }
 
+  const updateStatusPagamento = async (id: string, val: string) => {
+    try {
+      await supabase.from('pericias').update({ status_pagamento: val }).eq('id', id)
+      updatePericia(id, { statusPagamento: val, status_pagamento: val } as any)
+      toast({ title: 'Sucesso', description: 'Status de pagamento atualizado.' })
+      if (selectedPericia?.id === id) fetchLogs(id)
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao atualizar.', variant: 'destructive' })
+    }
+  }
+
+  const updateStatus = async (id: string, val: string) => {
+    try {
+      await updatePericia(id, { status: val })
+      toast({ title: 'Sucesso', description: 'Status atualizado.' })
+      if (selectedPericia?.id === id) fetchLogs(id)
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao atualizar.', variant: 'destructive' })
+    }
+  }
+
   const handleExportExcel = () => {
     exportToCsv(
       'pericias.csv',
@@ -885,75 +906,175 @@ export default function Pericias() {
                         {pericia.honorarios ? `R$ ${pericia.honorarios.toFixed(2)}` : '-'}
                       </TableCell>
                     )}
-                    <TableCell className="hidden lg:table-cell py-2 text-xs">
-                      {renderDate(pericia.dataNomeacao)}
-                    </TableCell>
-                    <TableCell className="py-2 text-xs">
-                      {renderDate(pericia.dataPericia)}
-                    </TableCell>
-                    <TableCell className="py-2 text-xs">
-                      <div className="flex items-center gap-1.5">
-                        {renderDate(pericia.dataEntregaLaudo)}
-                        {(() => {
-                          const prazoStatus = getPrazoStatus(pericia)
-                          if (prazoStatus?.status === 'atrasado') {
-                            return (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <AlertCircle className="h-3.5 w-3.5 text-destructive animate-pulse" />
-                                </TooltipTrigger>
-                                <TooltipContent>Atrasado há {prazoStatus.dias} dias</TooltipContent>
-                              </Tooltip>
-                            )
-                          }
-                          if (prazoStatus?.status === 'proximo') {
-                            return (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Clock className="h-3.5 w-3.5 text-amber-500" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  {prazoStatus.dias === 0
-                                    ? 'Vence hoje'
-                                    : `Vence em ${prazoStatus.dias} dias`}
-                                </TooltipContent>
-                              </Tooltip>
-                            )
-                          }
-                          return null
-                        })()}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell py-2 text-xs">
-                      <div className="scale-90 origin-left">
-                        {getPaymentBadge(
-                          (pericia as any).status_pagamento ||
-                            pericia.statusPagamento ||
-                            'Pendente',
+                    <TableCell className="hidden lg:table-cell py-2 text-xs group/date">
+                      <div className="flex items-center justify-between gap-1">
+                        <span>{renderDate(pericia.dataNomeacao)}</span>
+                        {(pericia.dataNomeacao || pericia.data_nomeacao) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover/date:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleExport(pericia, 'nomeacao')
+                                }}
+                              >
+                                <CalendarPlus className="h-3.5 w-3.5 text-blue-500" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Agenda: Nomeação</TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="py-2 text-xs">
-                      <div className="scale-90 origin-left">{getStatusBadge(pericia.status)}</div>
+                    <TableCell className="py-2 text-xs group/date">
+                      <div className="flex items-center justify-between gap-1">
+                        <span>{renderDate(pericia.dataPericia)}</span>
+                        {(pericia.dataPericia || pericia.data_pericia) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover/date:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleExport(pericia, 'pericia')
+                                }}
+                              >
+                                <CalendarPlus className="h-3.5 w-3.5 text-amber-500" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Agenda: Visita Técnica</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2 text-xs group/date">
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1.5">
+                          {renderDate(pericia.dataEntregaLaudo)}
+                          {(() => {
+                            const prazoStatus = getPrazoStatus(pericia)
+                            if (prazoStatus?.status === 'atrasado') {
+                              return (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <AlertCircle className="h-3.5 w-3.5 text-destructive animate-pulse" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    Atrasado há {prazoStatus.dias} dias
+                                  </TooltipContent>
+                                </Tooltip>
+                              )
+                            }
+                            if (prazoStatus?.status === 'proximo') {
+                              return (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Clock className="h-3.5 w-3.5 text-amber-500" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {prazoStatus.dias === 0
+                                      ? 'Vence hoje'
+                                      : `Vence em ${prazoStatus.dias} dias`}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )
+                            }
+                            return null
+                          })()}
+                        </div>
+                        {(pericia.dataEntregaLaudo || pericia.data_entrega_laudo) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover/date:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleExport(pericia, 'entrega')
+                                }}
+                              >
+                                <CalendarPlus className="h-3.5 w-3.5 text-emerald-500" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Agenda: Prazo do Laudo</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell
+                      className="hidden md:table-cell py-2 text-xs"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="focus:outline-none scale-90 origin-left hover:opacity-80 transition-opacity">
+                            {getPaymentBadge(
+                              (pericia as any).status_pagamento ||
+                                pericia.statusPagamento ||
+                                'Pendente',
+                            )}
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuItem
+                            onClick={() => updateStatusPagamento(pericia.id, 'Pendente')}
+                          >
+                            Pendente
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => updateStatusPagamento(pericia.id, 'Recebido')}
+                          >
+                            Recebido
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => updateStatusPagamento(pericia.id, 'Atrasado')}
+                          >
+                            Atrasado
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                    <TableCell className="py-2 text-xs" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="focus:outline-none scale-90 origin-left hover:opacity-80 transition-opacity">
+                            {getStatusBadge(pericia.status || 'Agendado')}
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuItem onClick={() => updateStatus(pericia.id, 'Agendado')}>
+                            Agendado
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => updateStatus(pericia.id, 'Em Andamento')}
+                          >
+                            Em Andamento
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => updateStatus(pericia.id, 'Laudo Entregue')}
+                          >
+                            Laudo Entregue
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateStatus(pericia.id, 'Concluído')}>
+                            Concluído
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateStatus(pericia.id, 'Pendente')}>
+                            Pendente
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                     <TableCell
                       className="text-right pr-4 sm:pr-6 py-2"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-end gap-0.5">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleRowClick(pericia)}
-                              className="h-7 w-7"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Visualizar</TooltipContent>
-                        </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -970,54 +1091,6 @@ export default function Pericias() {
                           </TooltipTrigger>
                           <TooltipContent>Editar</TooltipContent>
                         </Tooltip>
-
-                        {(pericia.dataNomeacao || pericia.data_nomeacao) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => handleExport(pericia, 'nomeacao')}
-                              >
-                                <CalendarPlus className="h-3.5 w-3.5 text-blue-500" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Agenda: Nomeação</TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        {(pericia.dataPericia || pericia.data_pericia) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => handleExport(pericia, 'pericia')}
-                              >
-                                <CalendarPlus className="h-3.5 w-3.5 text-amber-500" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Agenda: Visita Técnica</TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        {(pericia.dataEntregaLaudo || pericia.data_entrega_laudo) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => handleExport(pericia, 'entrega')}
-                              >
-                                <CalendarPlus className="h-3.5 w-3.5 text-emerald-500" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Agenda: Prazo do Laudo</TooltipContent>
-                          </Tooltip>
-                        )}
 
                         {canEditFinanceiro && (
                           <Tooltip>

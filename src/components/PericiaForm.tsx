@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { format } from 'date-fns'
+import { Trash2 } from 'lucide-react'
 
 import { usePericias } from '@/contexts/PericiasContext'
 import { Button } from '@/components/ui/button'
@@ -47,19 +48,21 @@ const formSchema = z.object({
   entregaImpugnacao: z.date().optional().nullable(),
   limitesEsclarecimentos: z.string().optional(),
   entregaEsclarecimentos: z.date().optional().nullable(),
-  dataPagamento: z.date().optional().nullable(),
   honorariosParcelados: z.boolean().default(false),
   quantidadeParcelas: z.string().optional(),
   adiantamentoSolicitado: z.boolean().default(false),
   aceite: z.string().optional().default('Pendente'),
   justificativa_recusa: z.string().optional(),
-  checklist: z.array(
-    z.object({
-      id: z.string(),
-      texto: z.string().min(1, 'Texto obrigatório'),
-      concluido: z.boolean().default(false),
-    }),
-  ),
+  checklist: z
+    .array(
+      z.object({
+        id: z.string(),
+        texto: z.string().min(1, 'Texto obrigatório'),
+        concluido: z.boolean().default(false),
+      }),
+    )
+    .optional()
+    .default([]),
 })
 
 export function PericiaForm({
@@ -69,7 +72,7 @@ export function PericiaForm({
   pericia?: Pericia | null
   onSuccess: () => void
 }) {
-  const { addPericia, updatePericia } = usePericias()
+  const { addPericia, updatePericia, deletePericia } = usePericias()
   const { toast } = useToast()
   const [peritos, setPeritos] = useState<{ id: string; nome: string; tipo: string }[]>([])
 
@@ -111,12 +114,7 @@ export function PericiaForm({
       endereco: '',
       observacoes: '',
       linkNuvem: '',
-      checklist: pericia?.checklist || [
-        { id: crypto.randomUUID(), texto: 'Análise Técnica Preliminar', concluido: false },
-        { id: crypto.randomUUID(), texto: 'Visita Local (Vistoria)', concluido: false },
-        { id: crypto.randomUUID(), texto: 'Redação do Laudo', concluido: false },
-        { id: crypto.randomUUID(), texto: 'Entrega do Laudo', concluido: false },
-      ],
+      checklist: pericia?.checklist || [],
       perito_id: '',
       peritoAssociado: '',
       descricaoImpugnacao: '',
@@ -156,7 +154,6 @@ export function PericiaForm({
         entregaImpugnacao: parseDateSafe(pericia.entregaImpugnacao),
         limitesEsclarecimentos: pericia.limitesEsclarecimentos || '',
         entregaEsclarecimentos: parseDateSafe(pericia.entregaEsclarecimentos),
-        dataPagamento: parseDateSafe(pericia.dataPagamento),
         honorariosParcelados: pericia.honorariosParcelados || false,
         quantidadeParcelas: pericia.quantidadeParcelas ? pericia.quantidadeParcelas.toString() : '',
         adiantamentoSolicitado: pericia.adiantamentoSolicitado || false,
@@ -186,9 +183,6 @@ export function PericiaForm({
           : undefined,
         entregaEsclarecimentos: values.entregaEsclarecimentos
           ? format(values.entregaEsclarecimentos, 'yyyy-MM-dd')
-          : undefined,
-        dataPagamento: values.dataPagamento
-          ? format(values.dataPagamento, 'yyyy-MM-dd')
           : undefined,
         honorarios: values.honorarios ? parseFloat(values.honorarios.replace(',', '.')) : undefined,
         diasImpugnacao: values.diasImpugnacao ? parseInt(values.diasImpugnacao, 10) : undefined,
@@ -222,7 +216,7 @@ export function PericiaForm({
   const onError = () => {
     toast({
       title: 'Erro de Validação',
-      description: 'Preencha os campos obrigatórios corretamente.',
+      description: 'Verifique os campos preenchidos.',
       variant: 'destructive',
     })
   }
@@ -255,13 +249,6 @@ export function PericiaForm({
             options={['Agendado', 'Em Andamento', 'Laudo Entregue', 'Concluído', 'Pendente']}
           />
           <CustomInput control={form.control} name="numeroProcesso" label="Número do Processo" />
-          <div className="flex items-end pb-2">
-            <CustomCheckbox
-              control={form.control}
-              name="justicaGratuita"
-              label="Justiça Gratuita"
-            />
-          </div>
           <CustomSelect
             control={form.control}
             name="vara"
@@ -283,14 +270,24 @@ export function PericiaForm({
             ]}
           />
           <CustomInput control={form.control} name="cidade" label="Cidade" />
-          <CustomInput control={form.control} name="juiz" label="Juiz" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-primary/20 pt-6 bg-muted/20 p-4 rounded-lg">
+          <h3 className="md:col-span-2 font-semibold text-lg text-primary">Honorários</h3>
           <CustomInput
             control={form.control}
             name="honorarios"
             label="Honorários Aprovados (R$)"
             placeholder="0.00"
           />
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 mt-2 md:col-span-2 p-3 bg-muted/30 rounded-md border border-border">
+          <div className="flex items-center sm:mt-8">
+            <CustomCheckbox
+              control={form.control}
+              name="justicaGratuita"
+              label="Justiça Gratuita"
+            />
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 mt-2 md:col-span-2 p-3 bg-background rounded-md border border-border">
             <CustomCheckbox
               control={form.control}
               name="honorariosParcelados"
@@ -328,18 +325,7 @@ export function PericiaForm({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-primary/20 pt-6">
           <h3 className="md:col-span-2 font-semibold text-lg text-primary">Envolvidos</h3>
-          <CustomInput control={form.control} name="advogadoAutora" label="Advogado Autora" />
-          <CustomInput control={form.control} name="advogadoRe" label="Advogado Ré" />
-          <CustomInput
-            control={form.control}
-            name="assistenteTecnicoAutora"
-            label="Assistente Técnico Autora"
-          />
-          <CustomInput
-            control={form.control}
-            name="assistenteTecnicoRe"
-            label="Assistente Técnico Ré"
-          />
+          <CustomInput control={form.control} name="juiz" label="Juiz" />
           <div className="space-y-2 flex flex-col">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Perito / Profissional Associado
@@ -356,6 +342,18 @@ export function PericiaForm({
               ))}
             </select>
           </div>
+          <CustomInput control={form.control} name="advogadoAutora" label="Advogado Autora" />
+          <CustomInput control={form.control} name="advogadoRe" label="Advogado Ré" />
+          <CustomInput
+            control={form.control}
+            name="assistenteTecnicoAutora"
+            label="Assistente Técnico Autora"
+          />
+          <CustomInput
+            control={form.control}
+            name="assistenteTecnicoRe"
+            label="Assistente Técnico Ré"
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-primary/20 pt-6 bg-muted/20 p-4 rounded-lg">
@@ -398,14 +396,9 @@ export function PericiaForm({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-primary/20 pt-6 bg-muted/20 p-4 rounded-lg">
-          <h3 className="md:col-span-2 font-semibold text-lg text-primary">Pagamento</h3>
-          <CustomDatePicker control={form.control} name="dataPagamento" label="Data do Pagamento" />
-        </div>
-
         <div className="space-y-4 border-t border-primary/20 pt-6">
           <h3 className="font-semibold text-lg text-primary">Detalhes Adicionais</h3>
-          <CustomInput control={form.control} name="endereco" label="Endereço" />
+          <CustomInput control={form.control} name="endereco" label="Endereço da Perícia" />
           <CustomInput control={form.control} name="observacoes" label="Observações" />
           <CustomInput
             control={form.control}
@@ -417,7 +410,36 @@ export function PericiaForm({
 
         <ChecklistSection control={form.control} />
 
-        <div className="pt-6 flex justify-end">
+        <div className="pt-6 flex flex-col-reverse sm:flex-row justify-between items-center gap-4">
+          {pericia ? (
+            <Button
+              type="button"
+              variant="destructive"
+              className="w-full sm:w-auto"
+              onClick={async () => {
+                if (
+                  confirm('Deseja realmente excluir esta perícia? Esta ação não pode ser desfeita.')
+                ) {
+                  try {
+                    await deletePericia(pericia.id)
+                    toast({ title: 'Sucesso', description: 'Perícia excluída com sucesso.' })
+                    onSuccess()
+                  } catch (e) {
+                    toast({
+                      title: 'Erro',
+                      description: 'Falha ao excluir perícia.',
+                      variant: 'destructive',
+                    })
+                  }
+                }
+              }}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Excluir Perícia
+            </Button>
+          ) : (
+            <div />
+          )}
           <Button type="submit" className="w-full sm:w-auto">
             {pericia ? 'Salvar Alterações' : 'Cadastrar Perícia'}
           </Button>

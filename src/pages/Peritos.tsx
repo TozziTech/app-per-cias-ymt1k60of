@@ -480,7 +480,7 @@ export default function Peritos() {
                       <div className="col-span-full font-semibold text-primary/80 mt-4">
                         Contato e Endereço
                       </div>
-                      <div className="col-span-full grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="col-span-full grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-2">
                           <Label>Telefone Celular</Label>
                           <Input
@@ -497,7 +497,7 @@ export default function Peritos() {
                             }
                           />
                         </div>
-                        <div className="space-y-2 sm:col-span-2">
+                        <div className="space-y-2">
                           <Label>E-mail</Label>
                           <Input
                             type="email"
@@ -549,7 +549,7 @@ export default function Peritos() {
                       <div className="col-span-full font-semibold text-primary/80 mt-4">
                         Dados Bancários
                       </div>
-                      <div className="col-span-full grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="col-span-full grid grid-cols-1 sm:grid-cols-4 gap-4">
                         <div className="space-y-2">
                           <Label>Banco</Label>
                           <Input
@@ -571,13 +571,13 @@ export default function Peritos() {
                             onChange={(e) => setForm({ ...form, conta: e.target.value })}
                           />
                         </div>
-                      </div>
-                      <div className="col-span-full sm:col-span-2 md:col-span-1 space-y-2">
-                        <Label>Chave Pix</Label>
-                        <Input
-                          value={form.chave_pix}
-                          onChange={(e) => setForm({ ...form, chave_pix: e.target.value })}
-                        />
+                        <div className="space-y-2">
+                          <Label>Chave Pix</Label>
+                          <Input
+                            value={form.chave_pix}
+                            onChange={(e) => setForm({ ...form, chave_pix: e.target.value })}
+                          />
+                        </div>
                       </div>
 
                       <div className="col-span-full font-semibold text-primary/80 mt-4">
