@@ -20,6 +20,13 @@ import {
 import { Search, Plus, Trash, Phone, Mail, MapPin, Download, Pencil, Filter } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Columns3 } from 'lucide-react'
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -54,6 +61,16 @@ export default function Contatos() {
     () => sessionStorage.getItem('contatos_startDate') || '',
   )
   const [endDate, setEndDate] = useState(() => sessionStorage.getItem('contatos_endDate') || '')
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    const saved = sessionStorage.getItem('contatos_columns')
+    if (saved) return JSON.parse(saved)
+    return {
+      tipo: true,
+      contatos: true,
+      email: true,
+      endereco: true,
+    }
+  })
   const { toast } = useToast()
 
   useEffect(() => {
@@ -61,7 +78,8 @@ export default function Contatos() {
     sessionStorage.setItem('contatos_tipoFilter', tipoFilter)
     sessionStorage.setItem('contatos_startDate', startDate)
     sessionStorage.setItem('contatos_endDate', endDate)
-  }, [search, tipoFilter, startDate, endDate])
+    sessionStorage.setItem('contatos_columns', JSON.stringify(visibleColumns))
+  }, [search, tipoFilter, startDate, endDate, visibleColumns])
 
   const fetchContatos = async () => {
     const { data } = await supabase.from('contatos').select('*').order('nome')
@@ -72,27 +90,12 @@ export default function Contatos() {
     fetchContatos()
   }, [])
 
-  const generateNextId = () => {
-    const existingIds = contatos
-      .map((c) => c.codigo_id)
-      .filter((id) => id && id.toUpperCase().startsWith('CT-'))
-      .map((id) => parseInt(id.toUpperCase().replace('CT-', ''), 10))
-      .filter((n) => !isNaN(n))
-
-    const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0
-    return `CT-${String(maxId + 1).padStart(3, '0')}`
-  }
-
   const handleSave = async () => {
     if (!form.nome)
       return toast({ title: 'Erro', description: 'Nome é obrigatório', variant: 'destructive' })
 
     const dataToSave = { ...form }
     delete dataToSave.id
-
-    if (!dataToSave.codigo_id && !form.id) {
-      dataToSave.codigo_id = generateNextId()
-    }
 
     if (form.id) {
       const { error } = await supabase.from('contatos').update(dataToSave).eq('id', form.id)
@@ -180,10 +183,7 @@ export default function Contatos() {
             }}
           >
             <DialogTrigger asChild>
-              <Button
-                className="shrink-0 shadow-sm"
-                onClick={() => setForm({ ...defaultForm, codigo_id: generateNextId() })}
-              >
+              <Button className="shrink-0 shadow-sm" onClick={() => setForm({ ...defaultForm })}>
                 <Plus className="w-4 h-4 mr-2" /> Novo Contato
               </Button>
             </DialogTrigger>
@@ -297,6 +297,54 @@ export default function Contatos() {
             ))}
           </SelectContent>
         </Select>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto shrink-0"
+              size="icon"
+              title="Colunas"
+            >
+              <Columns3 className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.tipo}
+              onCheckedChange={(checked) =>
+                setVisibleColumns((prev) => ({ ...prev, tipo: checked }))
+              }
+            >
+              Tipo
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.contatos}
+              onCheckedChange={(checked) =>
+                setVisibleColumns((prev) => ({ ...prev, contatos: checked }))
+              }
+            >
+              Contatos
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.email}
+              onCheckedChange={(checked) =>
+                setVisibleColumns((prev) => ({ ...prev, email: checked }))
+              }
+            >
+              Email
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.endereco}
+              onCheckedChange={(checked) =>
+                setVisibleColumns((prev) => ({ ...prev, endereco: checked }))
+              }
+            >
+              Endereço
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -351,10 +399,14 @@ export default function Contatos() {
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Contatos</TableHead>
-                <TableHead className="hidden md:table-cell">Email</TableHead>
-                <TableHead className="hidden lg:table-cell">Endereço</TableHead>
+                {visibleColumns.tipo && <TableHead>Tipo</TableHead>}
+                {visibleColumns.contatos && <TableHead>Contatos</TableHead>}
+                {visibleColumns.email && (
+                  <TableHead className="hidden md:table-cell">Email</TableHead>
+                )}
+                {visibleColumns.endereco && (
+                  <TableHead className="hidden lg:table-cell">Endereço</TableHead>
+                )}
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -367,48 +419,56 @@ export default function Contatos() {
                       <div className="text-xs text-muted-foreground mt-0.5">ID: {c.codigo_id}</div>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <span className="text-xs font-medium text-primary px-2 py-1 rounded-full bg-primary/10 whitespace-nowrap">
-                      {c.tipo}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm space-y-1">
-                      {c.telefone && (
-                        <div className="flex items-center text-muted-foreground">
-                          <Phone className="w-3 h-3 mr-1.5" /> {c.telefone}
-                        </div>
-                      )}
-                      {c.telefone_celular && (
-                        <div className="flex items-center text-muted-foreground">
-                          <Phone className="w-3 h-3 mr-1.5" /> {c.telefone_celular} (Cel)
-                        </div>
-                      )}
-                      {c.telefone_alternativo && (
-                        <div className="flex items-center text-muted-foreground">
-                          <Phone className="w-3 h-3 mr-1.5" /> {c.telefone_alternativo} (Alt)
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                    {c.email && (
-                      <div className="flex items-center">
-                        <Mail className="w-3 h-3 mr-1.5" /> {c.email}
+                  {visibleColumns.tipo && (
+                    <TableCell>
+                      <span className="text-xs font-medium text-primary px-2 py-1 rounded-full bg-primary/10 whitespace-nowrap">
+                        {c.tipo}
+                      </span>
+                    </TableCell>
+                  )}
+                  {visibleColumns.contatos && (
+                    <TableCell>
+                      <div className="text-sm space-y-1">
+                        {c.telefone && (
+                          <div className="flex items-center text-muted-foreground">
+                            <Phone className="w-3 h-3 mr-1.5" /> {c.telefone}
+                          </div>
+                        )}
+                        {c.telefone_celular && (
+                          <div className="flex items-center text-muted-foreground">
+                            <Phone className="w-3 h-3 mr-1.5" /> {c.telefone_celular} (Cel)
+                          </div>
+                        )}
+                        {c.telefone_alternativo && (
+                          <div className="flex items-center text-muted-foreground">
+                            <Phone className="w-3 h-3 mr-1.5" /> {c.telefone_alternativo} (Alt)
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </TableCell>
-                  <TableCell
-                    className="hidden lg:table-cell text-sm text-muted-foreground max-w-[200px] truncate"
-                    title={c.endereco}
-                  >
-                    {c.endereco && (
-                      <div className="flex items-center truncate">
-                        <MapPin className="w-3 h-3 mr-1.5 shrink-0" />{' '}
-                        <span className="truncate">{c.endereco}</span>
-                      </div>
-                    )}
-                  </TableCell>
+                    </TableCell>
+                  )}
+                  {visibleColumns.email && (
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                      {c.email && (
+                        <div className="flex items-center">
+                          <Mail className="w-3 h-3 mr-1.5" /> {c.email}
+                        </div>
+                      )}
+                    </TableCell>
+                  )}
+                  {visibleColumns.endereco && (
+                    <TableCell
+                      className="hidden lg:table-cell text-sm text-muted-foreground max-w-[200px] truncate"
+                      title={c.endereco}
+                    >
+                      {c.endereco && (
+                        <div className="flex items-center truncate">
+                          <MapPin className="w-3 h-3 mr-1.5 shrink-0" />{' '}
+                          <span className="truncate">{c.endereco}</span>
+                        </div>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button
