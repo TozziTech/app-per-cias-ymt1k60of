@@ -68,6 +68,8 @@ export default function PortalPerito() {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [minhasTarefas, setMinhasTarefas] = useState<any[]>([])
+  const [searchTermPeticoes, setSearchTermPeticoes] = useState('')
+  const [peticoes, setPeticoes] = useState<any[]>([])
 
   useEffect(() => {
     fetchData()
@@ -88,8 +90,40 @@ export default function PortalPerito() {
         .eq('id', session.user.id)
         .single()
 
-      const data = await getMyPericias(session.user.id)
+      let peritoIdToSearch = session.user.id
+      if (session.user.email) {
+        const { data: perito } = await supabase
+          .from('peritos')
+          .select('id')
+          .eq('email', session.user.email)
+          .single()
+
+        if (perito) {
+          peritoIdToSearch = perito.id
+        }
+      }
+
+      const data = await getMyPericias(peritoIdToSearch)
       setPericias(data)
+
+      const todasPeticoes: any[] = []
+      data.forEach((p) => {
+        if (p.peticoes && Array.isArray(p.peticoes)) {
+          p.peticoes.forEach((pet: any) => {
+            todasPeticoes.push({
+              id: pet.id || crypto.randomUUID(),
+              periciaId: p.id,
+              numeroProcesso: p.numeroProcesso || 'Sem número',
+              titulo: pet.titulo || pet.nome || 'Petição sem título',
+              status: pet.status || 'Pendente',
+              data: pet.data || pet.data_criacao || new Date().toISOString(),
+            })
+          })
+        }
+      })
+
+      todasPeticoes.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+      setPeticoes(todasPeticoes)
 
       const { data: tarefasData } = await supabase
         .from('tarefas')
@@ -211,6 +245,13 @@ export default function PortalPerito() {
       p.vara?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
+  const filteredPeticoes = peticoes.filter(
+    (p) =>
+      p.numeroProcesso.toLowerCase().includes(searchTermPeticoes.toLowerCase()) ||
+      p.titulo.toLowerCase().includes(searchTermPeticoes.toLowerCase()) ||
+      p.status.toLowerCase().includes(searchTermPeticoes.toLowerCase()),
+  )
+
   const pendingCount = pericias.filter((p) => p.status !== 'Concluído').length
 
   const getStatusColor = (status: string) => {
@@ -267,8 +308,9 @@ export default function PortalPerito() {
       </div>
 
       <Tabs defaultValue="pericias" className="w-full space-y-6">
-        <TabsList className="bg-zinc-100 dark:bg-zinc-800/50">
+        <TabsList className="bg-zinc-100 dark:bg-zinc-800/50 flex flex-wrap h-auto p-1">
           <TabsTrigger value="pericias">Perícias Atribuídas</TabsTrigger>
+          <TabsTrigger value="peticoes">Petições Realizadas ({peticoes.length})</TabsTrigger>
           <TabsTrigger value="tarefas">Minhas Tarefas ({minhasTarefas.length})</TabsTrigger>
         </TabsList>
 
@@ -647,6 +689,66 @@ export default function PortalPerito() {
                       </SheetContent>
                     </Sheet>
                   </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="peticoes" className="space-y-6 m-0">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <Input
+              placeholder="Buscar pelo número do processo, título ou status..."
+              className="pl-9 max-w-md bg-white dark:bg-zinc-900"
+              value={searchTermPeticoes}
+              onChange={(e) => setSearchTermPeticoes(e.target.value)}
+            />
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+            </div>
+          ) : filteredPeticoes.length === 0 ? (
+            <div className="text-center py-12 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+              <FileText className="h-12 w-12 mx-auto text-zinc-300 mb-4" />
+              <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100">
+                Nenhuma petição encontrada
+              </h3>
+              <p className="text-zinc-500 dark:text-zinc-400">
+                Não há petições registradas nas suas perícias no momento.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredPeticoes.map((pet) => (
+                <Card key={pet.id} className="flex flex-col bg-white dark:bg-zinc-900">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <Badge
+                        variant="outline"
+                        className={
+                          pet.status.toLowerCase() === 'concluído' ||
+                          pet.status.toLowerCase() === 'protocolada'
+                            ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                            : 'bg-orange-500/10 text-orange-500 border-orange-500/20'
+                        }
+                      >
+                        {pet.status}
+                      </Badge>
+                      <span className="text-xs text-zinc-500 flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {formatDate(pet.data)}
+                      </span>
+                    </div>
+                    <CardTitle className="text-lg leading-tight line-clamp-2">
+                      {pet.titulo}
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      Processo: {pet.numeroProcesso}
+                    </CardDescription>
+                  </CardHeader>
                 </Card>
               ))}
             </div>
