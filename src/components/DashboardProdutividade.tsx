@@ -5,7 +5,15 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend
 import { Pericia } from '@/lib/types'
 import { format, subMonths, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CheckCircle2, CalendarDays, ClipboardCheck, TrendingUp } from 'lucide-react'
+import { CheckCircle2, CalendarDays, ClipboardCheck, TrendingUp, MapPin } from 'lucide-react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface DashboardProdutividadeProps {
   pericias: Pericia[]
@@ -91,6 +99,23 @@ export function DashboardProdutividade({ pericias }: DashboardProdutividadeProps
       laudosEntreguesMes,
       chartData,
     }
+  }, [pericias])
+
+  const cidadesVarasStats = useMemo(() => {
+    const map: Record<string, { cidade: string; vara: string; perito: string; count: number }> = {}
+    pericias.forEach((p) => {
+      if (p.cidade || p.vara) {
+        const perito = p.peritoAssociado || 'Não atribuído'
+        const cidade = p.cidade || 'Não informada'
+        const vara = p.vara || 'Não informada'
+        const key = `${perito}-${cidade}-${vara}`
+        if (!map[key]) {
+          map[key] = { cidade, vara, perito, count: 0 }
+        }
+        map[key].count++
+      }
+    })
+    return Object.values(map).sort((a, b) => b.count - a.count)
   }, [pericias])
 
   return (
@@ -196,6 +221,47 @@ export function DashboardProdutividade({ pericias }: DashboardProdutividadeProps
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-primary" />
+            Nomeações por Cidade e Vara (Por Perito)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  <TableHead>Perito Associado</TableHead>
+                  <TableHead>Cidade</TableHead>
+                  <TableHead>Vara</TableHead>
+                  <TableHead className="text-right">Qtd. Nomeações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {cidadesVarasStats.length > 0 ? (
+                  cidadesVarasStats.map((stat, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">{stat.perito}</TableCell>
+                      <TableCell>{stat.cidade}</TableCell>
+                      <TableCell>{stat.vara}</TableCell>
+                      <TableCell className="text-right">{stat.count}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                      Nenhum dado de cidade e vara encontrado.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>

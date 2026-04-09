@@ -42,7 +42,6 @@ const defaultForm = {
   nome: '',
   telefone: '',
   telefone_celular: '',
-  telefone_alternativo: '',
   email: '',
   endereco: '',
   codigo_id: '',
@@ -153,7 +152,6 @@ export default function Contatos() {
         Tipo: c.tipo,
         Telefone: c.telefone,
         Celular: c.telefone_celular,
-        Alternativo: c.telefone_alternativo,
         Email: c.email,
         Endereço: c.endereco,
         'Código ID': c.codigo_id,
@@ -230,13 +228,6 @@ export default function Contatos() {
                   <Input
                     value={form.telefone_celular}
                     onChange={(e) => setForm({ ...form, telefone_celular: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tel. Alternativo</Label>
-                  <Input
-                    value={form.telefone_alternativo}
-                    onChange={(e) => setForm({ ...form, telefone_alternativo: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -440,11 +431,6 @@ export default function Contatos() {
                         {c.telefone_celular && (
                           <div className="flex items-center text-muted-foreground">
                             <Phone className="w-3 h-3 mr-1.5" /> {c.telefone_celular} (Cel)
-                          </div>
-                        )}
-                        {c.telefone_alternativo && (
-                          <div className="flex items-center text-muted-foreground">
-                            <Phone className="w-3 h-3 mr-1.5" /> {c.telefone_alternativo} (Alt)
                           </div>
                         )}
                       </div>

@@ -8,7 +8,8 @@ import { Pericia } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 
 const DEFAULT_ITEMS = [
-  'Equipamentos',
+  'Fissurômetro',
+  'Esclerômetro',
   'Impressão de documentos',
   'Escada',
   'Lanterna',

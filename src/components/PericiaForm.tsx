@@ -11,13 +11,33 @@ import { Form } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import { Pericia } from '@/lib/types'
-import {
-  CustomInput,
-  CustomSelect,
-  CustomDatePicker,
-  ChecklistSection,
-  CustomCheckbox,
-} from './FormFields'
+import { CustomInput, CustomSelect, ChecklistSection, CustomCheckbox } from './FormFields'
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+
+const DateField = ({ control, name, label }: { control: any; name: string; label: string }) => (
+  <FormField
+    control={control}
+    name={name}
+    render={({ field }) => (
+      <FormItem className="flex flex-col">
+        <FormLabel>{label}</FormLabel>
+        <FormControl>
+          <Input
+            type="date"
+            value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+            onChange={(e) => {
+              const val = e.target.value
+              field.onChange(val ? new Date(val + 'T12:00:00') : null)
+            }}
+            className="w-full h-10 px-3 py-2 text-sm border rounded-md"
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+)
 
 const formSchema = z.object({
   status: z.string().optional().default('Agendado'),
@@ -326,10 +346,10 @@ export function PericiaForm({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-primary/20 pt-6">
           <h3 className="md:col-span-2 font-semibold text-lg text-primary">Datas Principais</h3>
-          <CustomDatePicker control={form.control} name="dataNomeacao" label="Data de Nomeação" />
-          <CustomDatePicker control={form.control} name="dataAceite" label="Data do Aceite" />
-          <CustomDatePicker control={form.control} name="dataPericia" label="Data da Perícia" />
-          <CustomDatePicker
+          <DateField control={form.control} name="dataNomeacao" label="Data de Nomeação" />
+          <DateField control={form.control} name="dataAceite" label="Data do Aceite" />
+          <DateField control={form.control} name="dataPericia" label="Data da Perícia" />
+          <DateField
             control={form.control}
             name="dataEntregaLaudo"
             label="Data de Entrega do Laudo"
@@ -376,19 +396,15 @@ export function PericiaForm({
             name="descricaoImpugnacao"
             label="Descrição da Impugnação"
           />
-          <CustomDatePicker
-            control={form.control}
-            name="dataImpugnacao"
-            label="Data da Impugnação"
-          />
+          <DateField control={form.control} name="dataImpugnacao" label="Data da Impugnação" />
           <CustomInput
             control={form.control}
             name="diasImpugnacao"
             label="Dias Impugnação"
             type="number"
           />
-          <CustomDatePicker control={form.control} name="prazoEntrega" label="Prazo de Entrega" />
-          <CustomDatePicker
+          <DateField control={form.control} name="prazoEntrega" label="Prazo de Entrega" />
+          <DateField
             control={form.control}
             name="entregaImpugnacao"
             label="Entrega da Impugnação"
@@ -402,7 +418,7 @@ export function PericiaForm({
             name="limitesEsclarecimentos"
             label="Limites Esclarecimentos"
           />
-          <CustomDatePicker
+          <DateField
             control={form.control}
             name="entregaEsclarecimentos"
             label="Entrega Esclarecimentos"

@@ -134,6 +134,12 @@ export default function Pericias() {
   const [editingPeticaoText, setEditingPeticaoText] = useState('')
   const [periciaToDelete, setPericiaToDelete] = useState<Pericia | null>(null)
 
+  const [sortConfig, setSortConfig] = useState(() => {
+    const saved = sessionStorage.getItem('pericias_sortConfig')
+    if (saved) return JSON.parse(saved)
+    return { key: 'created_at', direction: 'desc' }
+  })
+
   const [dateFilterType, setDateFilterType] = useState(
     () => sessionStorage.getItem('pericias_dateFilterType') || 'dataNomeacao',
   )
@@ -166,6 +172,10 @@ export default function Pericias() {
   }, [searchTerm, statusFilter, dateFilterType, startDate, endDate])
 
   useEffect(() => {
+    sessionStorage.setItem('pericias_sortConfig', JSON.stringify(sortConfig))
+  }, [sortConfig])
+
+  useEffect(() => {
     localStorage.setItem('pericias_columns', JSON.stringify(visibleColumns))
   }, [visibleColumns])
 
@@ -187,41 +197,64 @@ export default function Pericias() {
     }
   }, [selectedPericia?.id, isDetailsOpen])
 
-  const filteredPericias = pericias.filter((p) => {
-    if (isPerito) {
-      const peritoName = user?.name || ''
-      if (p.peritoAssociado !== peritoName && !peritoName.includes(p.peritoAssociado || '---')) {
-        return false
+  const filteredPericias = pericias
+    .filter((p) => {
+      if (isPerito) {
+        const peritoName = user?.name || ''
+        if (p.peritoAssociado !== peritoName && !peritoName.includes(p.peritoAssociado || '---')) {
+          return false
+        }
       }
-    }
 
-    const searchLower = searchTerm.toLowerCase()
-    const matchSearch =
-      (p.codigoInterno || '').toLowerCase().includes(searchLower) ||
-      (p.numeroProcesso || '').toLowerCase().includes(searchLower) ||
-      (p.peritoAssociado || '').toLowerCase().includes(searchLower) ||
-      (p.id || '').toLowerCase().includes(searchLower)
+      const searchLower = searchTerm.toLowerCase()
+      const matchSearch =
+        (p.codigoInterno || '').toLowerCase().includes(searchLower) ||
+        (p.numeroProcesso || '').toLowerCase().includes(searchLower) ||
+        (p.peritoAssociado || '').toLowerCase().includes(searchLower) ||
+        (p.id || '').toLowerCase().includes(searchLower)
 
-    const matchStatus = statusFilter === 'todos' || p.status === statusFilter
+      const matchStatus = statusFilter === 'todos' || p.status === statusFilter
 
-    let matchesDate = true
-    if (startDate || endDate) {
-      // Find the correct date field
-      const dateField =
-        (p as any)[dateFilterType] ||
-        (p as any)[dateFilterType.replace(/([A-Z])/g, '_$1').toLowerCase()]
+      let matchesDate = true
+      if (startDate || endDate) {
+        // Find the correct date field
+        const dateField =
+          (p as any)[dateFilterType] ||
+          (p as any)[dateFilterType.replace(/([A-Z])/g, '_$1').toLowerCase()]
 
-      if (dateField) {
-        const dateStr = String(dateField).substring(0, 10)
-        if (startDate && dateStr < startDate) matchesDate = false
-        if (endDate && dateStr > endDate) matchesDate = false
+        if (dateField) {
+          const dateStr = String(dateField).substring(0, 10)
+          if (startDate && dateStr < startDate) matchesDate = false
+          if (endDate && dateStr > endDate) matchesDate = false
+        } else {
+          matchesDate = false // If filtering by a date type and the pericia doesn't have it
+        }
+      }
+
+      return matchSearch && matchStatus && matchesDate
+    })
+    .sort((a: any, b: any) => {
+      let valA = a[sortConfig.key]
+      let valB = b[sortConfig.key]
+
+      if (sortConfig.key === 'created_at') {
+        valA = new Date(a.created_at || 0).getTime()
+        valB = new Date(b.created_at || 0).getTime()
+      } else if (
+        sortConfig.key.toLowerCase().includes('data') ||
+        sortConfig.key === 'prazoEntrega'
+      ) {
+        valA = a[sortConfig.key] ? new Date(a[sortConfig.key]).getTime() : 0
+        valB = b[sortConfig.key] ? new Date(b[sortConfig.key]).getTime() : 0
       } else {
-        matchesDate = false // If filtering by a date type and the pericia doesn't have it
+        valA = valA ? String(valA).toLowerCase() : ''
+        valB = valB ? String(valB).toLowerCase() : ''
       }
-    }
 
-    return matchSearch && matchStatus && matchesDate
-  })
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1
+      return 0
+    })
 
   const parseDateSafe = (d: string | Date | undefined | null): Date | null => {
     if (!d) return null
@@ -945,6 +978,28 @@ export default function Pericias() {
                       <SelectItem value="Pendente">Pendente</SelectItem>
                       <SelectItem value="Concluído">Concluído</SelectItem>
                       <SelectItem value="Recusada">Recusada</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={`${sortConfig.key}-${sortConfig.direction}`}
+                    onValueChange={(val) => {
+                      const [key, direction] = val.split('-')
+                      setSortConfig({ key, direction })
+                    }}
+                  >
+                    <SelectTrigger className="w-full sm:w-[160px]">
+                      <SelectValue placeholder="Ordenar por..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="created_at-desc">Mais Recentes</SelectItem>
+                      <SelectItem value="created_at-asc">Mais Antigas</SelectItem>
+                      <SelectItem value="dataNomeacao-desc">Data Nomeação (Desc)</SelectItem>
+                      <SelectItem value="dataNomeacao-asc">Data Nomeação (Asc)</SelectItem>
+                      <SelectItem value="dataPericia-desc">Data Perícia (Desc)</SelectItem>
+                      <SelectItem value="dataPericia-asc">Data Perícia (Asc)</SelectItem>
+                      <SelectItem value="dataEntregaLaudo-desc">Entrega Laudo (Desc)</SelectItem>
+                      <SelectItem value="dataEntregaLaudo-asc">Entrega Laudo (Asc)</SelectItem>
                     </SelectContent>
                   </Select>
 
