@@ -63,6 +63,7 @@ export function ChecklistVistoria({ pericia, onUpdate }: ChecklistVistoriaProps)
     const newItems = items.map((item) => (item.id === id ? { ...item, observacao } : item))
     try {
       await onUpdate(pericia.id, { checklist: newItems })
+      toast({ title: 'Sucesso', description: 'Observação salva com sucesso.' })
     } catch (e) {
       toast({
         title: 'Erro',

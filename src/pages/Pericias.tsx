@@ -85,6 +85,7 @@ import {
 import { PericiaForm } from '@/components/PericiaForm'
 import { GeradorPeticoes } from '@/components/GeradorPeticoes'
 import { ChecklistVistoria } from '@/components/ChecklistVistoria'
+import { DashboardProdutividade } from '@/components/DashboardProdutividade'
 import { exportToCsv } from '@/lib/export'
 import { supabase } from '@/lib/supabase/client'
 
@@ -141,6 +142,7 @@ export default function Pericias() {
   )
   const [endDate, setEndDate] = useState(() => sessionStorage.getItem('pericias_endDate') || '')
 
+  const [viewMode, setViewMode] = useState<'lista' | 'dashboard'>('lista')
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
     const saved = localStorage.getItem('pericias_columns')
     if (saved) return JSON.parse(saved)
@@ -906,494 +908,527 @@ export default function Pericias() {
         </div>
       </div>
 
-      <Card className="shadow-sm">
-        <CardHeader className="p-4 sm:px-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <CardTitle className="text-lg font-medium hidden sm:block">Registros</CardTitle>
-            <div className="flex w-full sm:w-auto flex-col sm:flex-row items-center gap-2">
-              <div className="relative flex-1 w-full sm:w-72">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Buscar ID, Processo, Perito..."
-                  className="pl-8"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[160px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os Status</SelectItem>
-                  <SelectItem value="Agendado">Agendado</SelectItem>
-                  <SelectItem value="Em Andamento">Em Andamento</SelectItem>
-                  <SelectItem value="Pendente">Pendente</SelectItem>
-                  <SelectItem value="Concluído">Concluído</SelectItem>
-                  <SelectItem value="Recusada">Recusada</SelectItem>
-                </SelectContent>
-              </Select>
+      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="lista">Lista de Perícias</TabsTrigger>
+          <TabsTrigger value="dashboard">Dashboard de Produtividade</TabsTrigger>
+        </TabsList>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full sm:w-auto shrink-0"
-                    size="icon"
-                    title="Colunas"
-                  >
-                    <Columns3 className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuCheckboxItem
-                    checked={visibleColumns.codigo}
-                    onCheckedChange={(c) => setVisibleColumns((prev) => ({ ...prev, codigo: c }))}
-                  >
-                    Código Interno
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={visibleColumns.processo}
-                    onCheckedChange={(c) => setVisibleColumns((prev) => ({ ...prev, processo: c }))}
-                  >
-                    Processo
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={visibleColumns.perito}
-                    onCheckedChange={(c) => setVisibleColumns((prev) => ({ ...prev, perito: c }))}
-                  >
-                    Perito Associado
-                  </DropdownMenuCheckboxItem>
-                  {!isPerito && (
-                    <DropdownMenuCheckboxItem
-                      checked={visibleColumns.honorarios}
-                      onCheckedChange={(c) =>
-                        setVisibleColumns((prev) => ({ ...prev, honorarios: c }))
-                      }
-                    >
-                      Honorários
-                    </DropdownMenuCheckboxItem>
-                  )}
-                  <DropdownMenuCheckboxItem
-                    checked={visibleColumns.datas}
-                    onCheckedChange={(c) => setVisibleColumns((prev) => ({ ...prev, datas: c }))}
-                  >
-                    Datas (Agenda)
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={visibleColumns.pgto}
-                    onCheckedChange={(c) => setVisibleColumns((prev) => ({ ...prev, pgto: c }))}
-                  >
-                    Pagamento
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={visibleColumns.status}
-                    onCheckedChange={(c) => setVisibleColumns((prev) => ({ ...prev, status: c }))}
-                  >
-                    Status
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+        <TabsContent value="dashboard" className="mt-0">
+          <DashboardProdutividade pericias={pericias} />
+        </TabsContent>
 
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full sm:w-auto shrink-0"
-                    size="icon"
-                    title="Filtros Avançados"
-                  >
-                    <Filter className="w-4 h-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80" align="end">
-                  <div className="space-y-4">
-                    <h4 className="font-medium leading-none flex items-center gap-2">
-                      <Filter className="w-4 h-4 text-primary" /> Filtros Avançados
-                    </h4>
-                    <div className="space-y-2">
-                      <Label>Tipo de Data</Label>
-                      <Select value={dateFilterType} onValueChange={setDateFilterType}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="dataNomeacao">Data de Nomeação</SelectItem>
-                          <SelectItem value="dataPericia">Data da Perícia</SelectItem>
-                          <SelectItem value="dataEntregaLaudo">Entrega do Laudo</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-2">
-                        <Label>Data Inicial</Label>
-                        <Input
-                          type="date"
-                          value={startDate}
-                          onChange={(e) => setStartDate(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Data Final</Label>
-                        <Input
-                          type="date"
-                          value={endDate}
-                          onChange={(e) => setEndDate(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    {(startDate || endDate) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full mt-2 text-destructive"
-                        onClick={() => {
-                          setStartDate('')
-                          setEndDate('')
-                        }}
-                      >
-                        Limpar Datas
-                      </Button>
-                    )}
+        <TabsContent value="lista" className="mt-0 space-y-6">
+          <Card className="shadow-sm">
+            <CardHeader className="p-4 sm:px-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <CardTitle className="text-lg font-medium hidden sm:block">Registros</CardTitle>
+                <div className="flex w-full sm:w-auto flex-col sm:flex-row items-center gap-2">
+                  <div className="relative flex-1 w-full sm:w-72">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Buscar ID, Processo, Perito..."
+                      className="pl-8"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                   </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                {visibleColumns.codigo && (
-                  <TableHead className="pl-4 sm:pl-6 py-2 h-10 text-xs">Código</TableHead>
-                )}
-                {visibleColumns.processo && (
-                  <TableHead className="py-2 h-10 text-xs">Processo</TableHead>
-                )}
-                {visibleColumns.perito && (
-                  <TableHead className="py-2 h-10 text-xs">Perito Associado</TableHead>
-                )}
-                {!isPerito && visibleColumns.honorarios && (
-                  <TableHead className="hidden xl:table-cell py-2 h-10 text-xs">
-                    Honorários
-                  </TableHead>
-                )}
-                {visibleColumns.datas && (
-                  <TableHead className="py-2 h-10 text-xs">
-                    Datas (Nomeação / Perícia / Entrega)
-                  </TableHead>
-                )}
-                {visibleColumns.pgto && (
-                  <TableHead className="hidden md:table-cell py-2 h-10 text-xs">Pgto.</TableHead>
-                )}
-                {visibleColumns.status && (
-                  <TableHead className="py-2 h-10 text-xs">Status</TableHead>
-                )}
-                <TableHead className="text-right pr-4 sm:pr-6 py-2 h-10 text-xs">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPericias.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                    Nenhuma perícia encontrada.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredPericias.map((pericia) => (
-                  <TableRow
-                    key={pericia.id}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => handleRowClick(pericia)}
-                  >
-                    {visibleColumns.codigo && (
-                      <TableCell className="pl-4 sm:pl-6 py-2">
-                        <div className="font-medium text-xs whitespace-nowrap">
-                          {pericia.codigoInterno || 'Sem Cód.'}
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-[160px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os Status</SelectItem>
+                      <SelectItem value="Agendado">Agendado</SelectItem>
+                      <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+                      <SelectItem value="Pendente">Pendente</SelectItem>
+                      <SelectItem value="Concluído">Concluído</SelectItem>
+                      <SelectItem value="Recusada">Recusada</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full sm:w-auto shrink-0"
+                        size="icon"
+                        title="Colunas"
+                      >
+                        <Columns3 className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuCheckboxItem
+                        checked={visibleColumns.codigo}
+                        onCheckedChange={(c) =>
+                          setVisibleColumns((prev) => ({ ...prev, codigo: c }))
+                        }
+                      >
+                        Código Interno
+                      </DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem
+                        checked={visibleColumns.processo}
+                        onCheckedChange={(c) =>
+                          setVisibleColumns((prev) => ({ ...prev, processo: c }))
+                        }
+                      >
+                        Processo
+                      </DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem
+                        checked={visibleColumns.perito}
+                        onCheckedChange={(c) =>
+                          setVisibleColumns((prev) => ({ ...prev, perito: c }))
+                        }
+                      >
+                        Perito Associado
+                      </DropdownMenuCheckboxItem>
+                      {!isPerito && (
+                        <DropdownMenuCheckboxItem
+                          checked={visibleColumns.honorarios}
+                          onCheckedChange={(c) =>
+                            setVisibleColumns((prev) => ({ ...prev, honorarios: c }))
+                          }
+                        >
+                          Honorários
+                        </DropdownMenuCheckboxItem>
+                      )}
+                      <DropdownMenuCheckboxItem
+                        checked={visibleColumns.datas}
+                        onCheckedChange={(c) =>
+                          setVisibleColumns((prev) => ({ ...prev, datas: c }))
+                        }
+                      >
+                        Datas (Agenda)
+                      </DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem
+                        checked={visibleColumns.pgto}
+                        onCheckedChange={(c) => setVisibleColumns((prev) => ({ ...prev, pgto: c }))}
+                      >
+                        Pagamento
+                      </DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem
+                        checked={visibleColumns.status}
+                        onCheckedChange={(c) =>
+                          setVisibleColumns((prev) => ({ ...prev, status: c }))
+                        }
+                      >
+                        Status
+                      </DropdownMenuCheckboxItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full sm:w-auto shrink-0"
+                        size="icon"
+                        title="Filtros Avançados"
+                      >
+                        <Filter className="w-4 h-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80" align="end">
+                      <div className="space-y-4">
+                        <h4 className="font-medium leading-none flex items-center gap-2">
+                          <Filter className="w-4 h-4 text-primary" /> Filtros Avançados
+                        </h4>
+                        <div className="space-y-2">
+                          <Label>Tipo de Data</Label>
+                          <Select value={dateFilterType} onValueChange={setDateFilterType}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="dataNomeacao">Data de Nomeação</SelectItem>
+                              <SelectItem value="dataPericia">Data da Perícia</SelectItem>
+                              <SelectItem value="dataEntregaLaudo">Entrega do Laudo</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-                      </TableCell>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-2">
+                            <Label>Data Inicial</Label>
+                            <Input
+                              type="date"
+                              value={startDate}
+                              onChange={(e) => setStartDate(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Data Final</Label>
+                            <Input
+                              type="date"
+                              value={endDate}
+                              onChange={(e) => setEndDate(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        {(startDate || endDate) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full mt-2 text-destructive"
+                            onClick={() => {
+                              setStartDate('')
+                              setEndDate('')
+                            }}
+                          >
+                            Limpar Datas
+                          </Button>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    {visibleColumns.codigo && (
+                      <TableHead className="pl-4 sm:pl-6 py-2 h-10 text-xs">Código</TableHead>
                     )}
                     {visibleColumns.processo && (
-                      <TableCell className="py-2">
-                        {pericia.numeroProcesso ? (
-                          <div
-                            className="text-xs text-muted-foreground truncate max-w-[150px]"
-                            title={pericia.numeroProcesso}
-                          >
-                            {pericia.numeroProcesso}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
+                      <TableHead className="py-2 h-10 text-xs">Processo</TableHead>
                     )}
                     {visibleColumns.perito && (
-                      <TableCell
-                        className="py-2 text-xs truncate max-w-[120px]"
-                        title={pericia.peritoAssociado || ''}
-                      >
-                        {pericia.peritoAssociado || '-'}
-                      </TableCell>
+                      <TableHead className="py-2 h-10 text-xs">Perito Associado</TableHead>
                     )}
                     {!isPerito && visibleColumns.honorarios && (
-                      <TableCell className="hidden xl:table-cell py-2 text-xs">
-                        {pericia.honorarios ? `R$ ${pericia.honorarios.toFixed(2)}` : '-'}
-                      </TableCell>
+                      <TableHead className="hidden xl:table-cell py-2 h-10 text-xs">
+                        Honorários
+                      </TableHead>
                     )}
                     {visibleColumns.datas && (
-                      <TableCell className="py-2 text-xs min-w-[240px]">
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground w-16 shrink-0">Nomeação:</span>
-                            <span className="font-medium flex-1">
-                              {renderDate(pericia.dataNomeacao)}
-                            </span>
-                            {(pericia.dataNomeacao || pericia.data_nomeacao) && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    className="h-6 w-6 shrink-0"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleExport(pericia, 'nomeacao')
-                                    }}
-                                  >
-                                    <CalendarPlus className="h-3.5 w-3.5 text-blue-500" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Agenda: Nomeação</TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground w-16 shrink-0">Perícia:</span>
-                            <span className="font-medium flex-1">
-                              {renderDate(pericia.dataPericia)}
-                            </span>
-                            {(pericia.dataPericia || pericia.data_pericia) && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    className="h-6 w-6 shrink-0"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleExport(pericia, 'pericia')
-                                    }}
-                                  >
-                                    <CalendarPlus className="h-3.5 w-3.5 text-amber-500" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Agenda: Visita Técnica</TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground w-16 shrink-0">Entrega:</span>
-                            <span className="font-medium flex-1 flex items-center gap-1.5">
-                              {renderDate(pericia.dataEntregaLaudo)}
-                              {(() => {
-                                const prazoStatus = getPrazoStatus(pericia)
-                                if (prazoStatus?.status === 'atrasado') {
-                                  return (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <AlertCircle className="h-3.5 w-3.5 text-destructive animate-pulse" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        Atrasado há {prazoStatus.dias} dias
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  )
-                                }
-                                if (prazoStatus?.status === 'proximo') {
-                                  return (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Clock className="h-3.5 w-3.5 text-amber-500" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        {prazoStatus.dias === 0
-                                          ? 'Vence hoje'
-                                          : `Vence em ${prazoStatus.dias} dias`}
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  )
-                                }
-                                return null
-                              })()}
-                            </span>
-                            {(pericia.dataEntregaLaudo || pericia.data_entrega_laudo) && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    className="h-6 w-6 shrink-0"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleExport(pericia, 'entrega')
-                                    }}
-                                  >
-                                    <CalendarPlus className="h-3.5 w-3.5 text-emerald-500" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Agenda: Prazo do Laudo</TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
+                      <TableHead className="py-2 h-10 text-xs">
+                        Datas (Nomeação / Perícia / Entrega)
+                      </TableHead>
                     )}
                     {visibleColumns.pgto && (
-                      <TableCell
-                        className="hidden md:table-cell py-2 text-xs"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="focus:outline-none scale-90 origin-left hover:opacity-80 transition-opacity">
-                              {getPaymentBadge(
-                                (pericia as any).status_pagamento ||
-                                  pericia.statusPagamento ||
-                                  'Pendente',
-                              )}
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start">
-                            <DropdownMenuItem
-                              onClick={() => updateStatusPagamento(pericia.id, 'Pendente')}
-                            >
-                              Pendente
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => updateStatusPagamento(pericia.id, 'Recebido')}
-                            >
-                              Recebido
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => updateStatusPagamento(pericia.id, 'Atrasado')}
-                            >
-                              Atrasado
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => updateStatusPagamento(pericia.id, 'Recusada')}
-                            >
-                              Recusada
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                      <TableHead className="hidden md:table-cell py-2 h-10 text-xs">
+                        Pgto.
+                      </TableHead>
                     )}
                     {visibleColumns.status && (
-                      <TableCell className="py-2 text-xs" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-2">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="focus:outline-none scale-90 origin-left hover:opacity-80 transition-opacity">
-                                {getStatusBadge(pericia.status || 'Agendado')}
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
-                              <DropdownMenuItem
-                                onClick={() => updateStatus(pericia.id, 'Agendado')}
+                      <TableHead className="py-2 h-10 text-xs">Status</TableHead>
+                    )}
+                    <TableHead className="text-right pr-4 sm:pr-6 py-2 h-10 text-xs">
+                      Ações
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPericias.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                        Nenhuma perícia encontrada.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredPericias.map((pericia) => (
+                      <TableRow
+                        key={pericia.id}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => handleRowClick(pericia)}
+                      >
+                        {visibleColumns.codigo && (
+                          <TableCell className="pl-4 sm:pl-6 py-2">
+                            <div className="font-medium text-xs whitespace-nowrap">
+                              {pericia.codigoInterno || 'Sem Cód.'}
+                            </div>
+                          </TableCell>
+                        )}
+                        {visibleColumns.processo && (
+                          <TableCell className="py-2">
+                            {pericia.numeroProcesso ? (
+                              <div
+                                className="text-xs text-muted-foreground truncate max-w-[150px]"
+                                title={pericia.numeroProcesso}
                               >
-                                Agendado
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => updateStatus(pericia.id, 'Em Andamento')}
-                              >
-                                Em Andamento
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => updateStatus(pericia.id, 'Laudo Entregue')}
-                              >
-                                Laudo Entregue
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => updateStatus(pericia.id, 'Concluído')}
-                              >
-                                Concluído
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => updateStatus(pericia.id, 'Pendente')}
-                              >
-                                Pendente
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => updateStatus(pericia.id, 'Recusada')}
-                              >
-                                Recusada
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          {isParada(pericia) && (
+                                {pericia.numeroProcesso}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        )}
+                        {visibleColumns.perito && (
+                          <TableCell
+                            className="py-2 text-xs truncate max-w-[120px]"
+                            title={pericia.peritoAssociado || ''}
+                          >
+                            {pericia.peritoAssociado || '-'}
+                          </TableCell>
+                        )}
+                        {!isPerito && visibleColumns.honorarios && (
+                          <TableCell className="hidden xl:table-cell py-2 text-xs">
+                            {pericia.honorarios ? `R$ ${pericia.honorarios.toFixed(2)}` : '-'}
+                          </TableCell>
+                        )}
+                        {visibleColumns.datas && (
+                          <TableCell className="py-2 text-xs min-w-[240px]">
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground w-16 shrink-0">
+                                  Nomeação:
+                                </span>
+                                <span className="font-medium flex-1">
+                                  {renderDate(pericia.dataNomeacao)}
+                                </span>
+                                {(pericia.dataNomeacao || pericia.data_nomeacao) && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="secondary"
+                                        size="icon"
+                                        className="h-6 w-6 shrink-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleExport(pericia, 'nomeacao')
+                                        }}
+                                      >
+                                        <CalendarPlus className="h-3.5 w-3.5 text-blue-500" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Agenda: Nomeação</TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground w-16 shrink-0">
+                                  Perícia:
+                                </span>
+                                <span className="font-medium flex-1">
+                                  {renderDate(pericia.dataPericia)}
+                                </span>
+                                {(pericia.dataPericia || pericia.data_pericia) && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="secondary"
+                                        size="icon"
+                                        className="h-6 w-6 shrink-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleExport(pericia, 'pericia')
+                                        }}
+                                      >
+                                        <CalendarPlus className="h-3.5 w-3.5 text-amber-500" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Agenda: Visita Técnica</TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground w-16 shrink-0">
+                                  Entrega:
+                                </span>
+                                <span className="font-medium flex-1 flex items-center gap-1.5">
+                                  {renderDate(pericia.dataEntregaLaudo)}
+                                  {(() => {
+                                    const prazoStatus = getPrazoStatus(pericia)
+                                    if (prazoStatus?.status === 'atrasado') {
+                                      return (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <AlertCircle className="h-3.5 w-3.5 text-destructive animate-pulse" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            Atrasado há {prazoStatus.dias} dias
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      )
+                                    }
+                                    if (prazoStatus?.status === 'proximo') {
+                                      return (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Clock className="h-3.5 w-3.5 text-amber-500" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            {prazoStatus.dias === 0
+                                              ? 'Vence hoje'
+                                              : `Vence em ${prazoStatus.dias} dias`}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      )
+                                    }
+                                    return null
+                                  })()}
+                                </span>
+                                {(pericia.dataEntregaLaudo || pericia.data_entrega_laudo) && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="secondary"
+                                        size="icon"
+                                        className="h-6 w-6 shrink-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleExport(pericia, 'entrega')
+                                        }}
+                                      >
+                                        <CalendarPlus className="h-3.5 w-3.5 text-emerald-500" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Agenda: Prazo do Laudo</TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                        )}
+                        {visibleColumns.pgto && (
+                          <TableCell
+                            className="hidden md:table-cell py-2 text-xs"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="focus:outline-none scale-90 origin-left hover:opacity-80 transition-opacity">
+                                  {getPaymentBadge(
+                                    (pericia as any).status_pagamento ||
+                                      pericia.statusPagamento ||
+                                      'Pendente',
+                                  )}
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start">
+                                <DropdownMenuItem
+                                  onClick={() => updateStatusPagamento(pericia.id, 'Pendente')}
+                                >
+                                  Pendente
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => updateStatusPagamento(pericia.id, 'Recebido')}
+                                >
+                                  Recebido
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => updateStatusPagamento(pericia.id, 'Atrasado')}
+                                >
+                                  Atrasado
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => updateStatusPagamento(pericia.id, 'Recusada')}
+                                >
+                                  Recusada
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        )}
+                        {visibleColumns.status && (
+                          <TableCell className="py-2 text-xs" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="focus:outline-none scale-90 origin-left hover:opacity-80 transition-opacity">
+                                    {getStatusBadge(pericia.status || 'Agendado')}
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                  <DropdownMenuItem
+                                    onClick={() => updateStatus(pericia.id, 'Agendado')}
+                                  >
+                                    Agendado
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => updateStatus(pericia.id, 'Em Andamento')}
+                                  >
+                                    Em Andamento
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => updateStatus(pericia.id, 'Laudo Entregue')}
+                                  >
+                                    Laudo Entregue
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => updateStatus(pericia.id, 'Concluído')}
+                                  >
+                                    Concluído
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => updateStatus(pericia.id, 'Pendente')}
+                                  >
+                                    Pendente
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => updateStatus(pericia.id, 'Recusada')}
+                                  >
+                                    Recusada
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              {isParada(pericia) && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="p-1 rounded-full bg-destructive/10 text-destructive">
+                                      <AlertTriangle className="h-4 w-4" />
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    Perícia sem movimentação há mais de 30 dias
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                          </TableCell>
+                        )}
+                        <TableCell
+                          className="text-right pr-4 sm:pr-6 py-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-end gap-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div className="p-1 rounded-full bg-destructive/10 text-destructive">
-                                  <AlertTriangle className="h-4 w-4" />
-                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 hover:bg-muted"
+                                  onClick={() => {
+                                    setPericiaToEdit(pericia)
+                                    setIsSheetOpen(true)
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
                               </TooltipTrigger>
-                              <TooltipContent>
-                                Perícia sem movimentação há mais de 30 dias
-                              </TooltipContent>
+                              <TooltipContent>Editar</TooltipContent>
                             </Tooltip>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-                    <TableCell
-                      className="text-right pr-4 sm:pr-6 py-2"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-end gap-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 hover:bg-muted"
-                              onClick={() => {
-                                setPericiaToEdit(pericia)
-                                setIsSheetOpen(true)
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Editar</TooltipContent>
-                        </Tooltip>
 
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setPericiaToDelete(pericia)
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Excluir Perícia</TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setPericiaToDelete(pericia)
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Excluir Perícia</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Sheet open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <SheetContent className="w-full sm:max-w-md md:max-w-2xl overflow-y-auto" side="right">
