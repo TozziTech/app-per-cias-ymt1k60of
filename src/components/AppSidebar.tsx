@@ -11,6 +11,7 @@ import {
   Briefcase,
   CheckSquare,
   Shield,
+  Activity,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -35,6 +36,7 @@ const navItems = [
   { title: 'Portal do Perito', url: '/portal-perito', icon: Briefcase, adminOnly: false },
   { title: 'Calendário', url: '/calendario', icon: Calendar, adminOnly: false },
   { title: 'Usuários e Acessos', url: '/usuarios', icon: Shield, adminOnly: true },
+  { title: 'Auditoria', url: '/auditoria', icon: Activity, adminOnly: true },
   { title: 'Configurações', url: '#', icon: Settings, adminOnly: true },
 ]
 
