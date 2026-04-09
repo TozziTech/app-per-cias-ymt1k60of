@@ -281,11 +281,16 @@ export default function PortalPerito() {
     }
   }
 
+  const searchTermLower = searchTerm.toLowerCase()
   const filteredPericias = pericias.filter(
     (p) =>
-      p.numeroProcesso?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.cidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.vara?.toLowerCase().includes(searchTerm.toLowerCase()),
+      p.numeroProcesso?.toLowerCase().includes(searchTermLower) ||
+      p.cidade?.toLowerCase().includes(searchTermLower) ||
+      p.vara?.toLowerCase().includes(searchTermLower) ||
+      p.advogadoAutora?.toLowerCase().includes(searchTermLower) ||
+      p.advogadoRe?.toLowerCase().includes(searchTermLower) ||
+      p.assistenteTecnicoAutora?.toLowerCase().includes(searchTermLower) ||
+      p.assistenteTecnicoRe?.toLowerCase().includes(searchTermLower),
   )
 
   const filteredPeticoes = peticoes.filter(
@@ -295,7 +300,11 @@ export default function PortalPerito() {
       p.status?.toLowerCase().includes(searchTermPeticoes.toLowerCase()),
   )
 
-  const pendingCount = pericias.filter((p) => p.status !== 'Concluído').length
+  const pendingCount = pericias.filter(
+    (p) => !['Concluído', 'Cancelado'].includes(p.status || ''),
+  ).length
+  const completedCount = pericias.filter((p) => p.status === 'Concluído').length
+  const totalCount = pericias.length
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -327,26 +336,42 @@ export default function PortalPerito() {
           </p>
         </div>
 
-        <div className="flex items-center gap-4 bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <Briefcase className="h-5 w-5 text-blue-500" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Atribuídas</p>
-              <p className="text-2xl font-bold">{pericias.length}</p>
-            </div>
-          </div>
-          <div className="h-10 w-px bg-zinc-200 dark:bg-zinc-700" />
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-orange-500/10 rounded-lg">
-              <Clock className="h-5 w-5 text-orange-500" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Pendentes</p>
-              <p className="text-2xl font-bold">{pendingCount}</p>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full md:w-auto mt-4 md:mt-0">
+          <Card className="bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors hover:bg-zinc-200/50 dark:hover:bg-zinc-800/80">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 bg-blue-500/10 rounded-xl">
+                <Briefcase className="h-6 w-6 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Atribuídas</p>
+                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{totalCount}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors hover:bg-zinc-200/50 dark:hover:bg-zinc-800/80">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 bg-orange-500/10 rounded-xl">
+                <Clock className="h-6 w-6 text-orange-500" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Pendentes</p>
+                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{pendingCount}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors hover:bg-zinc-200/50 dark:hover:bg-zinc-800/80">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 bg-emerald-500/10 rounded-xl">
+                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Concluídas</p>
+                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                  {completedCount}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -383,7 +408,7 @@ export default function PortalPerito() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <Input
-              placeholder="Buscar pelo número do processo, vara ou cidade..."
+              placeholder="Buscar por processo, partes, vara ou cidade..."
               className="pl-9 max-w-md bg-white dark:bg-zinc-900"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
