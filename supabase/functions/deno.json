@@ -1,6 +1,7 @@
 {
   "_versions": {
     "notify-webhook": 2,
-    "delete-user": 1
+    "delete-user": 1,
+    "create-user": 1
   }
 }
