@@ -30,6 +30,7 @@ function mapToApp(data: any): Pericia {
     honorariosParcelados: data.honorarios_parcelados ?? data.honorariosParcelados ?? false,
     quantidadeParcelas: data.quantidade_parcelas ?? data.quantidadeParcelas,
     adiantamentoSolicitado: data.adiantamento_solicitado ?? data.adiantamentoSolicitado ?? false,
+    updated_at: data.updated_at,
   } as Pericia
 }
 

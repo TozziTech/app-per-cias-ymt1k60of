@@ -134,4 +134,5 @@ export interface Pericia {
   adiantamentoSolicitado?: boolean
   aceite?: string
   justificativa_recusa?: string
+  updated_at?: string
 }

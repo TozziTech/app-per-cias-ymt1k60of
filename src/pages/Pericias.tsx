@@ -17,6 +17,8 @@ import {
   Printer,
   Check,
   MapPin,
+  Mail,
+  AlertTriangle,
 } from 'lucide-react'
 import { differenceInCalendarDays } from 'date-fns'
 
@@ -224,6 +226,13 @@ export default function Pericias() {
     const parsed = new Date(d)
     if (isNaN(parsed.getTime())) return null
     return new Date(parsed.getTime() + parsed.getTimezoneOffset() * 60000)
+  }
+
+  const isParada = (p: Pericia) => {
+    if (p.status === 'Concluído' || p.status === 'Recusada') return false
+    const updatedAt = parseDateSafe(p.updated_at)
+    if (!updatedAt) return false
+    return differenceInCalendarDays(new Date(), updatedAt) > 30
   }
 
   const getPrazoStatus = (p: Pericia) => {
@@ -1283,37 +1292,59 @@ export default function Pericias() {
                     )}
                     {visibleColumns.status && (
                       <TableCell className="py-2 text-xs" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="focus:outline-none scale-90 origin-left hover:opacity-80 transition-opacity">
-                              {getStatusBadge(pericia.status || 'Agendado')}
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start">
-                            <DropdownMenuItem onClick={() => updateStatus(pericia.id, 'Agendado')}>
-                              Agendado
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => updateStatus(pericia.id, 'Em Andamento')}
-                            >
-                              Em Andamento
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => updateStatus(pericia.id, 'Laudo Entregue')}
-                            >
-                              Laudo Entregue
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateStatus(pericia.id, 'Concluído')}>
-                              Concluído
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateStatus(pericia.id, 'Pendente')}>
-                              Pendente
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateStatus(pericia.id, 'Recusada')}>
-                              Recusada
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center gap-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="focus:outline-none scale-90 origin-left hover:opacity-80 transition-opacity">
+                                {getStatusBadge(pericia.status || 'Agendado')}
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              <DropdownMenuItem
+                                onClick={() => updateStatus(pericia.id, 'Agendado')}
+                              >
+                                Agendado
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateStatus(pericia.id, 'Em Andamento')}
+                              >
+                                Em Andamento
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateStatus(pericia.id, 'Laudo Entregue')}
+                              >
+                                Laudo Entregue
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateStatus(pericia.id, 'Concluído')}
+                              >
+                                Concluído
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateStatus(pericia.id, 'Pendente')}
+                              >
+                                Pendente
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateStatus(pericia.id, 'Recusada')}
+                              >
+                                Recusada
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          {isParada(pericia) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="p-1 rounded-full bg-destructive/10 text-destructive">
+                                  <AlertTriangle className="h-4 w-4" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Perícia sem movimentação há mais de 30 dias
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
                       </TableCell>
                     )}
                     <TableCell
@@ -1396,7 +1427,25 @@ export default function Pericias() {
                       {selectedPericia.numeroProcesso}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap justify-end">
+                    {isParada(selectedPericia) && (
+                      <Badge variant="destructive" className="animate-pulse">
+                        Perícia Parada
+                      </Badge>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        window.open(
+                          `mailto:?subject=Ref: Processo ${selectedPericia.numeroProcesso}`,
+                        )
+                      }
+                      className="shadow-sm hidden sm:flex"
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      E-mail
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -1404,7 +1453,7 @@ export default function Pericias() {
                       className="shadow-sm"
                     >
                       <Printer className="h-4 w-4 mr-2" />
-                      Imprimir PDF
+                      PDF
                     </Button>
                     {getStatusBadge(selectedPericia.status)}
                   </div>
@@ -1745,66 +1794,6 @@ export default function Pericias() {
                 </div>
 
                 <div className="border-t pt-4 text-sm">
-                  <h4 className="font-medium mb-3">Workflow de Tarefas</h4>
-                  <div className="space-y-3">
-                    <ul className="space-y-2">
-                      {(selectedPericia.checklist || []).map((item) => (
-                        <li key={item.id} className="flex items-start gap-2 group">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleChecklist(item.id, !item.concluido)}
-                            className={`mt-0.5 h-5 w-5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${item.concluido ? 'bg-primary border-primary text-primary-foreground' : 'border-input hover:border-primary'}`}
-                          >
-                            {item.concluido && <Check className="h-3.5 w-3.5" />}
-                          </button>
-                          <span
-                            className={`flex-1 leading-snug pt-0.5 ${item.concluido ? 'line-through text-muted-foreground' : ''}`}
-                          >
-                            {item.texto}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTask(item.id)}
-                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity shrink-0 pt-0.5"
-                            title="Remover Tarefa"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </li>
-                      ))}
-                      {(!selectedPericia.checklist || selectedPericia.checklist.length === 0) && (
-                        <p className="text-muted-foreground text-sm py-2">
-                          Nenhuma tarefa cadastrada.
-                        </p>
-                      )}
-                    </ul>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Input
-                        placeholder="Nova subtarefa..."
-                        value={newTaskText}
-                        onChange={(e) => setNewTaskText(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            handleAddTask()
-                          }
-                        }}
-                        className="h-8 text-sm"
-                      />
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={handleAddTask}
-                        className="shrink-0 h-8"
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Adicionar
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t pt-4 text-sm">
                   <h4 className="font-medium mb-3">Controle de Petições</h4>
                   <div className="space-y-3">
                     <ul className="space-y-2">
@@ -1933,7 +1922,14 @@ export default function Pericias() {
               </TabsContent>
 
               <TabsContent value="checklist" className="space-y-6 mt-0">
-                <ChecklistVistoria />
+                <ChecklistVistoria
+                  pericia={selectedPericia}
+                  onUpdate={async (id, updates) => {
+                    await updatePericia(id, updates)
+                    setSelectedPericia((prev) => (prev ? { ...prev, ...updates } : prev))
+                    fetchLogs(id)
+                  }}
+                />
               </TabsContent>
 
               <TabsContent value="historico" className="space-y-6 mt-0">
