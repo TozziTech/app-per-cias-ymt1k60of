@@ -102,8 +102,12 @@ const PETICOES_PADRAO = [
 
 export default function Pericias() {
   const { pericias, updatePericia, deletePericia } = usePericias()
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('todos')
+  const [searchTerm, setSearchTerm] = useState(
+    () => sessionStorage.getItem('pericias_searchTerm') || '',
+  )
+  const [statusFilter, setStatusFilter] = useState(
+    () => sessionStorage.getItem('pericias_statusFilter') || 'todos',
+  )
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [periciaToEdit, setPericiaToEdit] = useState<Pericia | null>(null)
   const [selectedPericia, setSelectedPericia] = useState<Pericia | null>(null)
@@ -124,9 +128,21 @@ export default function Pericias() {
   const [editingPeticaoText, setEditingPeticaoText] = useState('')
   const [periciaToDelete, setPericiaToDelete] = useState<Pericia | null>(null)
 
-  const [dateFilterType, setDateFilterType] = useState('dataNomeacao')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const [dateFilterType, setDateFilterType] = useState(
+    () => sessionStorage.getItem('pericias_dateFilterType') || 'dataNomeacao',
+  )
+  const [startDate, setStartDate] = useState(
+    () => sessionStorage.getItem('pericias_startDate') || '',
+  )
+  const [endDate, setEndDate] = useState(() => sessionStorage.getItem('pericias_endDate') || '')
+
+  useEffect(() => {
+    sessionStorage.setItem('pericias_searchTerm', searchTerm)
+    sessionStorage.setItem('pericias_statusFilter', statusFilter)
+    sessionStorage.setItem('pericias_dateFilterType', dateFilterType)
+    sessionStorage.setItem('pericias_startDate', startDate)
+    sessionStorage.setItem('pericias_endDate', endDate)
+  }, [searchTerm, statusFilter, dateFilterType, startDate, endDate])
 
   const fetchLogs = async (periciaId: string) => {
     setIsLoadingLogs(true)

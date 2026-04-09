@@ -44,13 +44,24 @@ const defaultForm = {
 
 export default function Contatos() {
   const [contatos, setContatos] = useState<any[]>([])
-  const [search, setSearch] = useState('')
-  const [tipoFilter, setTipoFilter] = useState('Todos')
+  const [search, setSearch] = useState(() => sessionStorage.getItem('contatos_search') || '')
+  const [tipoFilter, setTipoFilter] = useState(
+    () => sessionStorage.getItem('contatos_tipoFilter') || 'Todos',
+  )
   const [isOpen, setIsOpen] = useState(false)
   const [form, setForm] = useState<{ id?: string } & typeof defaultForm>(defaultForm)
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const [startDate, setStartDate] = useState(
+    () => sessionStorage.getItem('contatos_startDate') || '',
+  )
+  const [endDate, setEndDate] = useState(() => sessionStorage.getItem('contatos_endDate') || '')
   const { toast } = useToast()
+
+  useEffect(() => {
+    sessionStorage.setItem('contatos_search', search)
+    sessionStorage.setItem('contatos_tipoFilter', tipoFilter)
+    sessionStorage.setItem('contatos_startDate', startDate)
+    sessionStorage.setItem('contatos_endDate', endDate)
+  }, [search, tipoFilter, startDate, endDate])
 
   const fetchContatos = async () => {
     const { data } = await supabase.from('contatos').select('*').order('nome')
@@ -169,7 +180,10 @@ export default function Contatos() {
             }}
           >
             <DialogTrigger asChild>
-              <Button className="shrink-0 shadow-sm" onClick={() => setForm(defaultForm)}>
+              <Button
+                className="shrink-0 shadow-sm"
+                onClick={() => setForm({ ...defaultForm, codigo_id: generateNextId() })}
+              >
                 <Plus className="w-4 h-4 mr-2" /> Novo Contato
               </Button>
             </DialogTrigger>

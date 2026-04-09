@@ -67,19 +67,47 @@ import {
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
-import { Filter } from 'lucide-react'
+import { Filter, Download } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { exportToCsv } from '@/lib/export'
 
 export default function Dashboard() {
   const { pericias } = usePericias()
   const { lancamentos } = useLancamentos()
   const [allDocs, setAllDocs] = useState<any[]>([])
   const [showHistory, setShowHistory] = useState(false)
-  const [filterDate, setFilterDate] = useState('')
-  const [filterType, setFilterType] = useState('all')
-  const [filterVara, setFilterVara] = useState('all')
-  const [dashboardPeriod, setDashboardPeriod] = useState<'6m' | '12m' | 'ytd'>('12m')
-  const [rankingFilter, setRankingFilter] = useState('')
-  const [showOnlyBottlenecks, setShowOnlyBottlenecks] = useState(false)
+  const [filterDate, setFilterDate] = useState(
+    () => sessionStorage.getItem('dashboard_filterDate') || '',
+  )
+  const [filterType, setFilterType] = useState(
+    () => sessionStorage.getItem('dashboard_filterType') || 'all',
+  )
+  const [filterVara, setFilterVara] = useState(
+    () => sessionStorage.getItem('dashboard_filterVara') || 'all',
+  )
+  const [dashboardPeriod, setDashboardPeriod] = useState<'6m' | '12m' | 'ytd'>(
+    () => (sessionStorage.getItem('dashboard_period') as any) || '12m',
+  )
+  const [rankingFilter, setRankingFilter] = useState(
+    () => sessionStorage.getItem('dashboard_rankingFilter') || '',
+  )
+  const [showOnlyBottlenecks, setShowOnlyBottlenecks] = useState(
+    () => sessionStorage.getItem('dashboard_showOnlyBottlenecks') === 'true',
+  )
+
+  useEffect(() => {
+    sessionStorage.setItem('dashboard_filterDate', filterDate)
+    sessionStorage.setItem('dashboard_filterType', filterType)
+    sessionStorage.setItem('dashboard_filterVara', filterVara)
+    sessionStorage.setItem('dashboard_period', dashboardPeriod)
+    sessionStorage.setItem('dashboard_rankingFilter', rankingFilter)
+    sessionStorage.setItem('dashboard_showOnlyBottlenecks', String(showOnlyBottlenecks))
+  }, [filterDate, filterType, filterVara, dashboardPeriod, rankingFilter, showOnlyBottlenecks])
 
   const globaisAceitasRecusadas = useMemo(() => {
     let aceitas = 0
@@ -556,16 +584,63 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold tracking-tight">Dashboard de Performance</h1>
           <p className="text-muted-foreground">Resumo financeiro e indicadores de produtividade.</p>
         </div>
-        <Select value={dashboardPeriod} onValueChange={(v: any) => setDashboardPeriod(v)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Período" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="6m">Últimos 6 meses</SelectItem>
-            <SelectItem value="12m">Últimos 12 meses</SelectItem>
-            <SelectItem value="ytd">Ano Atual</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col sm:flex-row items-center gap-2">
+          <Select value={dashboardPeriod} onValueChange={(v: any) => setDashboardPeriod(v)}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="6m">Últimos 6 meses</SelectItem>
+              <SelectItem value="12m">Últimos 12 meses</SelectItem>
+              <SelectItem value="ytd">Ano Atual</SelectItem>
+            </SelectContent>
+          </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto shadow-sm">
+                <Download className="mr-2 h-4 w-4" />
+                Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => window.print()}>
+                Exportar PDF (Visualização)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  exportToCsv(
+                    'dashboard_peritos.csv',
+                    peritosStats.map((p) => ({
+                      Perito: p.nome,
+                      Nomeações: p.nomeacoes,
+                      Aceitas: p.aceites,
+                      Recusadas: p.recusadas,
+                      'Total Recebido': p.recebido,
+                    })),
+                  )
+                }
+              >
+                Excel - Produtividade Peritos
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  exportToCsv(
+                    'dashboard_historico.csv',
+                    produtividadeHistoricaData.map((p) => ({
+                      Mês: p.label,
+                      Nomeações: p.nomeacoes,
+                      Aceitas: p.aceites,
+                      'Laudos Entregues': p.laudosEntregues,
+                      Honorários: p.honorarios,
+                    })),
+                  )
+                }
+              >
+                Excel - Produtividade Histórica
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Finance KPIs */}
