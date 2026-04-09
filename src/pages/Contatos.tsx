@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Plus, Trash, Phone, Mail, MapPin, Download } from 'lucide-react'
+import { Search, Plus, Trash, Phone, Mail, MapPin, Download, Pencil } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -29,22 +29,24 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { exportToCsv } from '@/lib/export'
 
+const defaultForm = {
+  tipo: 'Advogado',
+  nome: '',
+  telefone: '',
+  telefone_celular: '',
+  telefone_alternativo: '',
+  email: '',
+  endereco: '',
+  codigo_id: '',
+  observacoes: '',
+}
+
 export default function Contatos() {
   const [contatos, setContatos] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [tipoFilter, setTipoFilter] = useState('Todos')
   const [isOpen, setIsOpen] = useState(false)
-  const [form, setForm] = useState({
-    tipo: 'Advogado',
-    nome: '',
-    telefone: '',
-    telefone_celular: '',
-    telefone_alternativo: '',
-    email: '',
-    endereco: '',
-    codigo_id: '',
-    observacoes: '',
-  })
+  const [form, setForm] = useState<{ id?: string } & typeof defaultForm>(defaultForm)
   const { toast } = useToast()
 
   const fetchContatos = async () => {
@@ -56,27 +58,48 @@ export default function Contatos() {
     fetchContatos()
   }, [])
 
+  const generateNextId = () => {
+    const existingIds = contatos
+      .map((c) => c.codigo_id)
+      .filter((id) => id && id.startsWith('CT-'))
+      .map((id) => parseInt(id.replace('CT-', ''), 10))
+      .filter((n) => !isNaN(n))
+
+    const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0
+    return `CT-${String(maxId + 1).padStart(4, '0')}`
+  }
+
   const handleSave = async () => {
     if (!form.nome)
       return toast({ title: 'Erro', description: 'Nome é obrigatório', variant: 'destructive' })
-    const { error } = await supabase.from('contatos').insert([form])
-    if (error)
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' })
-    else {
-      toast({ title: 'Sucesso', description: 'Contato salvo!' })
-      setIsOpen(false)
-      setForm({
-        tipo: 'Advogado',
-        nome: '',
-        telefone: '',
-        telefone_celular: '',
-        telefone_alternativo: '',
-        email: '',
-        endereco: '',
-        codigo_id: '',
-        observacoes: '',
-      })
-      fetchContatos()
+
+    const dataToSave = { ...form }
+    delete dataToSave.id
+
+    if (!dataToSave.codigo_id && !form.id) {
+      dataToSave.codigo_id = generateNextId()
+    }
+
+    if (form.id) {
+      const { error } = await supabase.from('contatos').update(dataToSave).eq('id', form.id)
+      if (error) {
+        toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' })
+      } else {
+        toast({ title: 'Sucesso', description: 'Contato atualizado!' })
+        setIsOpen(false)
+        setForm(defaultForm)
+        fetchContatos()
+      }
+    } else {
+      const { error } = await supabase.from('contatos').insert([dataToSave])
+      if (error) {
+        toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' })
+      } else {
+        toast({ title: 'Sucesso', description: 'Contato salvo!' })
+        setIsOpen(false)
+        setForm(defaultForm)
+        fetchContatos()
+      }
     }
   }
 
@@ -126,15 +149,21 @@ export default function Contatos() {
             <Download className="mr-2 h-4 w-4" />
             Exportar
           </Button>
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <Dialog
+            open={isOpen}
+            onOpenChange={(open) => {
+              setIsOpen(open)
+              if (!open) setForm(defaultForm)
+            }}
+          >
             <DialogTrigger asChild>
-              <Button className="shrink-0 shadow-sm">
+              <Button className="shrink-0 shadow-sm" onClick={() => setForm(defaultForm)}>
                 <Plus className="w-4 h-4 mr-2" /> Novo Contato
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] overflow-y-auto max-h-[90vh]">
               <DialogHeader>
-                <DialogTitle>Novo Contato</DialogTitle>
+                <DialogTitle>{form.id ? 'Editar Contato' : 'Novo Contato'}</DialogTitle>
               </DialogHeader>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                 <div className="space-y-2 md:col-span-2">
@@ -186,6 +215,7 @@ export default function Contatos() {
                   <Input
                     value={form.codigo_id}
                     onChange={(e) => setForm({ ...form, codigo_id: e.target.value })}
+                    placeholder="Auto se vazio"
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
@@ -308,14 +338,27 @@ export default function Contatos() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(c.id)}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
-                    >
-                      <Trash className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setForm(c)
+                          setIsOpen(true)
+                        }}
+                        className="text-primary hover:bg-muted h-8 w-8"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(c.id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

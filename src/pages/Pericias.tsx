@@ -265,7 +265,14 @@ export default function Pericias() {
       case 'atrasado':
         return <Badge variant="destructive">Atrasado</Badge>
       case 'recusada':
-        return <Badge className="bg-purple-500 hover:bg-purple-600 text-white">Recusada</Badge>
+        return (
+          <Badge
+            variant="outline"
+            className="bg-purple-100 text-purple-800 hover:bg-purple-200 border-purple-300"
+          >
+            Recusada
+          </Badge>
+        )
       case 'pendente':
       default:
         return (
@@ -293,7 +300,14 @@ export default function Pericias() {
           </Badge>
         )
       case 'Recusada':
-        return <Badge className="bg-purple-500 hover:bg-purple-600 text-white">Recusada</Badge>
+        return (
+          <Badge
+            variant="outline"
+            className="bg-purple-100 text-purple-800 hover:bg-purple-200 border-purple-300"
+          >
+            Recusada
+          </Badge>
+        )
       default:
         return <Badge>{status}</Badge>
     }
