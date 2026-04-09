@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Plus, Trash, Phone, Mail, MapPin, Download, Pencil } from 'lucide-react'
+import { Search, Plus, Trash, Phone, Mail, MapPin, Download, Pencil, Filter } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Dialog,
