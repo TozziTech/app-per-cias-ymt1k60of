@@ -60,6 +60,8 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Label } from '@/components/ui/label'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -122,6 +124,10 @@ export default function Pericias() {
   const [editingPeticaoText, setEditingPeticaoText] = useState('')
   const [periciaToDelete, setPericiaToDelete] = useState<Pericia | null>(null)
 
+  const [dateFilterType, setDateFilterType] = useState('dataNomeacao')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+
   const fetchLogs = async (periciaId: string) => {
     setIsLoadingLogs(true)
     try {
@@ -152,11 +158,28 @@ export default function Pericias() {
     const matchSearch =
       (p.codigoInterno || '').toLowerCase().includes(searchLower) ||
       (p.numeroProcesso || '').toLowerCase().includes(searchLower) ||
+      (p.peritoAssociado || '').toLowerCase().includes(searchLower) ||
       (p.id || '').toLowerCase().includes(searchLower)
 
     const matchStatus = statusFilter === 'todos' || p.status === statusFilter
 
-    return matchSearch && matchStatus
+    let matchesDate = true
+    if (startDate || endDate) {
+      // Find the correct date field
+      const dateField =
+        (p as any)[dateFilterType] ||
+        (p as any)[dateFilterType.replace(/([A-Z])/g, '_$1').toLowerCase()]
+
+      if (dateField) {
+        const dateStr = String(dateField).substring(0, 10)
+        if (startDate && dateStr < startDate) matchesDate = false
+        if (endDate && dateStr > endDate) matchesDate = false
+      } else {
+        matchesDate = false // If filtering by a date type and the pericia doesn't have it
+      }
+    }
+
+    return matchSearch && matchStatus && matchesDate
   })
 
   const parseDateSafe = (d: string | Date | undefined | null): Date | null => {
@@ -846,7 +869,7 @@ export default function Pericias() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Buscar ID, Processo..."
+                  placeholder="Buscar ID, Processo, Perito..."
                   className="pl-8"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -865,6 +888,69 @@ export default function Pericias() {
                   <SelectItem value="Recusada">Recusada</SelectItem>
                 </SelectContent>
               </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto shrink-0"
+                    size="icon"
+                    title="Filtros Avançados"
+                  >
+                    <Filter className="w-4 h-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="end">
+                  <div className="space-y-4">
+                    <h4 className="font-medium leading-none flex items-center gap-2">
+                      <Filter className="w-4 h-4 text-primary" /> Filtros Avançados
+                    </h4>
+                    <div className="space-y-2">
+                      <Label>Tipo de Data</Label>
+                      <Select value={dateFilterType} onValueChange={setDateFilterType}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="dataNomeacao">Data de Nomeação</SelectItem>
+                          <SelectItem value="dataPericia">Data da Perícia</SelectItem>
+                          <SelectItem value="dataEntregaLaudo">Entrega do Laudo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2">
+                        <Label>Data Inicial</Label>
+                        <Input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Data Final</Label>
+                        <Input
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    {(startDate || endDate) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full mt-2 text-destructive"
+                        onClick={() => {
+                          setStartDate('')
+                          setEndDate('')
+                        }}
+                      >
+                        Limpar Datas
+                      </Button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </CardHeader>

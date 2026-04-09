@@ -18,6 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Search, Plus, Trash, Phone, Mail, MapPin, Download, Pencil } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,8 @@ export default function Contatos() {
   const [tipoFilter, setTipoFilter] = useState('Todos')
   const [isOpen, setIsOpen] = useState(false)
   const [form, setForm] = useState<{ id?: string } & typeof defaultForm>(defaultForm)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const { toast } = useToast()
 
   const fetchContatos = async () => {
@@ -61,12 +64,12 @@ export default function Contatos() {
   const generateNextId = () => {
     const existingIds = contatos
       .map((c) => c.codigo_id)
-      .filter((id) => id && id.startsWith('CT-'))
-      .map((id) => parseInt(id.replace('CT-', ''), 10))
+      .filter((id) => id && id.toUpperCase().startsWith('CT-'))
+      .map((id) => parseInt(id.toUpperCase().replace('CT-', ''), 10))
       .filter((n) => !isNaN(n))
 
     const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0
-    return `CT-${String(maxId + 1).padStart(4, '0')}`
+    return `CT-${String(maxId + 1).padStart(3, '0')}`
   }
 
   const handleSave = async () => {
@@ -109,12 +112,21 @@ export default function Contatos() {
     fetchContatos()
   }
 
-  const filtered = contatos.filter(
-    (c) =>
+  const filtered = contatos.filter((c) => {
+    let matchesDate = true
+    if (startDate || endDate) {
+      const dateStr = String(c.created_at).substring(0, 10)
+      if (startDate && dateStr < startDate) matchesDate = false
+      if (endDate && dateStr > endDate) matchesDate = false
+    }
+
+    return (
       (tipoFilter === 'Todos' || c.tipo === tipoFilter) &&
       (c.nome.toLowerCase().includes(search.toLowerCase()) ||
-        (c.codigo_id && c.codigo_id.toLowerCase().includes(search.toLowerCase()))),
-  )
+        (c.codigo_id && c.codigo_id.toLowerCase().includes(search.toLowerCase()))) &&
+      matchesDate
+    )
+  })
 
   const handleExportExcel = () => {
     exportToCsv(
@@ -271,6 +283,52 @@ export default function Contatos() {
             ))}
           </SelectContent>
         </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto shrink-0"
+              size="icon"
+              title="Filtros Avançados"
+            >
+              <Filter className="w-4 h-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" align="end">
+            <div className="space-y-4">
+              <h4 className="font-medium leading-none flex items-center gap-2">
+                <Filter className="w-4 h-4 text-primary" /> Filtros por Criação
+              </h4>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Data Inicial</Label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Data Final</Label>
+                  <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                </div>
+              </div>
+              {(startDate || endDate) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full mt-2 text-destructive"
+                  onClick={() => {
+                    setStartDate('')
+                    setEndDate('')
+                  }}
+                >
+                  Limpar Datas
+                </Button>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="rounded-md border bg-card text-card-foreground shadow-sm overflow-hidden">

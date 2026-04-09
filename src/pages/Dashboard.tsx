@@ -15,6 +15,9 @@ import {
   CartesianGrid,
   ComposedChart,
   Legend,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 import { differenceInDays } from 'date-fns'
@@ -77,6 +80,47 @@ export default function Dashboard() {
   const [dashboardPeriod, setDashboardPeriod] = useState<'6m' | '12m' | 'ytd'>('12m')
   const [rankingFilter, setRankingFilter] = useState('')
   const [showOnlyBottlenecks, setShowOnlyBottlenecks] = useState(false)
+
+  const globaisAceitasRecusadas = useMemo(() => {
+    let aceitas = 0
+    let recusadas = 0
+    pericias.forEach((p) => {
+      if (p.aceite === 'Aceito') aceitas++
+      if (p.aceite === 'Recusado' || p.status === 'Recusada') recusadas++
+    })
+    return [
+      { name: 'Aceitas', value: aceitas, fill: '#10b981' },
+      { name: 'Recusadas', value: recusadas, fill: '#a855f7' },
+    ].filter((d) => d.value > 0)
+  }, [pericias])
+
+  const peritosStats = useMemo(() => {
+    const stats: Record<
+      string,
+      { nome: string; nomeacoes: number; aceites: number; recusadas: number; recebido: number }
+    > = {}
+
+    pericias.forEach((p) => {
+      const nome = p.peritoAssociado || 'Sem Perito'
+      if (!stats[nome]) stats[nome] = { nome, nomeacoes: 0, aceites: 0, recusadas: 0, recebido: 0 }
+
+      stats[nome].nomeacoes += 1
+      if (p.aceite === 'Aceito') stats[nome].aceites += 1
+      if (p.aceite === 'Recusado' || p.status === 'Recusada') stats[nome].recusadas += 1
+    })
+
+    lancamentos.forEach((l) => {
+      if (l.tipo === 'receita' && (l.status === 'recebido' || l.status === 'pago')) {
+        const p = pericias.find((per) => per.id === l.pericia_id)
+        const nome = p?.peritoAssociado || 'Sem Perito'
+        if (!stats[nome])
+          stats[nome] = { nome, nomeacoes: 0, aceites: 0, recusadas: 0, recebido: 0 }
+        stats[nome].recebido += Number(l.valor) || 0
+      }
+    })
+
+    return Object.values(stats).sort((a, b) => b.nomeacoes - a.nomeacoes)
+  }, [pericias, lancamentos])
 
   useEffect(() => {
     async function fetchDocs() {
@@ -862,6 +906,128 @@ export default function Dashboard() {
           </ChartContainer>
         </CardContent>
       </Card>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="shadow-sm md:col-span-1">
+          <CardHeader>
+            <CardTitle>Aceites vs Recusas</CardTitle>
+            <CardDescription>Volume global de aceites e recusas.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            {globaisAceitasRecusadas.length === 0 ? (
+              <div className="flex items-center justify-center h-[250px] text-muted-foreground text-sm">
+                Nenhum dado encontrado
+              </div>
+            ) : (
+              <ChartContainer
+                config={{
+                  aceitas: { label: 'Aceitas', color: '#10b981' },
+                  recusadas: { label: 'Recusadas', color: '#a855f7' },
+                }}
+                className="h-[250px] w-full"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={globaisAceitasRecusadas}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {globaisAceitasRecusadas.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm md:col-span-2">
+          <CardHeader>
+            <CardTitle>Produtividade por Perito</CardTitle>
+            <CardDescription>
+              Nomeações, Aceites e Recusas agrupadas por profissional.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {peritosStats.length === 0 ? (
+              <div className="flex items-center justify-center h-[250px] text-muted-foreground text-sm">
+                Nenhum dado encontrado
+              </div>
+            ) : (
+              <ChartContainer
+                config={{
+                  nomeacoes: { label: 'Nomeações', color: '#3b82f6' },
+                  aceites: { label: 'Aceitas', color: '#10b981' },
+                  recusadas: { label: 'Recusadas', color: '#a855f7' },
+                }}
+                className="h-[250px] w-full"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={peritosStats} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="nome" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis fontSize={12} tickLine={false} axisLine={false} width={30} />
+                    <Tooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    <Bar dataKey="nomeacoes" fill="var(--color-nomeacoes)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="aceites" fill="var(--color-aceites)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="recusadas" fill="var(--color-recusadas)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm md:col-span-3">
+          <CardHeader>
+            <CardTitle>Recebimentos por Perito</CardTitle>
+            <CardDescription>Total de honorários recebidos por profissional.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {peritosStats.filter((p) => p.recebido > 0).length === 0 ? (
+              <div className="flex items-center justify-center h-[250px] text-muted-foreground text-sm">
+                Nenhum honorário recebido
+              </div>
+            ) : (
+              <ChartContainer
+                config={{
+                  recebido: { label: 'Total Recebido', color: '#f59e0b' },
+                }}
+                className="h-[250px] w-full"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={peritosStats.filter((p) => p.recebido > 0)}
+                    margin={{ top: 10, right: 10, left: 30, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="nome" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(v) => `R$ ${v}`}
+                      width={80}
+                    />
+                    <Tooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="recebido" fill="var(--color-recebido)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="shadow-sm">
         <CardHeader className="flex flex-col md:flex-row md:items-start justify-between gap-4">
