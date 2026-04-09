@@ -22,6 +22,7 @@ import PortalPerito from './pages/PortalPerito'
 import Tarefas from './pages/Tarefas'
 import Usuarios from './pages/Usuarios'
 import Auditoria from './pages/Auditoria'
+import Captacao from './pages/Captacao'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -45,6 +46,7 @@ const App = () => (
                   <Route path="/contatos" element={<Contatos />} />
                   <Route path="/peritos" element={<Peritos />} />
                   <Route path="/peritos/:id" element={<PeritoDetalhes />} />
+                  <Route path="/captacao" element={<Captacao />} />
                   <Route path="/portal-perito" element={<PortalPerito />} />
                   <Route path="/tarefas" element={<Tarefas />} />
                   <Route path="/usuarios" element={<Usuarios />} />

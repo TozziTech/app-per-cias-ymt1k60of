@@ -12,6 +12,7 @@ import {
   CheckSquare,
   Shield,
   Activity,
+  PhoneCall,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -32,6 +33,7 @@ const menuGroups = [
     items: [
       { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, adminOnly: false },
       { title: 'Gerenciamento de Perícias', url: '/pericias', icon: FileText, adminOnly: true },
+      { title: 'Captação', url: '/captacao', icon: PhoneCall, adminOnly: false },
       { title: 'Portal do Perito', url: '/portal-perito', icon: Briefcase, adminOnly: false },
       { title: 'Calendário', url: '/calendario', icon: Calendar, adminOnly: false },
       { title: 'Tarefas', url: '/tarefas', icon: CheckSquare, adminOnly: false },
