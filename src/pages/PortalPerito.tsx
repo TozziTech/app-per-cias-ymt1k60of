@@ -55,6 +55,8 @@ import {
   AlertCircle,
   Download,
   AlertTriangle,
+  Banknote,
+  Scale,
 } from 'lucide-react'
 
 interface ChecklistItem {
@@ -363,6 +365,17 @@ export default function PortalPerito() {
     }
   }
 
+  const honorariosAReceber = pericias.reduce((acc, p) => {
+    const statusPag = (p.statusPagamento || p.status_pagamento || '').toLowerCase()
+    if (p.status !== 'Cancelado' && statusPag !== 'pago' && statusPag !== 'recebido') {
+      return acc + (Number(p.honorarios) || 0)
+    }
+    return acc
+  }, 0)
+
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
+
   const getDeadlineInfo = (dateString?: string, status?: string) => {
     if (!dateString || status === 'Concluído' || status === 'Cancelado') return null
     const deadline = new Date(dateString)
@@ -404,10 +417,10 @@ export default function PortalPerito() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full md:w-auto mt-4 md:mt-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full mt-4 md:mt-0">
           <Card className="bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors hover:bg-zinc-200/50 dark:hover:bg-zinc-800/80">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-blue-500/10 rounded-xl">
+            <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="p-3 bg-blue-500/10 rounded-xl shrink-0">
                 <Briefcase className="h-6 w-6 text-blue-500" />
               </div>
               <div>
@@ -417,8 +430,8 @@ export default function PortalPerito() {
             </CardContent>
           </Card>
           <Card className="bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors hover:bg-zinc-200/50 dark:hover:bg-zinc-800/80">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-orange-500/10 rounded-xl">
+            <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="p-3 bg-orange-500/10 rounded-xl shrink-0">
                 <Clock className="h-6 w-6 text-orange-500" />
               </div>
               <div>
@@ -428,14 +441,29 @@ export default function PortalPerito() {
             </CardContent>
           </Card>
           <Card className="bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors hover:bg-zinc-200/50 dark:hover:bg-zinc-800/80">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-emerald-500/10 rounded-xl">
+            <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="p-3 bg-emerald-500/10 rounded-xl shrink-0">
                 <CheckCircle2 className="h-6 w-6 text-emerald-500" />
               </div>
               <div>
                 <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Concluídas</p>
                 <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
                   {completedCount}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50 shadow-sm transition-colors hover:bg-emerald-100/50 dark:hover:bg-emerald-900/40">
+            <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="p-3 bg-emerald-500/20 rounded-xl shrink-0">
+                <Banknote className="h-6 w-6 text-emerald-600 dark:text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                  A Receber
+                </p>
+                <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-300">
+                  {formatCurrency(honorariosAReceber)}
                 </p>
               </div>
             </CardContent>
@@ -641,6 +669,9 @@ export default function PortalPerito() {
                               <TabsTrigger value="mensagens" className="flex-1 text-xs sm:text-sm">
                                 Chat
                               </TabsTrigger>
+                              <TabsTrigger value="peticoes" className="flex-1 text-xs sm:text-sm">
+                                Petições
+                              </TabsTrigger>
                               <TabsTrigger
                                 value="historico"
                                 className="flex-1 text-xs sm:text-sm"
@@ -654,14 +685,80 @@ export default function PortalPerito() {
                           <ScrollArea className="flex-1 p-6">
                             <TabsContent value="detalhes" className="mt-0 h-full">
                               <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50 flex items-center justify-between">
+                                    <div>
+                                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1 uppercase tracking-wider">
+                                        Honorários
+                                      </p>
+                                      <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
+                                        {formatCurrency(Number(pericia.honorarios))}
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1 uppercase tracking-wider">
+                                        Status Pagamento
+                                      </p>
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-white dark:bg-zinc-900 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400"
+                                      >
+                                        {pericia.status_pagamento ||
+                                          pericia.statusPagamento ||
+                                          'Pendente'}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50 flex flex-col justify-center">
+                                    <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1 uppercase tracking-wider">
+                                      Adiantamento (50%)
+                                    </p>
+                                    <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                                      {pericia.adiantamentoSolicitado
+                                        ? 'Solicitado'
+                                        : 'Não Solicitado'}
+                                    </p>
+                                  </div>
+                                </div>
+
                                 <div>
                                   <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
                                     Informações Gerais
                                   </h4>
-                                  <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
+                                    <div className="sm:col-span-2">
+                                      <p className="text-xs text-zinc-500 mb-1">
+                                        Endereço da Perícia
+                                      </p>
+                                      <div className="flex items-start gap-2">
+                                        <MapPin className="h-4 w-4 text-zinc-400 mt-0.5 shrink-0" />
+                                        <p className="text-sm font-medium">
+                                          {pericia.endereco || 'Não informado'}
+                                        </p>
+                                      </div>
+                                    </div>
                                     <div>
-                                      <p className="text-xs text-zinc-500 mb-1">Juiz</p>
-                                      <p className="text-sm font-medium">{pericia.juiz || '-'}</p>
+                                      <p className="text-xs text-zinc-500 mb-1">Justiça Gratuita</p>
+                                      <Badge
+                                        variant={pericia.justicaGratuita ? 'default' : 'secondary'}
+                                        className="mt-1"
+                                      >
+                                        {pericia.justicaGratuita ? 'Sim' : 'Não'}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
+                                    Cronograma e Prazos
+                                  </h4>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
+                                    <div>
+                                      <p className="text-xs text-zinc-500 mb-1">Data de Nomeação</p>
+                                      <p className="text-sm font-medium">
+                                        {formatDate(pericia.dataNomeacao)}
+                                      </p>
                                     </div>
                                     <div>
                                       <p className="text-xs text-zinc-500 mb-1">Data da Perícia</p>
@@ -670,9 +767,7 @@ export default function PortalPerito() {
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-xs text-zinc-500 mb-1">
-                                        Prazo Entrega Laudo
-                                      </p>
+                                      <p className="text-xs text-zinc-500 mb-1">Entrega do Laudo</p>
                                       <div className="flex items-center gap-2">
                                         <p className="text-sm font-medium">
                                           {formatDate(pericia.dataEntregaLaudo)}
@@ -695,13 +790,20 @@ export default function PortalPerito() {
                                       </div>
                                     </div>
                                     <div>
-                                      <p className="text-xs text-zinc-500 mb-1">Justiça Gratuita</p>
-                                      <Badge
-                                        variant={pericia.justicaGratuita ? 'default' : 'secondary'}
-                                        className="mt-1"
-                                      >
-                                        {pericia.justicaGratuita ? 'Sim' : 'Não'}
-                                      </Badge>
+                                      <p className="text-xs text-zinc-500 mb-1">
+                                        Entrega Impugnação
+                                      </p>
+                                      <p className="text-sm font-medium">
+                                        {formatDate(pericia.entregaImpugnacao)}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-zinc-500 mb-1">
+                                        Entrega Esclarecimentos
+                                      </p>
+                                      <p className="text-sm font-medium">
+                                        {formatDate(pericia.entregaEsclarecimentos)}
+                                      </p>
                                     </div>
                                   </div>
                                 </div>
@@ -711,31 +813,42 @@ export default function PortalPerito() {
                                     Partes Envolvidas
                                   </h4>
                                   <div className="space-y-4">
-                                    <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg">
-                                      <p className="text-xs text-zinc-500 font-medium mb-1 uppercase tracking-wider">
-                                        Parte Autora
-                                      </p>
-                                      <p className="text-sm font-medium">
-                                        {pericia.advogadoAutora || '-'}
-                                      </p>
-                                      {pericia.assistenteTecnicoAutora && (
-                                        <p className="text-xs text-zinc-500 mt-1">
-                                          Assistente: {pericia.assistenteTecnicoAutora}
+                                    <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg flex items-center gap-3 border border-zinc-100 dark:border-zinc-800">
+                                      <Scale className="h-5 w-5 text-zinc-400" />
+                                      <div>
+                                        <p className="text-xs text-zinc-500 font-medium mb-0.5 uppercase tracking-wider">
+                                          Juiz
                                         </p>
-                                      )}
+                                        <p className="text-sm font-medium">{pericia.juiz || '-'}</p>
+                                      </div>
                                     </div>
-                                    <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg">
-                                      <p className="text-xs text-zinc-500 font-medium mb-1 uppercase tracking-wider">
-                                        Parte Ré
-                                      </p>
-                                      <p className="text-sm font-medium">
-                                        {pericia.advogadoRe || '-'}
-                                      </p>
-                                      {pericia.assistenteTecnicoRe && (
-                                        <p className="text-xs text-zinc-500 mt-1">
-                                          Assistente: {pericia.assistenteTecnicoRe}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                      <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                                        <p className="text-xs text-zinc-500 font-medium mb-1 uppercase tracking-wider">
+                                          Parte Autora
                                         </p>
-                                      )}
+                                        <p className="text-sm font-medium">
+                                          {pericia.advogadoAutora || '-'}
+                                        </p>
+                                        {pericia.assistenteTecnicoAutora && (
+                                          <p className="text-xs text-zinc-500 mt-1">
+                                            Assistente: {pericia.assistenteTecnicoAutora}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                                        <p className="text-xs text-zinc-500 font-medium mb-1 uppercase tracking-wider">
+                                          Parte Ré
+                                        </p>
+                                        <p className="text-sm font-medium">
+                                          {pericia.advogadoRe || '-'}
+                                        </p>
+                                        {pericia.assistenteTecnicoRe && (
+                                          <p className="text-xs text-zinc-500 mt-1">
+                                            Assistente: {pericia.assistenteTecnicoRe}
+                                          </p>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
@@ -898,6 +1011,60 @@ export default function PortalPerito() {
                               {currentUser && (
                                 <ChatPanel periciaId={pericia.id} currentUserId={currentUser.id} />
                               )}
+                            </TabsContent>
+
+                            <TabsContent value="peticoes" className="mt-0 h-full">
+                              <div className="space-y-4">
+                                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
+                                  Histórico de Petições
+                                </h4>
+                                {(() => {
+                                  const peticoesPericia = peticoes.filter(
+                                    (p) => p.periciaId === pericia.id,
+                                  )
+                                  if (peticoesPericia.length === 0) {
+                                    return (
+                                      <div className="flex flex-col items-center justify-center text-center py-8 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+                                        <FileText className="h-8 w-8 text-zinc-300 mb-2" />
+                                        <p className="text-sm text-zinc-500">
+                                          Nenhuma petição registrada nesta perícia.
+                                        </p>
+                                      </div>
+                                    )
+                                  }
+                                  return (
+                                    <div className="space-y-3">
+                                      {peticoesPericia.map((pet) => (
+                                        <div
+                                          key={pet.id}
+                                          className="flex flex-col p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm"
+                                        >
+                                          <div className="flex justify-between items-start mb-1">
+                                            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                              {pet.titulo}
+                                            </p>
+                                            <Badge
+                                              variant="outline"
+                                              className={
+                                                pet.status.toLowerCase() === 'concluído' ||
+                                                pet.status.toLowerCase() === 'protocolada'
+                                                  ? 'text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30'
+                                                  : 'text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-950/30'
+                                              }
+                                            >
+                                              {pet.status}
+                                            </Badge>
+                                          </div>
+                                          <div className="flex items-center gap-1 text-xs text-zinc-500 mt-2">
+                                            <Calendar className="h-3 w-3" />
+                                            {formatDate(pet.data)}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )
+                                })()}
+                              </div>
                             </TabsContent>
 
                             <TabsContent value="historico" className="mt-0 h-full">
