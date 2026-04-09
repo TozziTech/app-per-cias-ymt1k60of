@@ -139,7 +139,7 @@ export default function Pericias() {
   const [endDate, setEndDate] = useState(() => sessionStorage.getItem('pericias_endDate') || '')
 
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
-    const saved = sessionStorage.getItem('pericias_columns')
+    const saved = localStorage.getItem('pericias_columns')
     if (saved) return JSON.parse(saved)
     return {
       codigo: true,
@@ -158,8 +158,11 @@ export default function Pericias() {
     sessionStorage.setItem('pericias_dateFilterType', dateFilterType)
     sessionStorage.setItem('pericias_startDate', startDate)
     sessionStorage.setItem('pericias_endDate', endDate)
-    sessionStorage.setItem('pericias_columns', JSON.stringify(visibleColumns))
-  }, [searchTerm, statusFilter, dateFilterType, startDate, endDate, visibleColumns])
+  }, [searchTerm, statusFilter, dateFilterType, startDate, endDate])
+
+  useEffect(() => {
+    localStorage.setItem('pericias_columns', JSON.stringify(visibleColumns))
+  }, [visibleColumns])
 
   const fetchLogs = async (periciaId: string) => {
     setIsLoadingLogs(true)

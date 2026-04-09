@@ -62,7 +62,7 @@ export default function Contatos() {
   )
   const [endDate, setEndDate] = useState(() => sessionStorage.getItem('contatos_endDate') || '')
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
-    const saved = sessionStorage.getItem('contatos_columns')
+    const saved = localStorage.getItem('contatos_columns')
     if (saved) return JSON.parse(saved)
     return {
       tipo: true,
@@ -78,8 +78,11 @@ export default function Contatos() {
     sessionStorage.setItem('contatos_tipoFilter', tipoFilter)
     sessionStorage.setItem('contatos_startDate', startDate)
     sessionStorage.setItem('contatos_endDate', endDate)
-    sessionStorage.setItem('contatos_columns', JSON.stringify(visibleColumns))
-  }, [search, tipoFilter, startDate, endDate, visibleColumns])
+  }, [search, tipoFilter, startDate, endDate])
+
+  useEffect(() => {
+    localStorage.setItem('contatos_columns', JSON.stringify(visibleColumns))
+  }, [visibleColumns])
 
   const fetchContatos = async () => {
     const { data } = await supabase.from('contatos').select('*').order('nome')
