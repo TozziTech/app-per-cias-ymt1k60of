@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { Pericia } from '@/lib/types'
 import { updatePericia, uploadAnexo, deleteAnexo, getAnexoUrl } from '@/services/pericias'
+import { exportToCsv } from '@/lib/export'
 import {
   Card,
   CardContent,
@@ -28,7 +29,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
-import { format } from 'date-fns'
+import { format, differenceInDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Briefcase,
@@ -46,6 +47,8 @@ import {
   CheckSquare,
   Info,
   AlertCircle,
+  Download,
+  AlertTriangle,
 } from 'lucide-react'
 
 interface ChecklistItem {
@@ -293,6 +296,30 @@ export default function PortalPerito() {
       p.assistenteTecnicoRe?.toLowerCase().includes(searchTermLower),
   )
 
+  const handleExportCsv = () => {
+    if (filteredPericias.length === 0) {
+      toast({ title: 'Nenhuma perícia para exportar', variant: 'destructive' })
+      return
+    }
+
+    const exportData = filteredPericias.map((p) => ({
+      'Número do Processo': p.numeroProcesso || '-',
+      Status: p.status || '-',
+      'Data da Perícia': p.dataPericia ? format(new Date(p.dataPericia), 'dd/MM/yyyy') : '-',
+      'Prazo Entrega Laudo': p.dataEntregaLaudo
+        ? format(new Date(p.dataEntregaLaudo), 'dd/MM/yyyy')
+        : '-',
+      Vara: p.vara || '-',
+      Cidade: p.cidade || '-',
+      Juiz: p.juiz || '-',
+      'Parte Autora': p.advogadoAutora || '-',
+      'Parte Ré': p.advogadoRe || '-',
+    }))
+
+    exportToCsv('relatorio_pericias.csv', exportData)
+    toast({ title: 'Relatório exportado com sucesso!' })
+  }
+
   const filteredPeticoes = peticoes.filter(
     (p) =>
       p.numeroProcesso?.toLowerCase().includes(searchTermPeticoes.toLowerCase()) ||
@@ -317,6 +344,30 @@ export default function PortalPerito() {
       default:
         return 'bg-orange-500/10 text-orange-500 border-orange-500/20'
     }
+  }
+
+  const getDeadlineInfo = (dateString?: string, status?: string) => {
+    if (!dateString || status === 'Concluído' || status === 'Cancelado') return null
+    const deadline = new Date(dateString)
+    const today = new Date()
+    deadline.setHours(0, 0, 0, 0)
+    today.setHours(0, 0, 0, 0)
+    const daysLeft = differenceInDays(deadline, today)
+
+    if (daysLeft < 0) {
+      return {
+        label: 'Prazo Vencido',
+        className: 'text-red-600 bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800',
+      }
+    }
+    if (daysLeft <= 7) {
+      return {
+        label: daysLeft === 0 ? 'Vence Hoje' : `${daysLeft} dias restantes`,
+        className:
+          'text-orange-600 bg-orange-100 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800',
+      }
+    }
+    return null
   }
 
   const formatDate = (dateString?: string) => {
@@ -405,14 +456,24 @@ export default function PortalPerito() {
         </TabsList>
 
         <TabsContent value="pericias" className="space-y-6 m-0">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-            <Input
-              placeholder="Buscar por processo, partes, vara ou cidade..."
-              className="pl-9 max-w-md bg-white dark:bg-zinc-900"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            <div className="relative w-full sm:max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <Input
+                placeholder="Buscar por processo, partes, vara ou cidade..."
+                className="pl-9 w-full bg-white dark:bg-zinc-900"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleExportCsv}
+              className="gap-2 shrink-0 w-full sm:w-auto"
+            >
+              <Download className="h-4 w-4" />
+              Exportar Relatório (CSV)
+            </Button>
           </div>
 
           {loading ? (
@@ -438,13 +499,28 @@ export default function PortalPerito() {
                 >
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start mb-2">
-                      <Badge
-                        variant="outline"
-                        className={getStatusColor(pericia.status || 'Pendente')}
-                      >
-                        {pericia.status || 'Pendente'}
-                      </Badge>
-                      <span className="text-xs text-zinc-500 flex items-center gap-1">
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <Badge
+                          variant="outline"
+                          className={getStatusColor(pericia.status || 'Pendente')}
+                        >
+                          {pericia.status || 'Pendente'}
+                        </Badge>
+                        {(() => {
+                          const deadlineInfo = getDeadlineInfo(
+                            pericia.dataEntregaLaudo,
+                            pericia.status,
+                          )
+                          if (!deadlineInfo) return null
+                          return (
+                            <Badge variant="outline" className={`gap-1 ${deadlineInfo.className}`}>
+                              <AlertTriangle className="h-3 w-3" />
+                              {deadlineInfo.label}
+                            </Badge>
+                          )
+                        })()}
+                      </div>
+                      <span className="text-xs text-zinc-500 flex items-center gap-1 shrink-0">
                         <Calendar className="h-3 w-3" />
                         {formatDate(pericia.dataPericia)}
                       </span>
@@ -497,7 +573,7 @@ export default function PortalPerito() {
                     <Sheet>
                       <SheetTrigger asChild>
                         <Button className="w-full bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
-                          Abrir Área de Trabalho
+                          Ver Detalhes / Área de Trabalho
                         </Button>
                       </SheetTrigger>
                       <SheetContent className="sm:max-w-xl w-full flex flex-col bg-white dark:bg-zinc-950 p-0 border-l border-zinc-200 dark:border-zinc-800">
@@ -533,17 +609,118 @@ export default function PortalPerito() {
                           </SheetHeader>
                         </div>
 
-                        <Tabs defaultValue="tarefas" className="flex-1 flex flex-col min-h-0">
+                        <Tabs defaultValue="detalhes" className="flex-1 flex flex-col min-h-0">
                           <div className="px-6 pt-4">
                             <TabsList className="grid w-full grid-cols-4 bg-zinc-100 dark:bg-zinc-900">
+                              <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
                               <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
                               <TabsTrigger value="documentos">Documentos</TabsTrigger>
-                              <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
                               <TabsTrigger value="mensagens">Chat</TabsTrigger>
                             </TabsList>
                           </div>
 
                           <ScrollArea className="flex-1 p-6">
+                            <TabsContent value="detalhes" className="mt-0 h-full">
+                              <div className="space-y-6">
+                                <div>
+                                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
+                                    Informações Gerais
+                                  </h4>
+                                  <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                                    <div>
+                                      <p className="text-xs text-zinc-500 mb-1">Juiz</p>
+                                      <p className="text-sm font-medium">{pericia.juiz || '-'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-zinc-500 mb-1">Data da Perícia</p>
+                                      <p className="text-sm font-medium">
+                                        {formatDate(pericia.dataPericia)}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-zinc-500 mb-1">
+                                        Prazo Entrega Laudo
+                                      </p>
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-sm font-medium">
+                                          {formatDate(pericia.dataEntregaLaudo)}
+                                        </p>
+                                        {(() => {
+                                          const deadlineInfo = getDeadlineInfo(
+                                            pericia.dataEntregaLaudo,
+                                            pericia.status,
+                                          )
+                                          if (!deadlineInfo) return null
+                                          return (
+                                            <Badge
+                                              variant="outline"
+                                              className={`text-[10px] h-5 px-1.5 ${deadlineInfo.className}`}
+                                            >
+                                              {deadlineInfo.label}
+                                            </Badge>
+                                          )
+                                        })()}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-zinc-500 mb-1">Justiça Gratuita</p>
+                                      <Badge
+                                        variant={pericia.justicaGratuita ? 'default' : 'secondary'}
+                                        className="mt-1"
+                                      >
+                                        {pericia.justicaGratuita ? 'Sim' : 'Não'}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
+                                    Partes Envolvidas
+                                  </h4>
+                                  <div className="space-y-4">
+                                    <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg">
+                                      <p className="text-xs text-zinc-500 font-medium mb-1 uppercase tracking-wider">
+                                        Parte Autora
+                                      </p>
+                                      <p className="text-sm font-medium">
+                                        {pericia.advogadoAutora || '-'}
+                                      </p>
+                                      {pericia.assistenteTecnicoAutora && (
+                                        <p className="text-xs text-zinc-500 mt-1">
+                                          Assistente: {pericia.assistenteTecnicoAutora}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg">
+                                      <p className="text-xs text-zinc-500 font-medium mb-1 uppercase tracking-wider">
+                                        Parte Ré
+                                      </p>
+                                      <p className="text-sm font-medium">
+                                        {pericia.advogadoRe || '-'}
+                                      </p>
+                                      {pericia.assistenteTecnicoRe && (
+                                        <p className="text-xs text-zinc-500 mt-1">
+                                          Assistente: {pericia.assistenteTecnicoRe}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {pericia.observacoes && (
+                                  <div>
+                                    <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
+                                      Observações
+                                    </h4>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">
+                                      {pericia.observacoes}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </TabsContent>
+
                             <TabsContent
                               value="tarefas"
                               className="mt-0 h-full flex flex-col space-y-4"
@@ -681,90 +858,6 @@ export default function PortalPerito() {
                                       </div>
                                     </div>
                                   ))
-                                )}
-                              </div>
-                            </TabsContent>
-
-                            <TabsContent value="detalhes" className="mt-0 h-full">
-                              <div className="space-y-6">
-                                <div>
-                                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
-                                    Informações Gerais
-                                  </h4>
-                                  <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                                    <div>
-                                      <p className="text-xs text-zinc-500 mb-1">Juiz</p>
-                                      <p className="text-sm font-medium">{pericia.juiz || '-'}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-zinc-500 mb-1">Data da Perícia</p>
-                                      <p className="text-sm font-medium">
-                                        {formatDate(pericia.dataPericia)}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-zinc-500 mb-1">
-                                        Prazo Entrega Laudo
-                                      </p>
-                                      <p className="text-sm font-medium">
-                                        {formatDate(pericia.dataEntregaLaudo)}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-zinc-500 mb-1">Justiça Gratuita</p>
-                                      <Badge
-                                        variant={pericia.justicaGratuita ? 'default' : 'secondary'}
-                                        className="mt-1"
-                                      >
-                                        {pericia.justicaGratuita ? 'Sim' : 'Não'}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
-                                    Partes Envolvidas
-                                  </h4>
-                                  <div className="space-y-4">
-                                    <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg">
-                                      <p className="text-xs text-zinc-500 font-medium mb-1 uppercase tracking-wider">
-                                        Parte Autora
-                                      </p>
-                                      <p className="text-sm font-medium">
-                                        {pericia.advogadoAutora || '-'}
-                                      </p>
-                                      {pericia.assistenteTecnicoAutora && (
-                                        <p className="text-xs text-zinc-500 mt-1">
-                                          Assistente: {pericia.assistenteTecnicoAutora}
-                                        </p>
-                                      )}
-                                    </div>
-                                    <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg">
-                                      <p className="text-xs text-zinc-500 font-medium mb-1 uppercase tracking-wider">
-                                        Parte Ré
-                                      </p>
-                                      <p className="text-sm font-medium">
-                                        {pericia.advogadoRe || '-'}
-                                      </p>
-                                      {pericia.assistenteTecnicoRe && (
-                                        <p className="text-xs text-zinc-500 mt-1">
-                                          Assistente: {pericia.assistenteTecnicoRe}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {pericia.observacoes && (
-                                  <div>
-                                    <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b pb-2 mb-3">
-                                      Observações
-                                    </h4>
-                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">
-                                      {pericia.observacoes}
-                                    </p>
-                                  </div>
                                 )}
                               </div>
                             </TabsContent>
