@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import {
   format,
   addMonths,
@@ -23,9 +23,12 @@ import {
   BellRing,
   CalendarPlus,
   RefreshCw,
+  Plus,
+  Edit,
+  Trash2,
 } from 'lucide-react'
 
-import { supabase } from '@/lib/supabase/client'
+import { usePericias } from '@/contexts/PericiasContext'
 import { downloadIcs } from '@/lib/ics'
 import { cn } from '@/lib/utils'
 
@@ -47,6 +50,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { PericiaForm } from '@/components/PericiaForm'
+import { useToast } from '@/hooks/use-toast'
 
 type EventType = 'nomeacao' | 'pericia' | 'entrega' | 'impugnacao' | 'esclarecimentos'
 
@@ -59,129 +81,88 @@ interface CalendarEvent {
   originalData: any
 }
 
-const fallbackData = [
-  {
-    id: 'mock-1',
-    numero_processo: '1002345-67.2023.8.26.0100',
-    data_nomeacao: new Date().toISOString(),
-    data_pericia: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString(),
-    data_entrega_laudo: new Date(new Date().setDate(new Date().getDate() + 20)).toISOString(),
-    vara: '1ª Vara Cível',
-    cidade: 'São Paulo',
-    observacoes: 'Perícia agendada com as partes. Requer acesso ao local.',
-    status: 'Agendado',
-  },
-  {
-    id: 'mock-2',
-    numero_processo: '0011223-44.2023.5.02.0001',
-    data_nomeacao: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString(),
-    data_pericia: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString(),
-    data_entrega_laudo: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString(),
-    vara: '2ª Vara do Trabalho',
-    cidade: 'Rio de Janeiro',
-    observacoes: 'Aguardando envio de documentação complementar.',
-    status: 'Em Andamento',
-  },
-]
-
 const parseDateSafe = (d: string | Date | undefined | null): Date | null => {
   if (!d) return null
   const parsed = new Date(d)
   if (isNaN(parsed.getTime())) return null
-  // Use UTC shift to avoid timezone issues with plain YYYY-MM-DD
   return new Date(parsed.getTime() + parsed.getTimezoneOffset() * 60000)
 }
 
 export default function Calendario() {
-  const [pericias, setPericias] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const { pericias, deletePericia, isLoading } = usePericias()
+  const { toast } = useToast()
+
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [filterType, setFilterType] = useState<EventType | 'all'>('all')
 
-  useEffect(() => {
-    const fetchPericias = async () => {
-      try {
-        const { data, error } = await supabase.from('pericias').select('*')
-        if (error) throw error
-
-        if (!data || data.length === 0) {
-          setPericias(fallbackData)
-        } else {
-          setPericias(data)
-        }
-      } catch (err) {
-        console.error('Error fetching pericias:', err)
-        setPericias(fallbackData)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchPericias()
-  }, [])
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [periciaToEdit, setPericiaToEdit] = useState<any>(null)
+  const [periciaToDelete, setPericiaToDelete] = useState<any>(null)
 
   const events: CalendarEvent[] = useMemo(() => {
     const evts: CalendarEvent[] = []
     pericias.forEach((p) => {
-      const processo =
-        p.numero_processo || p.numeroProcesso || p.codigo_interno || p.codigoInterno || 'Sem Número'
+      const codigo = p.codigoInterno || p.codigo_interno || 'Sem Cód.'
+      const numProc = p.numeroProcesso || p.numero_processo || 'Sem Número'
+      const processoStr = `${codigo} - Proc: ${numProc}`
 
-      const dtNomeacao = parseDateSafe(p.data_nomeacao || p.dataNomeacao)
+      const dtNomeacao = parseDateSafe(p.dataNomeacao || p.data_nomeacao)
       if (dtNomeacao) {
         evts.push({
           id: `${p.id}-nom`,
           date: dtNomeacao,
           type: 'nomeacao',
           title: 'Nomeação',
-          processo,
+          processo: processoStr,
           originalData: p,
         })
       }
 
-      const dtPericia = parseDateSafe(p.data_pericia || p.dataPericia)
+      const dtPericia = parseDateSafe(p.dataPericia || p.data_pericia)
       if (dtPericia) {
         evts.push({
           id: `${p.id}-per`,
           date: dtPericia,
           type: 'pericia',
           title: 'Visita Técnica',
-          processo,
+          processo: processoStr,
           originalData: p,
         })
       }
 
-      const dtEntrega = parseDateSafe(p.data_entrega_laudo || p.dataEntregaLaudo)
+      const dtEntrega = parseDateSafe(p.dataEntregaLaudo || p.data_entrega_laudo)
       if (dtEntrega) {
         evts.push({
           id: `${p.id}-ent`,
           date: dtEntrega,
           type: 'entrega',
           title: 'Prazo do Laudo',
-          processo,
+          processo: processoStr,
           originalData: p,
         })
       }
 
-      const dtImpugnacao = parseDateSafe(p.prazo_entrega || p.prazoEntrega)
+      const dtImpugnacao = parseDateSafe(p.prazoEntrega || p.prazo_entrega)
       if (dtImpugnacao) {
         evts.push({
           id: `${p.id}-imp`,
           date: dtImpugnacao,
           type: 'impugnacao',
           title: 'Prazo Impugnação',
-          processo,
+          processo: processoStr,
           originalData: p,
         })
       }
 
-      const dtEsclarecimentos = parseDateSafe(p.entrega_esclarecimentos || p.entregaEsclarecimentos)
+      const dtEsclarecimentos = parseDateSafe(p.entregaEsclarecimentos || p.entrega_esclarecimentos)
       if (dtEsclarecimentos) {
         evts.push({
           id: `${p.id}-esc`,
           date: dtEsclarecimentos,
           type: 'esclarecimentos',
           title: 'Prazo Esclarecimentos',
-          processo,
+          processo: processoStr,
           originalData: p,
         })
       }
@@ -190,7 +171,7 @@ export default function Calendario() {
   }, [pericias, filterType])
 
   const isUrgent = (date: Date, status: string) => {
-    if (status === 'Concluído' || status === 'Laudo Entregue') return false
+    if (status === 'Concluído' || status === 'Laudo Entregue' || status === 'Recusada') return false
     const now = new Date()
     const dateCopy = new Date(date)
     dateCopy.setHours(23, 59, 59, 999)
@@ -229,8 +210,8 @@ export default function Calendario() {
       icsString += `DTSTAMP:${startStr}\n`
       icsString += `DTSTART:${startStr}\n`
       icsString += `DTEND:${endStr}\n`
-      icsString += `SUMMARY:${e.title} - Proc: ${e.processo}\n`
-      icsString += `DESCRIPTION:Processo: ${e.processo}\\nStatus: ${e.originalData.status || ''}\\nVara: ${e.originalData.vara || ''}\n`
+      icsString += `SUMMARY:${e.title} - ${e.processo}\n`
+      icsString += `DESCRIPTION:${e.processo}\\nStatus: ${e.originalData.status || ''}\\nVara: ${e.originalData.vara || ''}\n`
       icsString += `LOCATION:${e.originalData.endereco || e.originalData.cidade || ''}\n`
       icsString += 'END:VEVENT\n'
     })
@@ -259,7 +240,18 @@ export default function Calendario() {
     }
   }
 
-  if (loading) {
+  const confirmDeletePericia = async () => {
+    if (!periciaToDelete) return
+    try {
+      await deletePericia(periciaToDelete.id)
+      toast({ title: 'Sucesso', description: 'Perícia excluída da agenda.' })
+      setPericiaToDelete(null)
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao excluir perícia.', variant: 'destructive' })
+    }
+  }
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -281,12 +273,23 @@ export default function Calendario() {
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
           <Button
+            onClick={() => {
+              setPericiaToEdit(null)
+              setIsSheetOpen(true)
+            }}
+            className="gap-2 sm:w-auto w-full justify-center"
+          >
+            <Plus className="w-4 h-4" />
+            Nova Perícia
+          </Button>
+
+          <Button
             variant="outline"
             onClick={handleSyncAllCalendar}
             className="gap-2 sm:w-auto w-full justify-center"
           >
             <RefreshCw className="w-4 h-4" />
-            Sincronizar Agenda
+            Sincronizar
           </Button>
 
           <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
@@ -522,9 +525,16 @@ export default function Calendario() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         {e.originalData.status && (
-                          <Badge variant="secondary" className="text-[10px]">
+                          <Badge
+                            variant="secondary"
+                            className={cn(
+                              'text-[10px]',
+                              e.originalData.status === 'Recusada' &&
+                                'bg-purple-500 text-white hover:bg-purple-600',
+                            )}
+                          >
                             {e.originalData.status}
                           </Badge>
                         )}
@@ -535,8 +545,8 @@ export default function Calendario() {
                           title="Adicionar à Agenda"
                           onClick={() => {
                             downloadIcs({
-                              title: `${e.title} - Proc: ${e.processo}`,
-                              description: `Processo: ${e.processo}\nStatus: ${e.originalData.status || ''}\nVara: ${e.originalData.vara || ''}\nObservações: ${e.originalData.observacoes || ''}`,
+                              title: `${e.title} - ${e.processo}`,
+                              description: `${e.processo}\nStatus: ${e.originalData.status || ''}\nVara: ${e.originalData.vara || ''}\nObservações: ${e.originalData.observacoes || ''}`,
                               location: e.originalData.endereco || e.originalData.cidade || '',
                               startDate: e.date,
                               allDay: true,
@@ -545,11 +555,36 @@ export default function Calendario() {
                         >
                           <CalendarPlus className="w-4 h-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-zinc-500 hover:text-primary"
+                          title="Editar Perícia"
+                          onClick={() => {
+                            setPericiaToEdit(e.originalData)
+                            setIsSheetOpen(true)
+                            setSelectedDate(null)
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-zinc-500 hover:text-destructive"
+                          title="Excluir Perícia"
+                          onClick={() => {
+                            setPericiaToDelete(e.originalData)
+                            setSelectedDate(null)
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                     <div>
                       <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1">
-                        Processo: {e.processo}
+                        {e.processo}
                       </div>
                       <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
                         <FileText className="w-3.5 h-3.5" />
@@ -573,6 +608,52 @@ export default function Calendario() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      <Sheet
+        open={isSheetOpen}
+        onOpenChange={(open) => {
+          setIsSheetOpen(open)
+          if (!open) setPericiaToEdit(null)
+        }}
+      >
+        <SheetContent className="w-full sm:max-w-2xl md:max-w-4xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{periciaToEdit ? 'Editar Perícia' : 'Cadastrar Nova Perícia'}</SheetTitle>
+            <SheetDescription>
+              {periciaToEdit
+                ? 'Atualize os detalhes do caso.'
+                : 'Preencha os detalhes do novo caso.'}{' '}
+              Clique em salvar quando terminar.
+            </SheetDescription>
+          </SheetHeader>
+          <PericiaForm pericia={periciaToEdit} onSuccess={() => setIsSheetOpen(false)} />
+        </SheetContent>
+      </Sheet>
+
+      <AlertDialog
+        open={!!periciaToDelete}
+        onOpenChange={(open) => !open && setPericiaToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Perícia?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente a perícia
+              {periciaToDelete?.codigoInterno ? ` ${periciaToDelete.codigoInterno}` : ''} da agenda
+              e removerá todos os dados atrelados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeletePericia}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

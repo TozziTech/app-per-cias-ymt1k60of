@@ -261,9 +261,11 @@ export default function Pericias() {
     switch (status?.toLowerCase()) {
       case 'recebido':
       case 'pago':
-        return <Badge className="bg-emerald-500 hover:bg-emerald-600">Recebido</Badge>
+        return <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">Recebido</Badge>
       case 'atrasado':
         return <Badge variant="destructive">Atrasado</Badge>
+      case 'recusada':
+        return <Badge className="bg-purple-500 hover:bg-purple-600 text-white">Recusada</Badge>
       case 'pendente':
       default:
         return (
@@ -277,7 +279,7 @@ export default function Pericias() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Concluído':
-        return <Badge className="bg-emerald-500 hover:bg-emerald-600">Concluído</Badge>
+        return <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">Concluído</Badge>
       case 'Em Andamento':
         return (
           <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-200">
@@ -290,6 +292,8 @@ export default function Pericias() {
             Pendente
           </Badge>
         )
+      case 'Recusada':
+        return <Badge className="bg-purple-500 hover:bg-purple-600 text-white">Recusada</Badge>
       default:
         return <Badge>{status}</Badge>
     }
@@ -844,6 +848,7 @@ export default function Pericias() {
                   <SelectItem value="Em Andamento">Em Andamento</SelectItem>
                   <SelectItem value="Pendente">Pendente</SelectItem>
                   <SelectItem value="Concluído">Concluído</SelectItem>
+                  <SelectItem value="Recusada">Recusada</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1047,6 +1052,11 @@ export default function Pericias() {
                           >
                             Atrasado
                           </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => updateStatusPagamento(pericia.id, 'Recusada')}
+                          >
+                            Recusada
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -1077,6 +1087,9 @@ export default function Pericias() {
                           <DropdownMenuItem onClick={() => updateStatus(pericia.id, 'Pendente')}>
                             Pendente
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateStatus(pericia.id, 'Recusada')}>
+                            Recusada
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -1102,24 +1115,22 @@ export default function Pericias() {
                           <TooltipContent>Editar</TooltipContent>
                         </Tooltip>
 
-                        {canEditFinanceiro && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setPericiaToDelete(pericia)
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Excluir Perícia</TooltipContent>
-                          </Tooltip>
-                        )}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setPericiaToDelete(pericia)
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Excluir Perícia</TooltipContent>
+                        </Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1251,6 +1262,7 @@ export default function Pericias() {
                           <SelectItem value="Pendente">Pendente</SelectItem>
                           <SelectItem value="Recebido">Recebido</SelectItem>
                           <SelectItem value="Atrasado">Atrasado</SelectItem>
+                          <SelectItem value="Recusada">Recusada</SelectItem>
                         </SelectContent>
                       </Select>
                       {getPaymentBadge(

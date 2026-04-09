@@ -19,6 +19,7 @@ export type PericiaStatus =
   | 'Em Andamento'
   | 'Laudo Entregue'
   | 'Concluído'
+  | 'Recusada'
 
 export interface ChecklistItem {
   id: string

@@ -252,7 +252,14 @@ export function PericiaForm({
             control={form.control}
             name="status"
             label="Status"
-            options={['Agendado', 'Em Andamento', 'Laudo Entregue', 'Concluído', 'Pendente']}
+            options={[
+              'Agendado',
+              'Em Andamento',
+              'Laudo Entregue',
+              'Concluído',
+              'Pendente',
+              'Recusada',
+            ]}
           />
           <CustomInput control={form.control} name="numeroProcesso" label="Número do Processo" />
           <CustomSelect
