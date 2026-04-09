@@ -17,7 +17,17 @@ import { CustomInput, CustomSelect, ChecklistSection, CustomCheckbox } from './F
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 
-function DateFieldInner({ field, label }: { field: any; label: string }) {
+function DateFieldInner({
+  field,
+  label,
+  disablePast,
+  disableFuture,
+}: {
+  field: any
+  label: string
+  disablePast?: boolean
+  disableFuture?: boolean
+}) {
   const [inputValue, setInputValue] = useState('')
   const [isOpen, setIsOpen] = useState(false)
 
@@ -45,12 +55,29 @@ function DateFieldInner({ field, label }: { field: any; label: string }) {
 
     if (formatted.length === 10) {
       const parsedDate = parse(formatted, 'dd/MM/yyyy', new Date())
-      if (isValid(parsedDate) && parsedDate.getFullYear() > 1900) {
+      if (
+        isValid(parsedDate) &&
+        parsedDate.getFullYear() > 1900 &&
+        parsedDate.getFullYear() < 2100
+      ) {
         field.onChange(parsedDate)
       }
     } else if (formatted.length === 0) {
       field.onChange(null)
     }
+  }
+
+  const handleQuickSelect = (days: number | null) => {
+    if (days === null) {
+      field.onChange(null)
+      setInputValue('')
+    } else {
+      const date = new Date()
+      date.setDate(date.getDate() + days)
+      field.onChange(date)
+      setInputValue(format(date, 'dd/MM/yyyy'))
+    }
+    setIsOpen(false)
   }
 
   return (
@@ -71,7 +98,54 @@ function DateFieldInner({ field, label }: { field: any; label: string }) {
               <CalendarIcon className="h-4 w-4" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
+          <PopoverContent className="w-auto p-0 flex flex-col" align="end">
+            <div className="flex flex-wrap gap-2 p-2 border-b justify-center bg-muted/20">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => handleQuickSelect(0)}
+                className="text-xs h-7"
+              >
+                Hoje
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => handleQuickSelect(1)}
+                className="text-xs h-7"
+              >
+                Amanhã
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => handleQuickSelect(7)}
+                className="text-xs h-7"
+              >
+                +7 dias
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => handleQuickSelect(15)}
+                className="text-xs h-7"
+              >
+                +15 dias
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => handleQuickSelect(30)}
+                className="text-xs h-7"
+              >
+                +30 dias
+              </Button>
+            </div>
             <Calendar
               mode="single"
               selected={field.value}
@@ -85,6 +159,14 @@ function DateFieldInner({ field, label }: { field: any; label: string }) {
                 }
                 setIsOpen(false)
               }}
+              disabled={(date) => {
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                if (date.getFullYear() < 1900 || date.getFullYear() > 2100) return true
+                if (disablePast && date < today) return true
+                if (disableFuture && date > today) return true
+                return false
+              }}
               initialFocus
             />
           </PopoverContent>
@@ -95,11 +177,30 @@ function DateFieldInner({ field, label }: { field: any; label: string }) {
   )
 }
 
-const DateField = ({ control, name, label }: { control: any; name: string; label: string }) => (
+const DateField = ({
+  control,
+  name,
+  label,
+  disablePast,
+  disableFuture,
+}: {
+  control: any
+  name: string
+  label: string
+  disablePast?: boolean
+  disableFuture?: boolean
+}) => (
   <FormField
     control={control}
     name={name}
-    render={({ field }) => <DateFieldInner field={field} label={label} />}
+    render={({ field }) => (
+      <DateFieldInner
+        field={field}
+        label={label}
+        disablePast={disablePast}
+        disableFuture={disableFuture}
+      />
+    )}
   />
 )
 
@@ -410,8 +511,18 @@ export function PericiaForm({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-primary/20 pt-6">
           <h3 className="md:col-span-2 font-semibold text-lg text-primary">Datas Principais</h3>
-          <DateField control={form.control} name="dataNomeacao" label="Data de Nomeação" />
-          <DateField control={form.control} name="dataAceite" label="Data do Aceite" />
+          <DateField
+            control={form.control}
+            name="dataNomeacao"
+            label="Data de Nomeação"
+            disableFuture
+          />
+          <DateField
+            control={form.control}
+            name="dataAceite"
+            label="Data do Aceite"
+            disableFuture
+          />
           <DateField control={form.control} name="dataPericia" label="Data da Perícia" />
           <DateField
             control={form.control}
@@ -460,7 +571,12 @@ export function PericiaForm({
             name="descricaoImpugnacao"
             label="Descrição da Impugnação"
           />
-          <DateField control={form.control} name="dataImpugnacao" label="Data da Impugnação" />
+          <DateField
+            control={form.control}
+            name="dataImpugnacao"
+            label="Data da Impugnação"
+            disableFuture
+          />
           <CustomInput
             control={form.control}
             name="diasImpugnacao"

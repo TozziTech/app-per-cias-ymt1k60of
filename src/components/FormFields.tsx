@@ -84,6 +84,14 @@ export function CustomSelect({ control, name, label, options }: any) {
 }
 
 export function CustomDatePicker({ control, name, label }: any) {
+  const [isOpen, setIsOpen] = useState(false)
+  const handleQuickSelect = (field: any, days: number) => {
+    const date = new Date()
+    date.setDate(date.getDate() + days)
+    field.onChange(date)
+    setIsOpen(false)
+  }
+
   return (
     <FormField
       control={control}
@@ -91,10 +99,11 @@ export function CustomDatePicker({ control, name, label }: any) {
       render={({ field }) => (
         <FormItem className="flex flex-col mt-2">
           <FormLabel>{label}</FormLabel>
-          <Popover>
+          <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
               <FormControl>
                 <Button
+                  type="button"
                   variant="outline"
                   className={cn(
                     'w-full pl-3 text-left font-normal',
@@ -106,11 +115,44 @@ export function CustomDatePicker({ control, name, label }: any) {
                 </Button>
               </FormControl>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0 flex flex-col" align="start">
+              <div className="flex flex-wrap gap-2 p-2 border-b justify-center bg-muted/20">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleQuickSelect(field, 0)}
+                  className="text-xs h-7"
+                >
+                  Hoje
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleQuickSelect(field, 1)}
+                  className="text-xs h-7"
+                >
+                  Amanhã
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleQuickSelect(field, 7)}
+                  className="text-xs h-7"
+                >
+                  +7 dias
+                </Button>
+              </div>
               <Calendar
                 mode="single"
                 selected={field.value}
-                onSelect={field.onChange}
+                onSelect={(date) => {
+                  field.onChange(date)
+                  setIsOpen(false)
+                }}
+                disabled={(date) => date.getFullYear() < 1900 || date.getFullYear() > 2100}
                 initialFocus
               />
             </PopoverContent>
