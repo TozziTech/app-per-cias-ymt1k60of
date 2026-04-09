@@ -1151,6 +1151,7 @@ export const Constants = {
 //   FOREIGN KEY pericias_perito_id_fkey: FOREIGN KEY (perito_id) REFERENCES peritos(id) ON DELETE SET NULL
 //   PRIMARY KEY pericias_pkey: PRIMARY KEY (id)
 // Table: peritos
+//   UNIQUE peritos_codigo_id_key: UNIQUE (codigo_id)
 //   PRIMARY KEY peritos_pkey: PRIMARY KEY (id)
 // Table: peticao_templates
 //   PRIMARY KEY peticao_templates_pkey: PRIMARY KEY (id)
@@ -1462,3 +1463,5 @@ export const Constants = {
 // --- INDEXES ---
 // Table: pericia_anexos
 //   CREATE INDEX idx_pericia_anexos_pericia_id ON public.pericia_anexos USING btree (pericia_id)
+// Table: peritos
+//   CREATE UNIQUE INDEX peritos_codigo_id_key ON public.peritos USING btree (codigo_id)
