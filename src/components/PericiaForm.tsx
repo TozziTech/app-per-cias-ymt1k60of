@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { format } from 'date-fns'
-import { Trash2 } from 'lucide-react'
+import { format, parse, isValid } from 'date-fns'
+import { Trash2, CalendarIcon } from 'lucide-react'
 
 import { usePericias } from '@/contexts/PericiasContext'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
@@ -15,27 +17,89 @@ import { CustomInput, CustomSelect, ChecklistSection, CustomCheckbox } from './F
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 
+function DateFieldInner({ field, label }: { field: any; label: string }) {
+  const [inputValue, setInputValue] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
+
+  useEffect(() => {
+    if (field.value) {
+      setInputValue(format(field.value, 'dd/MM/yyyy'))
+    } else {
+      setInputValue('')
+    }
+  }, [field.value])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.replace(/\D/g, '')
+    if (val.length > 8) val = val.slice(0, 8)
+
+    let formatted = val
+    if (val.length > 2) {
+      formatted = val.slice(0, 2) + '/' + val.slice(2)
+    }
+    if (val.length > 4) {
+      formatted = formatted.slice(0, 5) + '/' + val.slice(4)
+    }
+
+    setInputValue(formatted)
+
+    if (formatted.length === 10) {
+      const parsedDate = parse(formatted, 'dd/MM/yyyy', new Date())
+      if (isValid(parsedDate) && parsedDate.getFullYear() > 1900) {
+        field.onChange(parsedDate)
+      }
+    } else if (formatted.length === 0) {
+      field.onChange(null)
+    }
+  }
+
+  return (
+    <FormItem className="flex flex-col">
+      <FormLabel>{label}</FormLabel>
+      <div className="flex items-center gap-2">
+        <FormControl>
+          <Input
+            placeholder="DD/MM/AAAA"
+            value={inputValue}
+            onChange={handleInputChange}
+            className="w-full"
+          />
+        </FormControl>
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon" className="shrink-0" type="button">
+              <CalendarIcon className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="single"
+              selected={field.value}
+              onSelect={(date) => {
+                if (date) {
+                  field.onChange(date)
+                  setInputValue(format(date, 'dd/MM/yyyy'))
+                } else {
+                  field.onChange(null)
+                  setInputValue('')
+                }
+                setIsOpen(false)
+              }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+      <FormMessage />
+    </FormItem>
+  )
+}
+
 const DateField = ({ control, name, label }: { control: any; name: string; label: string }) => (
   <FormField
     control={control}
     name={name}
-    render={({ field }) => (
-      <FormItem className="flex flex-col">
-        <FormLabel>{label}</FormLabel>
-        <FormControl>
-          <Input
-            type="date"
-            value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
-            onChange={(e) => {
-              const val = e.target.value
-              field.onChange(val ? new Date(val + 'T12:00:00') : null)
-            }}
-            className="w-full h-10 px-3 py-2 text-sm border rounded-md"
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
+    render={({ field }) => <DateFieldInner field={field} label={label} />}
   />
 )
 
