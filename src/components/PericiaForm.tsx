@@ -241,7 +241,13 @@ export function PericiaForm({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <CustomInput control={form.control} name="codigoInterno" label="Código Interno" />
+          <CustomInput
+            control={form.control}
+            name="codigoInterno"
+            label="Código Interno"
+            placeholder="Gerado automaticamente"
+            disabled
+          />
           <CustomSelect
             control={form.control}
             name="status"

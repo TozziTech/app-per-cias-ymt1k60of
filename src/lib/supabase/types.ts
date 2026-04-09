@@ -77,6 +77,69 @@ export type Database = {
         }
         Relationships: []
       }
+      captacao_pericias: {
+        Row: {
+          created_at: string
+          data_contato: string
+          data_retorno: string | null
+          email: string | null
+          id: string
+          instituicao: string
+          nome_contato: string
+          observacoes: string | null
+          perito_id: string | null
+          responsavel_id: string | null
+          status: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_contato?: string
+          data_retorno?: string | null
+          email?: string | null
+          id?: string
+          instituicao: string
+          nome_contato: string
+          observacoes?: string | null
+          perito_id?: string | null
+          responsavel_id?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_contato?: string
+          data_retorno?: string | null
+          email?: string | null
+          id?: string
+          instituicao?: string
+          nome_contato?: string
+          observacoes?: string | null
+          perito_id?: string | null
+          responsavel_id?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'captacao_pericias_perito_id_fkey'
+            columns: ['perito_id']
+            isOneToOne: false
+            referencedRelation: 'peritos'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'captacao_pericias_responsavel_id_fkey'
+            columns: ['responsavel_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       contatos: {
         Row: {
           codigo_id: string | null
@@ -953,6 +1016,20 @@ export const Constants = {
 //   user_id: uuid (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
+// Table: captacao_pericias
+//   id: uuid (not null, default: gen_random_uuid())
+//   data_contato: timestamp with time zone (not null, default: now())
+//   nome_contato: text (not null)
+//   instituicao: text (not null)
+//   perito_id: uuid (nullable)
+//   responsavel_id: uuid (nullable)
+//   telefone: text (nullable)
+//   email: text (nullable)
+//   status: text (not null, default: 'Pendente'::text)
+//   data_retorno: timestamp with time zone (nullable)
+//   observacoes: text (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
 // Table: contatos
 //   id: uuid (not null, default: gen_random_uuid())
 //   tipo: text (not null, default: 'Outros'::text)
@@ -1135,6 +1212,10 @@ export const Constants = {
 // Table: cabecalhos_vara
 //   PRIMARY KEY cabecalhos_vara_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY cabecalhos_vara_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+// Table: captacao_pericias
+//   FOREIGN KEY captacao_pericias_perito_id_fkey: FOREIGN KEY (perito_id) REFERENCES peritos(id) ON DELETE SET NULL
+//   PRIMARY KEY captacao_pericias_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY captacao_pericias_responsavel_id_fkey: FOREIGN KEY (responsavel_id) REFERENCES profiles(id) ON DELETE SET NULL
 // Table: contatos
 //   PRIMARY KEY contatos_pkey: PRIMARY KEY (id)
 // Table: historico_documentos
@@ -1201,6 +1282,16 @@ export const Constants = {
 //   Policy "authenticated_update_cabecalhos" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: (user_id = auth.uid())
 //     WITH CHECK: (user_id = auth.uid())
+// Table: captacao_pericias
+//   Policy "authenticated_delete_captacao" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_insert_captacao" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select_captacao" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_update_captacao" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: contatos
 //   Policy "authenticated_all_contatos" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
