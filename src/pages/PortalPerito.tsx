@@ -1,13 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { Pericia } from '@/lib/types'
-import {
-  getMyPericias,
-  updatePericia,
-  uploadAnexo,
-  deleteAnexo,
-  getAnexoUrl,
-} from '@/services/pericias'
+import { updatePericia, uploadAnexo, deleteAnexo, getAnexoUrl } from '@/services/pericias'
 import {
   Card,
   CardContent,
@@ -32,6 +26,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -44,13 +39,13 @@ import {
   Calendar,
   Search,
   MapPin,
-  Building,
   CheckCircle2,
-  User,
   Loader2,
   Eye,
   Plus,
   CheckSquare,
+  Info,
+  AlertCircle,
 } from 'lucide-react'
 
 interface ChecklistItem {
@@ -71,6 +66,9 @@ export default function PortalPerito() {
   const [searchTermPeticoes, setSearchTermPeticoes] = useState('')
   const [peticoes, setPeticoes] = useState<any[]>([])
 
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [isPeritoVinculado, setIsPeritoVinculado] = useState(true)
+
   useEffect(() => {
     fetchData()
   }, [])
@@ -90,24 +88,62 @@ export default function PortalPerito() {
         .eq('id', session.user.id)
         .single()
 
-      let peritoIdToSearch = session.user.id
+      const adminRoles = ['Administrador', 'administrador', 'Gerente', 'Gestor']
+      const userIsAdmin = !!(profile && adminRoles.includes(profile.role))
+      setIsAdmin(userIsAdmin)
+
+      let peritoId: string | null = null
+      let vinculado = false
+
       if (session.user.email) {
         const { data: perito } = await supabase
           .from('peritos')
           .select('id')
           .eq('email', session.user.email)
-          .single()
+          .maybeSingle()
 
         if (perito) {
-          peritoIdToSearch = perito.id
+          peritoId = perito.id
+          vinculado = true
         }
       }
 
-      const data = await getMyPericias(peritoIdToSearch)
-      setPericias(data)
+      setIsPeritoVinculado(vinculado)
+
+      let periciasData: any[] = []
+
+      if (vinculado) {
+        const { data: pData } = await supabase
+          .from('pericias')
+          .select(`*, pericia_anexos(*)`)
+          .eq('perito_id', peritoId)
+          .order('created_at', { ascending: false })
+        periciasData = pData || []
+      } else if (userIsAdmin) {
+        const { data: pData } = await supabase
+          .from('pericias')
+          .select(`*, pericia_anexos(*)`)
+          .order('created_at', { ascending: false })
+        periciasData = pData || []
+      }
+
+      const formattedPericias = periciasData.map((p) => ({
+        ...p,
+        numeroProcesso: p.numero_processo,
+        dataPericia: p.data_pericia,
+        dataEntregaLaudo: p.data_entrega_laudo,
+        justicaGratuita: p.justica_gratuita,
+        advogadoAutora: p.advogado_autora,
+        advogadoRe: p.advogado_re,
+        assistenteTecnicoAutora: p.assistente_autora,
+        assistenteTecnicoRe: p.assistente_re,
+        anexos: p.pericia_anexos || [],
+      }))
+
+      setPericias(formattedPericias)
 
       const todasPeticoes: any[] = []
-      data.forEach((p) => {
+      formattedPericias.forEach((p) => {
         if (p.peticoes && Array.isArray(p.peticoes)) {
           p.peticoes.forEach((pet: any) => {
             todasPeticoes.push({
@@ -125,12 +161,20 @@ export default function PortalPerito() {
       todasPeticoes.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
       setPeticoes(todasPeticoes)
 
-      const { data: tarefasData } = await supabase
-        .from('tarefas')
-        .select('*, pericia:pericias(numero_processo)')
-        .eq('perito_associado_id', session.user.id)
-        .order('created_at', { ascending: false })
-      if (tarefasData) setMinhasTarefas(tarefasData)
+      if (userIsAdmin) {
+        const { data: tarefasData } = await supabase
+          .from('tarefas')
+          .select('*, pericia:pericias(numero_processo)')
+          .order('created_at', { ascending: false })
+        if (tarefasData) setMinhasTarefas(tarefasData)
+      } else {
+        const { data: tarefasData } = await supabase
+          .from('tarefas')
+          .select('*, pericia:pericias(numero_processo)')
+          .eq('perito_associado_id', session.user.id)
+          .order('created_at', { ascending: false })
+        if (tarefasData) setMinhasTarefas(tarefasData)
+      }
     } catch (error) {
       console.error(error)
       toast({ title: 'Erro ao carregar perícias', variant: 'destructive' })
@@ -156,7 +200,6 @@ export default function PortalPerito() {
     const newChecklist = [...normChecklist]
     newChecklist[itemIndex].done = !newChecklist[itemIndex].done
 
-    // Optimistic update
     setPericias((prev) =>
       prev.map((p) => (p.id === periciaId ? { ...p, checklist: newChecklist } : p)),
     )
@@ -165,7 +208,7 @@ export default function PortalPerito() {
       await updatePericia(periciaId, { checklist: newChecklist as any })
     } catch (e) {
       toast({ title: 'Erro ao atualizar tarefa', variant: 'destructive' })
-      fetchData() // Revert
+      fetchData()
     }
   }
 
@@ -240,16 +283,16 @@ export default function PortalPerito() {
 
   const filteredPericias = pericias.filter(
     (p) =>
-      p.numeroProcesso.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.numeroProcesso?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.cidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.vara?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const filteredPeticoes = peticoes.filter(
     (p) =>
-      p.numeroProcesso.toLowerCase().includes(searchTermPeticoes.toLowerCase()) ||
-      p.titulo.toLowerCase().includes(searchTermPeticoes.toLowerCase()) ||
-      p.status.toLowerCase().includes(searchTermPeticoes.toLowerCase()),
+      p.numeroProcesso?.toLowerCase().includes(searchTermPeticoes.toLowerCase()) ||
+      p.titulo?.toLowerCase().includes(searchTermPeticoes.toLowerCase()) ||
+      p.status?.toLowerCase().includes(searchTermPeticoes.toLowerCase()),
   )
 
   const pendingCount = pericias.filter((p) => p.status !== 'Concluído').length
@@ -306,6 +349,28 @@ export default function PortalPerito() {
           </div>
         </div>
       </div>
+
+      {!loading && !isPeritoVinculado && !isAdmin && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Perfil não vinculado</AlertTitle>
+          <AlertDescription>
+            Seu e-mail não foi encontrado no cadastro de peritos. Para visualizar suas perícias,
+            contate um administrador e solicite o vínculo do seu e-mail ao seu cadastro de perito.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!loading && !isPeritoVinculado && isAdmin && (
+        <Alert className="mb-6 bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-950/50 dark:text-blue-200 dark:border-blue-900">
+          <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <AlertTitle>Modo Administrador</AlertTitle>
+          <AlertDescription>
+            Seu e-mail não está diretamente vinculado a um cadastro de perito. Como você tem acesso
+            administrativo, estamos exibindo todas as perícias e tarefas do sistema.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="pericias" className="w-full space-y-6">
         <TabsList className="bg-zinc-100 dark:bg-zinc-800/50 flex flex-wrap h-auto p-1">
