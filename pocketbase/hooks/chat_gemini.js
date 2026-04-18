@@ -1,4 +1,4 @@
-routerAdd('POST', '/backend/v1/chat-gemini', (e) => {
+routerAdd('POST', '/backend/v1/chat/gemini', (e) => {
   const origin = e.request.header.get('Origin') || ''
   const allowedOrigins = [
     'https://app-pericias-08888--preview.goskip.app',
@@ -20,8 +20,8 @@ routerAdd('POST', '/backend/v1/chat-gemini', (e) => {
   }
 
   const body = e.requestInfo().body || {}
-  const conversa_id = body.conversa_id
-  const mensagem = body.mensagem
+  const conversa_id = body.conversationId
+  const mensagem = body.message
 
   if (!conversa_id || !mensagem) {
     return e.json(400, { error: 'ID da conversa e mensagem são obrigatórios.' })
