@@ -1,4 +1,5 @@
 export type UserRole =
+  | 'admin'
   | 'Administrador'
   | 'Gerente'
   | 'Perito Associado'

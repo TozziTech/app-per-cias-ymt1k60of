@@ -42,6 +42,7 @@ export default function Usuarios() {
 
   const isAdmin =
     user?.email === 'tozziengenharia@hotmail.com' ||
+    user?.role === 'admin' ||
     user?.role === 'Administrador' ||
     user?.role === 'administrador' ||
     user?.role === 'Gerente' ||
@@ -196,12 +197,12 @@ export default function Usuarios() {
                       <TableCell>
                         <Badge
                           variant={
-                            ['Administrador', 'Gestor', 'Gerente'].includes(profile.role)
+                            ['admin', 'Administrador', 'Gestor', 'Gerente'].includes(profile.role)
                               ? 'default'
                               : 'secondary'
                           }
                         >
-                          {profile.role || 'Usuário'}
+                          {profile.role === 'admin' ? 'Administrador' : profile.role || 'Usuário'}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -214,9 +215,7 @@ export default function Usuarios() {
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Administrador">Administrador</SelectItem>
-                            <SelectItem value="Gestor">Gestor</SelectItem>
-                            <SelectItem value="Perito Associado">Perito Associado</SelectItem>
+                            <SelectItem value="admin">Administrador</SelectItem>
                             <SelectItem value="user">Usuário Padrão</SelectItem>
                           </SelectContent>
                         </Select>

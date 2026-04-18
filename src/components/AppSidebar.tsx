@@ -63,6 +63,7 @@ export function AppSidebar() {
   const { user } = useAuth()
   const isAdmin =
     user?.email === 'tozziengenharia@hotmail.com' ||
+    user?.role === 'admin' ||
     user?.role === 'Administrador' ||
     user?.role === 'administrador' ||
     user?.role === 'Gerente' ||
