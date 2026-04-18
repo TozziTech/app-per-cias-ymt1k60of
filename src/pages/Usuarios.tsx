@@ -59,9 +59,13 @@ export default function Usuarios() {
     }
   }, [isAdmin])
 
-  useRealtime('users', () => {
-    if (isAdmin) fetchProfiles()
-  })
+  useRealtime(
+    'users',
+    () => {
+      if (isAdmin) fetchProfiles()
+    },
+    !!isAdmin,
+  )
 
   const handleRoleChange = async (profileId: string, newRole: string) => {
     try {
