@@ -211,19 +211,13 @@ export default function AnaliseDocumentos() {
       await sendMensagem(selectedPericia.id, user?.id, finalMsg, 'usuario')
 
       try {
-        const response = await sendChatGemini(selectedPericia.id, finalMsg)
-        const replyText =
-          response?.reply ||
-          response?.text ||
-          response?.mensagem ||
-          response?.response ||
-          (typeof response === 'string' ? response : null)
-
-        if (replyText) {
-          await sendMensagem(selectedPericia.id, null, replyText, 'assistente')
-        }
-      } catch (aiError) {
-        toast.error('O assistente está indisponível no momento')
+        await sendChatGemini(selectedPericia.id, finalMsg)
+      } catch (aiError: any) {
+        const errorMessage =
+          aiError.response?.message ||
+          aiError.message ||
+          'O assistente está indisponível no momento'
+        toast.error(errorMessage)
         console.error(aiError)
       }
     } catch (err) {
