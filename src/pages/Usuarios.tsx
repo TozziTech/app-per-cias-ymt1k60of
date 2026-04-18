@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   Select,
@@ -21,6 +20,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+
+import pb from '@/lib/pocketbase/client'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
+import { useRealtime } from '@/hooks/use-realtime'
 
 export default function Usuarios() {
   const { user } = useAuth()
@@ -29,39 +33,49 @@ export default function Usuarios() {
   const [loading, setLoading] = useState(true)
 
   const isAdmin =
+    user?.email === 'tozziengenharia@hotmail.com' ||
     user?.role === 'Administrador' ||
     user?.role === 'administrador' ||
     user?.role === 'Gerente' ||
     user?.role === 'Gestor'
 
-  useEffect(() => {
-    fetchProfiles()
-  }, [])
-
   const fetchProfiles = async () => {
-    setLoading(true)
-    const { data, error } = await supabase.from('profiles').select('*').order('name')
-    if (error) {
-      toast({ title: 'Erro ao buscar usuários', variant: 'destructive' })
-    } else {
+    try {
+      const data = await pb.collection('users').getFullList({ sort: 'name' })
       setProfiles(data || [])
+    } catch (error) {
+      console.error(error)
+      toast({ title: 'Erro ao buscar usuários', variant: 'destructive' })
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchProfiles()
+    } else {
+      setLoading(false)
+    }
+  }, [isAdmin])
+
+  useRealtime('users', () => {
+    if (isAdmin) fetchProfiles()
+  })
 
   const handleRoleChange = async (profileId: string, newRole: string) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', profileId)
-      if (error) throw error
-
-      setProfiles((prev) => prev.map((p) => (p.id === profileId ? { ...p, role: newRole } : p)))
+      await pb.collection('users').update(profileId, { role: newRole })
       toast({ title: 'Nível de acesso atualizado com sucesso' })
-    } catch (e) {
+    } catch (e: any) {
       console.error(e)
-      toast({ title: 'Erro ao atualizar nível de acesso', variant: 'destructive' })
+      const fieldErrors = extractFieldErrors(e)
+      const errorMessage = getErrorMessage(e)
+      toast({
+        title: 'Erro ao atualizar nível de acesso',
+        description: fieldErrors.role || errorMessage,
+        variant: 'destructive',
+      })
     }
   }
 
@@ -74,16 +88,15 @@ export default function Usuarios() {
       return
 
     try {
-      const { error } = await supabase.functions.invoke('delete-user', {
-        body: { userId: profileId },
-      })
-      if (error) throw error
-
-      setProfiles((prev) => prev.filter((p) => p.id !== profileId))
+      await pb.collection('users').delete(profileId)
       toast({ title: 'Usuário excluído com sucesso' })
     } catch (e: any) {
       console.error(e)
-      toast({ title: 'Erro ao excluir usuário', description: e.message, variant: 'destructive' })
+      toast({
+        title: 'Erro ao excluir usuário',
+        description: getErrorMessage(e),
+        variant: 'destructive',
+      })
     }
   }
 
@@ -127,7 +140,7 @@ export default function Usuarios() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nome</TableHead>
+                    <TableHead>Usuário</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Nível Atual</TableHead>
                     <TableHead className="w-[200px]">Alterar Acesso</TableHead>
@@ -137,7 +150,20 @@ export default function Usuarios() {
                 <TableBody>
                   {profiles.map((profile) => (
                     <TableRow key={profile.id}>
-                      <TableCell className="font-medium">{profile.name || 'Sem nome'}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage
+                              src={pb.files.getURL(profile, profile.avatar)}
+                              alt={profile.name}
+                            />
+                            <AvatarFallback>
+                              {profile.name?.charAt(0) || profile.email?.charAt(0) || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">{profile.name || 'Sem nome'}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>{profile.email}</TableCell>
                       <TableCell>
                         <Badge
@@ -154,7 +180,7 @@ export default function Usuarios() {
                         <Select
                           value={profile.role || 'user'}
                           onValueChange={(val) => handleRoleChange(profile.id, val)}
-                          disabled={profile.id === user?.id} // Prevent removing own admin rights easily
+                          disabled={profile.id === user?.id}
                         >
                           <SelectTrigger className="h-8 w-[160px]">
                             <SelectValue placeholder="Selecione..." />
@@ -183,7 +209,7 @@ export default function Usuarios() {
                   ))}
                   {profiles.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-zinc-500 py-6">
+                      <TableCell colSpan={5} className="text-center text-zinc-500 py-6">
                         Nenhum usuário encontrado.
                       </TableCell>
                     </TableRow>
