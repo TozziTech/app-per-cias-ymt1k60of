@@ -56,8 +56,16 @@ export const createMessage = async (
 }
 
 export const chatGemini = async (conversationId: string, message: string): Promise<any> => {
-  return pb.send(`/backend/v1/chat/gemini`, {
-    method: 'POST',
-    body: { conversationId, message },
-  })
+  try {
+    return await pb.send(`/backend/v1/chat/gemini`, {
+      method: 'POST',
+      body: { conversationId, message },
+    })
+  } catch (error: any) {
+    console.error('Network or API Error in chatGemini:', error)
+    if (error?.status === 0 || error?.isAbort) {
+      throw new Error('Falha na conexão. Por favor, verifique sua internet e tente novamente.')
+    }
+    throw error
+  }
 }

@@ -200,6 +200,17 @@ export default function Assistente() {
       const errorMessage =
         error?.response?.message || error?.message || 'Erro ao conectar ao serviço de IA.'
       toast({ variant: 'destructive', title: 'Erro de Comunicação', description: errorMessage })
+
+      const errorMsg: Message = {
+        id: `error-${Date.now()}`,
+        conversation: currentConv.id,
+        user: 'system',
+        content: `⚠️ **Aviso**: ${errorMessage}\n\nPor favor, tente novamente.`,
+        type: 'assistente',
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }
+      setMessages((prev) => [...prev, errorMsg])
     } finally {
       setIsSending(false)
     }
