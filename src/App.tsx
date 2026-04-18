@@ -24,6 +24,7 @@ import Tarefas from './pages/Tarefas'
 import Usuarios from './pages/Usuarios'
 import Auditoria from './pages/Auditoria'
 import Captacao from './pages/Captacao'
+import AnaliseDocumentos from './pages/AnaliseDocumentos'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -53,6 +54,7 @@ const App = () => (
                   <Route path="/tarefas" element={<Tarefas />} />
                   <Route path="/usuarios" element={<Usuarios />} />
                   <Route path="/auditoria" element={<Auditoria />} />
+                  <Route path="/analise-documentos" element={<AnaliseDocumentos />} />
                 </Route>
               </Route>
 

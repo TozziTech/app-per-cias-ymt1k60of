@@ -33,10 +33,14 @@ export const getMensagens = async (periciaId: string) => {
   }))
 }
 
-export const sendMensagem = async (periciaId: string, userId: string, mensagem: string) => {
+export const sendMensagem = async (
+  periciaId: string,
+  userId: string | null | undefined,
+  mensagem: string,
+) => {
   const data = await pb.collection('pericia_mensagens').create({
     pericia_id: periciaId,
-    user_id: userId,
+    user_id: userId || null,
     mensagem,
   })
   return data
