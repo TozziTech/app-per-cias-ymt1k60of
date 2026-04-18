@@ -640,7 +640,7 @@ export default function Pericias() {
         setIsDetailsOpen(false)
       }
     } catch (e) {
-      // erro tratado no context
+      console.error(e)
     }
   }
 

@@ -90,7 +90,8 @@ export function PericiaDetails({ pericia, isOpen, onOpenChange, onPericiaUpdate 
     setIsLoadingLogs(true)
     try {
       setLogs(await getPericiaLogs(id))
-    } catch {
+    } catch (e) {
+      console.error(e)
     } finally {
       setIsLoadingLogs(false)
     }

@@ -39,3 +39,7 @@ export const markAllAsRead = async () => {
     await pb.collection('notificacoes').update(n.id, { lida: true })
   }
 }
+
+export const subscribeToNotificacoes = async (callback: (e: any) => void) => {
+  return pb.collection('notificacoes').subscribe('*', callback)
+}
