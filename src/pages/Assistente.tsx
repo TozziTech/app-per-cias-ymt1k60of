@@ -10,7 +10,7 @@ import {
   getConversations,
   createConversation,
   getMessages,
-  createMessage,
+  chatGemini,
   type Conversation,
   type Message,
 } from '@/services/assistente'
@@ -126,29 +126,15 @@ export default function Assistente() {
     setIsSending(true)
 
     try {
-      await createMessage(currentConv.id, text, 'usuario')
-
-      // Simulate Assistant Response
-      setTimeout(async () => {
-        try {
-          await createMessage(
-            currentConv.id,
-            `Esta é uma resposta simulada para: "${text}". Estou aqui para ajudar com perícias!`,
-            'assistente',
-          )
-        } catch {
-          toast({
-            variant: 'destructive',
-            title: 'Erro',
-            description: 'O assistente falhou ao responder.',
-          })
-        } finally {
-          setIsSending(false)
-        }
-      }, 1500)
+      await chatGemini(currentConv.id, text)
     } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente.',
+      })
+    } finally {
       setIsSending(false)
-      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao enviar mensagem.' })
     }
   }
 

@@ -38,19 +38,6 @@ export const getMessages = async (conversationId: string) => {
   })
 }
 
-export const createMessage = async (
-  conversationId: string,
-  content: string,
-  type: 'usuario' | 'assistente',
-) => {
-  return pb.collection('messages').create<Message>({
-    conversation: conversationId,
-    user: pb.authStore.record?.id,
-    content,
-    type,
-  })
-}
-
 export const chatGemini = async (conversa_id: string, mensagem: string) => {
   return pb.send<{ data: { resposta: string } }>('/backend/v1/chat-gemini', {
     method: 'POST',
