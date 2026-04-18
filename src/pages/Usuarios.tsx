@@ -24,7 +24,6 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 
 import pb from '@/lib/pocketbase/client'
 import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
-import { useRealtime } from '@/hooks/use-realtime'
 
 export default function Usuarios() {
   const { user } = useAuth()
@@ -75,13 +74,35 @@ export default function Usuarios() {
     }
   }, [isAdmin, fetchProfiles])
 
-  useRealtime(
-    'users',
-    () => {
-      if (isAdmin) fetchProfiles()
-    },
-    !!isAdmin,
-  )
+  useEffect(() => {
+    if (!isAdmin) return
+
+    let unsubscribeFn: (() => void) | undefined
+
+    const subscribeToUsers = async () => {
+      try {
+        unsubscribeFn = await pb.collection('users').subscribe('*', () => {
+          if (isAdmin) fetchProfiles()
+        })
+      } catch (error) {
+        console.error('Error subscribing to realtime for users:', error)
+      }
+    }
+
+    subscribeToUsers()
+
+    return () => {
+      if (unsubscribeFn) {
+        unsubscribeFn()
+      } else {
+        pb.collection('users')
+          .unsubscribe('*')
+          .catch((err) => {
+            console.error('Error unsubscribing from users:', err)
+          })
+      }
+    }
+  }, [isAdmin, fetchProfiles])
 
   const handleRoleChange = async (profileId: string, newRole: string) => {
     try {
