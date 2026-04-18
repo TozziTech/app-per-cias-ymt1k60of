@@ -10,6 +10,7 @@ import {
   getConversations,
   createConversation,
   getMessages,
+  createMessage,
   chatGemini,
   type Conversation,
   type Message,
@@ -126,10 +127,17 @@ export default function Assistente() {
     setIsSending(true)
 
     try {
+      const userMessage = await createMessage(currentConv.id, text, 'usuario')
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === userMessage.id)) return prev
+        return [...prev, userMessage]
+      })
       await chatGemini(currentConv.id, text)
     } catch (error: any) {
+      console.error('Erro no assistente:', error)
       const errorMessage =
-        error?.response?.error ||
+        error?.response?.message ||
+        error?.message ||
         'Não foi possível conectar ao serviço de IA. Verifique sua conexão e tente novamente.'
       toast({
         variant: 'destructive',
