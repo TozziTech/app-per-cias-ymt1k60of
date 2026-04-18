@@ -127,11 +127,14 @@ export default function Assistente() {
 
     try {
       await chatGemini(currentConv.id, text)
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.error ||
+        'Não foi possível conectar ao serviço de IA. Verifique sua conexão e tente novamente.'
       toast({
         variant: 'destructive',
-        title: 'Erro',
-        description: 'Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente.',
+        title: 'Erro de Comunicação',
+        description: errorMessage,
       })
     } finally {
       setIsSending(false)

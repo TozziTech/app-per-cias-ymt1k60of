@@ -1,6 +1,7 @@
 routerAdd('POST', '/backend/v1/chat-gemini', (e) => {
   e.response.header().set('Access-Control-Allow-Origin', '*')
-  e.response.header().set('Access-Control-Allow-Headers', 'authorization, apikey, content-type')
+  e.response.header().set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  e.response.header().set('Access-Control-Allow-Headers', 'Content-Type, Authorization, apikey')
 
   const authRecord = e.auth
   if (!authRecord) {
@@ -12,7 +13,7 @@ routerAdd('POST', '/backend/v1/chat-gemini', (e) => {
   const mensagem = body.mensagem
 
   if (!conversa_id || !mensagem) {
-    return e.json(400, { error: "Os campos 'conversa_id' e 'mensagem' são obrigatórios" })
+    return e.json(400, { error: 'ID da conversa e mensagem são obrigatórios.' })
   }
 
   try {
@@ -41,14 +42,14 @@ routerAdd('POST', '/backend/v1/chat-gemini', (e) => {
     })
 
     if (res.statusCode !== 200) {
-      return e.json(503, { error: 'O serviço do assistente está temporariamente indisponível' })
+      return e.json(503, { error: 'Erro ao se comunicar com o serviço de IA.' })
     }
 
     const resData = res.json
     const respostaText = resData?.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
     if (!respostaText) {
-      return e.json(503, { error: 'O serviço do assistente está temporariamente indisponível' })
+      return e.json(503, { error: 'Erro ao se comunicar com o serviço de IA.' })
     }
 
     const asstMsg = new Record(messagesCol)
@@ -60,6 +61,6 @@ routerAdd('POST', '/backend/v1/chat-gemini', (e) => {
 
     return e.json(200, { data: { resposta: respostaText } })
   } catch (err) {
-    return e.json(503, { error: 'O serviço do assistente está temporariamente indisponível' })
+    return e.json(503, { error: 'Erro ao se comunicar com o serviço de IA.' })
   }
 })
