@@ -64,10 +64,13 @@ export default function Index() {
       const { error } = await login(values.email, values.password)
 
       if (error) {
+        const isAuthError = error.status === 400 || error.status === 401 || error.status === 403
         toast({
           variant: 'destructive',
           title: 'Erro de autenticação',
-          description: 'Credenciais inválidas. Verifique seu e-mail e senha.',
+          description: isAuthError
+            ? 'E-mail ou senha inválidos. Verifique suas credenciais.'
+            : 'Erro ao conectar. Verifique sua conexão ou tente novamente mais tarde.',
         })
       } else {
         toast({
