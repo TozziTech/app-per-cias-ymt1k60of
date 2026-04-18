@@ -8,14 +8,8 @@ import { useAuth } from '@/contexts/AuthContext'
 export function GlobalNotifications() {
   const { toast } = useToast()
   const navigate = useNavigate()
-
-  let user: any = null
-  try {
-    const auth = useAuth()
-    user = (auth as any)?.user
-  } catch (e) {
-    // Ignore context error
-  }
+  const auth = useAuth() as any
+  const user = auth?.user
 
   useRealtime('pericias', (e) => {
     if (e.action === 'create') {

@@ -58,7 +58,8 @@ export function CaptacaoForm({ open, onOpenChange, captacaoId, onSaved }: Captac
   const [loading, setLoading] = useState(false)
   const [peritos, setPeritos] = useState<{ id: string; nome: string }[]>([])
   const { toast } = useToast()
-  const { user } = (useAuth ? useAuth() : { user: null }) as any
+  const auth = useAuth() as any
+  const user = auth?.user
 
   const form = useForm<FormData>({ resolver: zodResolver(schema) })
 

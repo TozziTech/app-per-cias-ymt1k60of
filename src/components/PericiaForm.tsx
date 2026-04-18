@@ -261,7 +261,8 @@ export function PericiaForm({
 }) {
   const { addPericia, updatePericia, deletePericia } = usePericias()
   const { toast } = useToast()
-  const { user } = (useAuth ? useAuth() : { user: null }) as any
+  const auth = useAuth() as any
+  const user = auth?.user
   const [peritos, setPeritos] = useState<{ id: string; nome: string; tipo: string }[]>([])
 
   useEffect(() => {

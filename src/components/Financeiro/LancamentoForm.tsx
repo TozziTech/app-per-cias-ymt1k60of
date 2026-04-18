@@ -63,7 +63,8 @@ interface Props {
 
 export function LancamentoForm({ isOpen, onClose, lancamento, onSave }: Props) {
   const { pericias } = usePericias()
-  const { user } = (useAuth ? useAuth() : { user: null }) as any
+  const auth = useAuth() as any
+  const user = auth?.user
   const [profiles, setProfiles] = useState<{ id: string; name: string }[]>([])
   const [categorias, setCategorias] = useState<{ nome: string; tipo: string }[]>([])
   const [uploading, setUploading] = useState(false)
