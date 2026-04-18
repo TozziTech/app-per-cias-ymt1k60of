@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { getMyPericias, uploadAnexo, createPericia } from '@/services/pericias'
-import { getMensagens, sendMensagem } from '@/services/mensagens'
+import { getMensagens, sendMensagem, sendChatGemini } from '@/services/mensagens'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRealtime } from '@/hooks/use-realtime'
 import { ChatSidebar } from '@/components/analise/ChatSidebar'
@@ -9,6 +10,7 @@ import { ChatInput } from '@/components/analise/ChatInput'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +25,9 @@ import {
   LogOut,
   CalendarIcon,
   Loader2,
+  Paperclip,
+  FileText,
+  Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -58,8 +63,45 @@ const newPericiaSchema = z.object({
   dataPericia: z.date().optional(),
 })
 
+function AnexosList({ pericia }: { pericia: any }) {
+  if (!pericia?.anexos || pericia.anexos.length === 0) {
+    return (
+      <div className="text-sm text-muted-foreground p-4 text-center">Nenhum anexo encontrado.</div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-2 p-4">
+      {pericia.anexos.map((anexo: any) => (
+        <div key={anexo.id} className="flex items-center gap-3 rounded-lg border p-3 bg-card">
+          <div className="rounded-md bg-primary/10 p-2 text-primary">
+            <FileText className="h-4 w-4" />
+          </div>
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <span className="truncate text-sm font-medium">{anexo.file_name}</span>
+            <span className="text-xs text-muted-foreground">
+              {(anexo.size / 1024).toFixed(1)} KB
+            </span>
+          </div>
+          <a
+            href={anexo.file_path}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Download className="h-4 w-4" />
+          </a>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function AnaliseDocumentos() {
   const { user, signOut } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const periciaIdParam = searchParams.get('pericia_id')
+
   const [pericias, setPericias] = useState<any[]>([])
   const [selectedPericia, setSelectedPericia] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
@@ -69,6 +111,7 @@ export default function AnaliseDocumentos() {
   const [isSending, setIsSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [isAnexosSheetOpen, setIsAnexosSheetOpen] = useState(false)
 
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false)
 
@@ -84,6 +127,15 @@ export default function AnaliseDocumentos() {
   }, [])
 
   useEffect(() => {
+    if (pericias.length > 0 && periciaIdParam) {
+      const p = pericias.find((p) => p.id === periciaIdParam)
+      if (p && (!selectedPericia || selectedPericia.id !== p.id)) {
+        setSelectedPericia(p)
+      }
+    }
+  }, [pericias, periciaIdParam])
+
+  useEffect(() => {
     if (selectedPericia) {
       loadMessages(selectedPericia.id)
       setIsSheetOpen(false)
@@ -94,11 +146,23 @@ export default function AnaliseDocumentos() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  useRealtime('pericia_mensagens', () => {
-    if (selectedPericia) {
+  useRealtime('pericia_mensagens', (e) => {
+    if (selectedPericia && e.record.pericia_id === selectedPericia.id) {
       loadMessages(selectedPericia.id, false)
     }
   })
+
+  useRealtime('anexos_pericia', (e) => {
+    if (selectedPericia && e.record.pericia_id === selectedPericia.id) {
+      loadPericias()
+    }
+  })
+
+  const handleSelectPericia = (p: any) => {
+    setSelectedPericia(p)
+    setSearchParams({ pericia_id: p.id })
+    setIsSheetOpen(false)
+  }
 
   const loadPericias = async () => {
     setLoadingPericias(true)
@@ -146,14 +210,24 @@ export default function AnaliseDocumentos() {
 
       await sendMensagem(selectedPericia.id, user?.id, finalMsg, 'usuario')
 
-      setTimeout(async () => {
-        const reply = file
-          ? 'Recebi o documento. Estou analisando o conteúdo para extrair as informações relevantes...'
-          : 'Entendido. Como posso ajudar com este caso?'
-        await sendMensagem(selectedPericia.id, null, reply, 'assistente')
-      }, 1500)
+      try {
+        const response = await sendChatGemini(selectedPericia.id, finalMsg)
+        const replyText =
+          response?.reply ||
+          response?.text ||
+          response?.mensagem ||
+          response?.response ||
+          (typeof response === 'string' ? response : null)
+
+        if (replyText) {
+          await sendMensagem(selectedPericia.id, null, replyText, 'assistente')
+        }
+      } catch (aiError) {
+        toast.error('O assistente está indisponível no momento')
+        console.error(aiError)
+      }
     } catch (err) {
-      toast.error('Erro ao enviar mensagem.')
+      toast.error('Falha ao enviar arquivo ou mensagem')
     } finally {
       setIsSending(false)
     }
@@ -200,7 +274,7 @@ export default function AnaliseDocumentos() {
         <ChatSidebar
           pericias={pericias}
           selectedId={selectedPericia?.id}
-          onSelect={setSelectedPericia}
+          onSelect={handleSelectPericia}
           loading={loadingPericias}
           onNewClick={() => setIsNewDialogOpen(true)}
         />
@@ -222,7 +296,7 @@ export default function AnaliseDocumentos() {
                 <ChatSidebar
                   pericias={pericias}
                   selectedId={selectedPericia?.id}
-                  onSelect={setSelectedPericia}
+                  onSelect={handleSelectPericia}
                   loading={loadingPericias}
                   onNewClick={() => {
                     setIsSheetOpen(false)
@@ -241,24 +315,44 @@ export default function AnaliseDocumentos() {
             </div>
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-11 gap-2 px-3 hover:bg-accent/50">
-                <span className="hidden max-w-[120px] truncate text-sm font-medium sm:block">
-                  {user?.name || user?.email || 'Usuário'}
-                </span>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                onClick={signOut}
-                className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
-              >
-                <LogOut className="mr-2 h-4 w-4" /> Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            {selectedPericia && (
+              <Sheet open={isAnexosSheetOpen} onOpenChange={setIsAnexosSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-10 w-10 xl:hidden">
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[280px] p-0">
+                  <div className="flex h-14 shrink-0 items-center border-b px-4 font-medium">
+                    Anexos do Processo
+                  </div>
+                  <ScrollArea className="h-[calc(100vh-3.5rem)]">
+                    <AnexosList pericia={pericias.find((p) => p.id === selectedPericia.id)} />
+                  </ScrollArea>
+                </SheetContent>
+              </Sheet>
+            )}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-11 gap-2 px-3 hover:bg-accent/50">
+                  <span className="hidden max-w-[120px] truncate text-sm font-medium sm:block">
+                    {user?.name || user?.email || 'Usuário'}
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={signOut}
+                  className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" /> Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         {/* Chat Messages */}
@@ -308,6 +402,18 @@ export default function AnaliseDocumentos() {
         {/* Chat Footer Input */}
         <ChatInput onSend={handleSend} isSending={isSending} disabled={!selectedPericia} />
       </div>
+
+      {/* Right Sidebar for Attachments */}
+      {selectedPericia && (
+        <div className="hidden w-[280px] shrink-0 flex-col border-l bg-card/50 xl:flex">
+          <div className="flex h-14 shrink-0 items-center border-b px-4 font-medium">
+            Anexos do Processo
+          </div>
+          <ScrollArea className="flex-1">
+            <AnexosList pericia={pericias.find((p) => p.id === selectedPericia.id)} />
+          </ScrollArea>
+        </div>
+      )}
 
       <Dialog
         open={isNewDialogOpen}
