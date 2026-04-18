@@ -56,25 +56,32 @@ export const createMessage = async (
 }
 
 export const chatGemini = async (conversationId: string, message: string): Promise<any> => {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 120000)
+
   try {
     const token = pb.authStore.token
 
-    return await pb.send(`/backend/v1/chat/gemini`, {
+    const res = await pb.send(`/backend/v1/chat/gemini`, {
       method: 'POST',
-      body: { conversationId, message },
+      body: JSON.stringify({ conversationId, message }),
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
+      signal: controller.signal,
     })
+    return res
   } catch (error: any) {
     console.error('Network or API Error in chatGemini:', error)
-    if (error?.status === 0 || error?.isAbort) {
-      throw new Error('Falha na conexão. A resposta demorou muito ou houve um erro de rede.')
+    if (error?.status === 0 || error?.isAbort || error?.name === 'AbortError') {
+      throw new Error('Falha na conexão. Por favor, verifique sua internet e tente novamente')
     }
     if (error?.response?.error) {
       throw new Error(error.response.error)
     }
     throw new Error('Erro ao se comunicar com o serviço de IA.')
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
