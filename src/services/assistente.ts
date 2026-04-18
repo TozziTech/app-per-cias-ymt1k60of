@@ -57,7 +57,9 @@ export const createMessage = async (
 
 export const chatGemini = async (conversationId: string, message: string): Promise<any> => {
   const token = pb.authStore.token
-  const url = pb.buildUrl('/backend/v1/chat/gemini')
+  // Resilient native fetch implementation to guarantee proper relative routing
+  // and avoid .internal.goskip.dev resolution errors from the browser.
+  const url = '/backend/v1/chat/gemini'
 
   try {
     const response = await fetch(url, {
@@ -73,9 +75,10 @@ export const chatGemini = async (conversationId: string, message: string): Promi
       let errorMsg = 'Erro ao comunicar com o serviço de IA.'
       try {
         const data = await response.json()
-        if (data.error) errorMsg = data.error
+        if (data.message) errorMsg = data.message
+        else if (data.error) errorMsg = data.error
       } catch {
-        // Ignora erro de parse se não for JSON
+        // Fallback for non-JSON responses
       }
       throw new Error(errorMsg)
     }
