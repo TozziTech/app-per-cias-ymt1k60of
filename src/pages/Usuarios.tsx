@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   Select,
@@ -31,6 +31,14 @@ export default function Usuarios() {
   const { toast } = useToast()
   const [profiles, setProfiles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const isMounted = useRef(true)
+
+  useEffect(() => {
+    isMounted.current = true
+    return () => {
+      isMounted.current = false
+    }
+  }, [])
 
   const isAdmin =
     user?.email === 'tozziengenharia@hotmail.com' ||
@@ -39,25 +47,33 @@ export default function Usuarios() {
     user?.role === 'Gerente' ||
     user?.role === 'Gestor'
 
-  const fetchProfiles = async () => {
+  const fetchProfiles = useCallback(async () => {
     try {
       const data = await pb.collection('users').getFullList({ sort: 'name' })
-      setProfiles(data || [])
-    } catch (error) {
-      console.error(error)
-      toast({ title: 'Erro ao buscar usuários', variant: 'destructive' })
+      if (isMounted.current) {
+        setProfiles(data || [])
+      }
+    } catch (error: any) {
+      if (isMounted.current && !error.isAbort) {
+        console.error(error)
+        toast({ title: 'Erro ao buscar usuários', variant: 'destructive' })
+      }
     } finally {
-      setLoading(false)
+      if (isMounted.current) {
+        setLoading(false)
+      }
     }
-  }
+  }, [toast])
 
   useEffect(() => {
     if (isAdmin) {
       fetchProfiles()
     } else {
-      setLoading(false)
+      if (isMounted.current) {
+        setLoading(false)
+      }
     }
-  }, [isAdmin])
+  }, [isAdmin, fetchProfiles])
 
   useRealtime(
     'users',
@@ -70,16 +86,20 @@ export default function Usuarios() {
   const handleRoleChange = async (profileId: string, newRole: string) => {
     try {
       await pb.collection('users').update(profileId, { role: newRole })
-      toast({ title: 'Nível de acesso atualizado com sucesso' })
+      if (isMounted.current) {
+        toast({ title: 'Nível de acesso atualizado com sucesso' })
+      }
     } catch (e: any) {
-      console.error(e)
-      const fieldErrors = extractFieldErrors(e)
-      const errorMessage = getErrorMessage(e)
-      toast({
-        title: 'Erro ao atualizar nível de acesso',
-        description: fieldErrors.role || errorMessage,
-        variant: 'destructive',
-      })
+      if (!e.isAbort && isMounted.current) {
+        console.error(e)
+        const fieldErrors = extractFieldErrors(e)
+        const errorMessage = getErrorMessage(e)
+        toast({
+          title: 'Erro ao atualizar nível de acesso',
+          description: fieldErrors.role || errorMessage,
+          variant: 'destructive',
+        })
+      }
     }
   }
 
@@ -93,14 +113,18 @@ export default function Usuarios() {
 
     try {
       await pb.collection('users').delete(profileId)
-      toast({ title: 'Usuário excluído com sucesso' })
+      if (isMounted.current) {
+        toast({ title: 'Usuário excluído com sucesso' })
+      }
     } catch (e: any) {
-      console.error(e)
-      toast({
-        title: 'Erro ao excluir usuário',
-        description: getErrorMessage(e),
-        variant: 'destructive',
-      })
+      if (!e.isAbort && isMounted.current) {
+        console.error(e)
+        toast({
+          title: 'Erro ao excluir usuário',
+          description: getErrorMessage(e),
+          variant: 'destructive',
+        })
+      }
     }
   }
 
