@@ -57,15 +57,24 @@ export const createMessage = async (
 
 export const chatGemini = async (conversationId: string, message: string): Promise<any> => {
   try {
+    const token = pb.authStore.token
+
     return await pb.send(`/backend/v1/chat/gemini`, {
       method: 'POST',
       body: { conversationId, message },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
     })
   } catch (error: any) {
     console.error('Network or API Error in chatGemini:', error)
     if (error?.status === 0 || error?.isAbort) {
-      throw new Error('Falha na conexão. Por favor, verifique sua internet e tente novamente.')
+      throw new Error('Falha na conexão. A resposta demorou muito ou houve um erro de rede.')
     }
-    throw error
+    if (error?.response?.error) {
+      throw new Error(error.response.error)
+    }
+    throw new Error('Erro ao se comunicar com o serviço de IA.')
   }
 }

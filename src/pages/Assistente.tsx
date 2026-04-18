@@ -194,11 +194,12 @@ export default function Assistente() {
         if (prev.some((m) => m.id === userMessage.id)) return prev
         return [...prev, userMessage]
       })
+
       await chatGemini(currentConv.id, text || 'Analise o arquivo em anexo e forneça um resumo.')
     } catch (error: any) {
       console.error('Erro no assistente:', error)
-      const errorMessage =
-        error?.response?.message || error?.message || 'Erro ao conectar ao serviço de IA.'
+      const errorMessage = error?.message || 'Erro ao conectar ao serviço de IA.'
+
       toast({ variant: 'destructive', title: 'Erro de Comunicação', description: errorMessage })
 
       const errorMsg: Message = {
