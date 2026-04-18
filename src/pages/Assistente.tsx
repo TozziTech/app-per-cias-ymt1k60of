@@ -164,24 +164,23 @@ export default function Assistente() {
   const handleSend = async () => {
     if ((!inputValue.trim() && !attachment) || isSending) return
 
+    const text = inputValue
+    const currentAttachment = attachment
+    setIsSending(true)
+
     let currentConv = activeConv
     if (!currentConv) {
       try {
         currentConv = await createConversation(
-          inputValue.trim() ? inputValue.slice(0, 30) + '...' : 'Nova Análise',
+          text.trim() ? text.slice(0, 30) + '...' : 'Nova Análise',
         )
         setActiveConv(currentConv)
       } catch {
         toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao iniciar conversa.' })
+        setIsSending(false)
         return
       }
     }
-
-    const text = inputValue
-    const currentAttachment = attachment
-    setInputValue('')
-    setAttachment(null)
-    setIsSending(true)
 
     try {
       const userMessage = await createMessage(
@@ -194,6 +193,9 @@ export default function Assistente() {
         if (prev.some((m) => m.id === userMessage.id)) return prev
         return [...prev, userMessage]
       })
+
+      setInputValue('')
+      setAttachment(null)
 
       await chatGemini(currentConv.id, text || 'Analise o arquivo em anexo e forneça um resumo.')
     } catch (error: any) {

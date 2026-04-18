@@ -57,9 +57,12 @@ routerAdd(
       asstMsg.set('type', 'assistente')
       $app.save(asstMsg)
 
+      e.response.header().set('Access-Control-Allow-Origin', '*')
+
       return e.json(200, { data: { resposta: respostaText } })
     } catch (err) {
       console.log('Hook Exception:', err)
+      e.response.header().set('Access-Control-Allow-Origin', '*')
       return e.json(500, { error: 'Erro interno no processamento da requisição.' })
     }
   },

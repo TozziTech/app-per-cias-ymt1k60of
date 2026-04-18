@@ -56,32 +56,33 @@ export const createMessage = async (
 }
 
 export const chatGemini = async (conversationId: string, message: string): Promise<any> => {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 120000)
+  const token = pb.authStore.token
+  const url = pb.buildUrl('/backend/v1/chat/gemini')
 
   try {
-    const token = pb.authStore.token
-
-    const res = await pb.send(`/backend/v1/chat/gemini`, {
+    const response = await fetch(url, {
       method: 'POST',
-      body: JSON.stringify({ conversationId, message }),
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      signal: controller.signal,
+      body: JSON.stringify({ conversationId, message }),
     })
-    return res
+
+    if (!response.ok) {
+      let errorMsg = 'Erro ao comunicar com o serviço de IA.'
+      try {
+        const data = await response.json()
+        if (data.error) errorMsg = data.error
+      } catch {
+        // Ignora erro de parse se não for JSON
+      }
+      throw new Error(errorMsg)
+    }
+
+    return await response.json()
   } catch (error: any) {
     console.error('Network or API Error in chatGemini:', error)
-    if (error?.status === 0 || error?.isAbort || error?.name === 'AbortError') {
-      throw new Error('Falha na conexão. Por favor, verifique sua internet e tente novamente')
-    }
-    if (error?.response?.error) {
-      throw new Error(error.response.error)
-    }
-    throw new Error('Erro ao se comunicar com o serviço de IA.')
-  } finally {
-    clearTimeout(timeoutId)
+    throw new Error(error.message || 'Falha na conexão ou serviço indisponível.')
   }
 }
