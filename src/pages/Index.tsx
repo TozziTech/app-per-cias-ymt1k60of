@@ -214,11 +214,9 @@ export default function Index() {
           {!isRecovering && (
             <CardFooter className="flex justify-center border-t p-4 bg-muted/20">
               <p className="text-sm text-muted-foreground text-center">
-                Dica: Contas de teste
+                Dica: Conta de teste
                 <br />
-                <strong>admin@app.com</strong> (Senha: admin123)
-                <br />
-                <strong>eng@app.com</strong> (Senha: engenheiro123)
+                <strong>tozziengenharia@hotmail.com</strong> (Senha: Skip@Pass)
               </p>
             </CardFooter>
           )}
