@@ -48,3 +48,12 @@ export const sendMensagem = async (
   })
   return data
 }
+
+export const sendChatGemini = async (periciaId: string, mensagem: string) => {
+  const res = await pb.send('/backend/v1/chat-gemini', {
+    method: 'POST',
+    body: JSON.stringify({ pericia_id: periciaId, mensagem }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+  return res
+}
