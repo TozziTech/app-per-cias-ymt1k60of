@@ -37,7 +37,12 @@ export default function Assistente() {
         setActiveConv(data[0])
       }
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao carregar conversas.' })
+      console.warn('Silent fail loading conversations:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Aviso de Conexão',
+        description: 'Não foi possível conectar ao servidor. O sistema continuará tentando.',
+      })
     } finally {
       setIsInitializing(false)
     }
@@ -59,10 +64,11 @@ export default function Assistente() {
         const data = await getMessages(activeConv.id)
         setMessages(data)
       } catch (error) {
+        console.warn('Silent fail loading messages:', error)
         toast({
           variant: 'destructive',
-          title: 'Erro',
-          description: 'Falha ao carregar mensagens.',
+          title: 'Aviso de Conexão',
+          description: 'Não foi possível carregar mensagens. O sistema continuará tentando.',
         })
       } finally {
         setIsLoadingMessages(false)
