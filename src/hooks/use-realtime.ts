@@ -33,6 +33,9 @@ export function useRealtime(
           unsubscribeFn = fn
         }
       })
+      .catch((err) => {
+        console.warn(`Realtime subscription failed for ${collectionName}:`, err?.message || err)
+      })
 
     return () => {
       cancelled = true
