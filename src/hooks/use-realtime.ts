@@ -21,36 +21,21 @@ export function useRealtime(
 
     let unsubscribeFn: (() => Promise<void>) | undefined
     let cancelled = false
-    let retryTimeout: ReturnType<typeof setTimeout>
 
-    const subscribe = (retryCount = 0) => {
-      if (cancelled) return
-
-      pb.collection(collectionName)
-        .subscribe('*', (e) => {
-          callbackRef.current(e)
-        })
-        .then((fn) => {
-          if (cancelled) {
-            fn().catch(() => {})
-          } else {
-            unsubscribeFn = fn
-          }
-        })
-        .catch((err) => {
-          console.warn(`[Realtime] Failed to subscribe to ${collectionName}. Retrying...`, err)
-          if (!cancelled) {
-            const backoff = Math.min(1000 * 2 ** retryCount, 30000)
-            retryTimeout = setTimeout(() => subscribe(retryCount + 1), backoff)
-          }
-        })
-    }
-
-    subscribe()
+    pb.collection(collectionName)
+      .subscribe('*', (e) => {
+        callbackRef.current(e)
+      })
+      .then((fn) => {
+        if (cancelled) {
+          fn().catch(() => {})
+        } else {
+          unsubscribeFn = fn
+        }
+      })
 
     return () => {
       cancelled = true
-      clearTimeout(retryTimeout)
       if (unsubscribeFn) {
         unsubscribeFn().catch(() => {})
       }

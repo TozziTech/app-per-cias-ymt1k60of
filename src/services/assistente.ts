@@ -2,8 +2,8 @@ import pb from '@/lib/pocketbase/client'
 
 export interface Conversation {
   id: string
-  user: string
   title: string
+  user: string
   created: string
   updated: string
 }
@@ -14,46 +14,50 @@ export interface Message {
   user: string
   content: string
   type: 'usuario' | 'assistente'
+  attachment?: string
   created: string
   updated: string
 }
 
-export const getConversations = async () => {
-  return pb.collection('conversations').getFullList<Conversation>({
-    sort: '-created',
-  })
+export const getConversations = async (): Promise<Conversation[]> => {
+  return pb.collection('conversations').getFullList({ sort: '-created' })
 }
 
-export const createConversation = async (title: string) => {
-  return pb.collection('conversations').create<Conversation>({
-    user: pb.authStore.record?.id,
-    title,
-  })
+export const createConversation = async (title: string): Promise<Conversation> => {
+  const user = pb.authStore.record?.id
+  return pb.collection('conversations').create({ title, user })
 }
 
-export const getMessages = async (conversationId: string) => {
-  return pb.collection('messages').getFullList<Message>({
-    filter: `conversation = "${conversationId}"`,
-    sort: 'created',
-  })
+export const deleteConversation = async (id: string): Promise<void> => {
+  return pb.collection('conversations').delete(id)
+}
+
+export const getMessages = async (conversationId: string): Promise<Message[]> => {
+  return pb
+    .collection('messages')
+    .getFullList({ filter: `conversation = "${conversationId}"`, sort: 'created' })
 }
 
 export const createMessage = async (
   conversationId: string,
   content: string,
   type: 'usuario' | 'assistente',
-) => {
-  return pb.collection('messages').create<Message>({
-    conversation: conversationId,
-    content,
-    type,
-    user: pb.authStore.record?.id,
-  })
+  attachment?: File,
+): Promise<Message> => {
+  const user = pb.authStore.record?.id
+  const formData = new FormData()
+  formData.append('conversation', conversationId)
+  formData.append('content', content)
+  formData.append('type', type)
+  if (user) formData.append('user', user)
+  if (attachment) formData.append('attachment', attachment)
+
+  return pb.collection('messages').create(formData)
 }
 
-export const chatGemini = async (conversa_id: string, mensagem: string) => {
-  return pb.send<{ data: { resposta: string } }>('/backend/v1/chat-gemini', {
+export const chatGemini = async (conversationId: string, message: string): Promise<any> => {
+  return pb.send(`/backend/v1/chat/gemini`, {
     method: 'POST',
-    body: JSON.stringify({ conversa_id, mensagem }),
+    body: { conversationId, message },
   })
 }

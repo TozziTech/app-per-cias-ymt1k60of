@@ -1,14 +1,29 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, Loader2, Plus, MessageSquare, Menu } from 'lucide-react'
+import {
+  Send,
+  Bot,
+  User,
+  Loader2,
+  Plus,
+  MessageSquare,
+  Menu,
+  Paperclip,
+  X,
+  Trash2,
+  FileText,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
+import { MarkdownRenderer } from '@/components/MarkdownRenderer'
+import pb from '@/lib/pocketbase/client'
 import {
   getConversations,
   createConversation,
+  deleteConversation,
   getMessages,
   createMessage,
   chatGemini,
@@ -25,6 +40,9 @@ export default function Assistente() {
   const [isInitializing, setIsInitializing] = useState(true)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [isSending, setIsSending] = useState(false)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [attachment, setAttachment] = useState<File | null>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
@@ -65,11 +83,6 @@ export default function Assistente() {
         setMessages(data)
       } catch (error) {
         console.warn('Silent fail loading messages:', error)
-        toast({
-          variant: 'destructive',
-          title: 'Aviso de Conexão',
-          description: 'Não foi possível carregar mensagens. O sistema continuará tentando.',
-        })
       } finally {
         setIsLoadingMessages(false)
       }
@@ -114,13 +127,49 @@ export default function Assistente() {
     }
   }
 
+  const handleDeleteConversation = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    try {
+      await deleteConversation(id)
+      setConversations((prev) => prev.filter((c) => c.id !== id))
+      if (activeConv?.id === id) {
+        setActiveConv(null)
+        setMessages([])
+      }
+      toast({ description: 'Conversa excluída com sucesso.' })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível excluir a conversa.',
+      })
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      if (file.type === 'application/pdf' || file.type === 'text/plain') {
+        setAttachment(file)
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Arquivo inválido',
+          description: 'Apenas PDF e TXT são suportados.',
+        })
+      }
+    }
+  }
+
   const handleSend = async () => {
-    if (!inputValue.trim() || isSending) return
+    if ((!inputValue.trim() && !attachment) || isSending) return
 
     let currentConv = activeConv
     if (!currentConv) {
       try {
-        currentConv = await createConversation(inputValue.slice(0, 30) + '...')
+        currentConv = await createConversation(
+          inputValue.trim() ? inputValue.slice(0, 30) + '...' : 'Nova Análise',
+        )
         setActiveConv(currentConv)
       } catch {
         toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao iniciar conversa.' })
@@ -129,27 +178,28 @@ export default function Assistente() {
     }
 
     const text = inputValue
+    const currentAttachment = attachment
     setInputValue('')
+    setAttachment(null)
     setIsSending(true)
 
     try {
-      const userMessage = await createMessage(currentConv.id, text, 'usuario')
+      const userMessage = await createMessage(
+        currentConv.id,
+        text || 'Arquivo anexado.',
+        'usuario',
+        currentAttachment || undefined,
+      )
       setMessages((prev) => {
         if (prev.some((m) => m.id === userMessage.id)) return prev
         return [...prev, userMessage]
       })
-      await chatGemini(currentConv.id, text)
+      await chatGemini(currentConv.id, text || 'Analise o arquivo em anexo e forneça um resumo.')
     } catch (error: any) {
       console.error('Erro no assistente:', error)
       const errorMessage =
-        error?.response?.message ||
-        error?.message ||
-        'Não foi possível conectar ao serviço de IA. Verifique sua conexão e tente novamente.'
-      toast({
-        variant: 'destructive',
-        title: 'Erro de Comunicação',
-        description: errorMessage,
-      })
+        error?.response?.message || error?.message || 'Erro ao conectar ao serviço de IA.'
+      toast({ variant: 'destructive', title: 'Erro de Comunicação', description: errorMessage })
     } finally {
       setIsSending(false)
     }
@@ -172,19 +222,32 @@ export default function Assistente() {
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
           {conversations.map((conv) => (
-            <button
+            <div
               key={conv.id}
-              onClick={() => setActiveConv(conv)}
               className={cn(
-                'w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left',
+                'group flex items-center justify-between w-full rounded-lg transition-colors',
                 activeConv?.id === conv.id
-                  ? 'bg-primary/10 text-primary font-medium'
+                  ? 'bg-primary/10 text-primary'
                   : 'hover:bg-muted text-muted-foreground',
               )}
             >
-              <MessageSquare className="w-4 h-4 shrink-0" />
-              <span className="truncate">{conv.title}</span>
-            </button>
+              <button
+                onClick={() => setActiveConv(conv)}
+                className="flex-1 flex items-center gap-2 px-3 py-2 text-sm text-left truncate"
+              >
+                <MessageSquare className="w-4 h-4 shrink-0" />
+                <span className="truncate font-medium">{conv.title}</span>
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="opacity-0 group-hover:opacity-100 h-7 w-7 shrink-0 text-destructive hover:bg-destructive/10 mr-1 transition-opacity"
+                onClick={(e) => handleDeleteConversation(e, conv.id)}
+                title="Excluir conversa"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
           ))}
         </div>
       </ScrollArea>
@@ -201,14 +264,11 @@ export default function Assistente() {
 
   return (
     <div className="flex h-[calc(100vh-5rem)] w-full overflow-hidden bg-background">
-      {/* Desktop Sidebar */}
       <div className="hidden md:flex w-64 shrink-0">
         <SidebarContent />
       </div>
 
-      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile Header with Sheet */}
         <div className="md:hidden flex items-center p-4 border-b gap-3 bg-card shrink-0">
           <Sheet>
             <SheetTrigger asChild>
@@ -226,7 +286,6 @@ export default function Assistente() {
           </div>
         </div>
 
-        {/* Desktop Header */}
         <div className="hidden md:flex items-center p-4 md:py-6 gap-3 shrink-0 mx-auto w-full max-w-3xl">
           <div className="p-2 bg-primary/10 text-primary rounded-lg">
             <Bot className="w-6 h-6" />
@@ -250,7 +309,8 @@ export default function Assistente() {
                     <div className="space-y-2">
                       <h3 className="font-semibold text-lg">Olá! Sou seu assistente.</h3>
                       <p className="text-muted-foreground text-sm max-w-[250px] mx-auto">
-                        Faça uma pergunta sobre perícias ou inicie uma nova análise.
+                        Faça uma pergunta sobre perícias, inicie uma análise ou envie um documento
+                        (PDF/TXT).
                       </p>
                     </div>
                   </div>
@@ -291,13 +351,34 @@ export default function Assistente() {
                         >
                           <div
                             className={cn(
-                              'px-4 py-2.5 rounded-2xl text-sm shadow-sm',
+                              'px-4 py-3 rounded-2xl text-sm shadow-sm',
                               message.type === 'usuario'
                                 ? 'bg-blue-600 text-white rounded-br-none'
                                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-none',
                             )}
                           >
-                            {message.content}
+                            {message.type === 'assistente' ? (
+                              <MarkdownRenderer content={message.content} />
+                            ) : (
+                              <div className="whitespace-pre-wrap">{message.content}</div>
+                            )}
+
+                            {message.attachment && (
+                              <a
+                                href={pb.files.getUrl(message, message.attachment)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={cn(
+                                  'flex items-center gap-2 mt-3 p-2 rounded-lg transition-colors w-fit border',
+                                  message.type === 'usuario'
+                                    ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white'
+                                    : 'bg-background/50 hover:bg-background/80 border-border',
+                                )}
+                              >
+                                <FileText className="w-4 h-4" />
+                                <span className="text-xs font-medium">Baixar Anexo</span>
+                              </a>
+                            )}
                           </div>
                           <span className="text-[10px] text-muted-foreground px-1">
                             {new Date(message.created).toLocaleTimeString([], {
@@ -339,24 +420,55 @@ export default function Assistente() {
               </div>
             </ScrollArea>
 
-            <div className="p-3 bg-background border-t shrink-0">
+            <div className="p-3 bg-background border-t shrink-0 flex flex-col gap-2">
+              {attachment && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg text-sm w-fit animate-fade-in">
+                  <Paperclip className="w-4 h-4 text-muted-foreground" />
+                  <span className="truncate max-w-[200px] font-medium">{attachment.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 ml-2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setAttachment(null)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
               <div className="flex items-end gap-2 relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-1.5 bottom-1.5 w-8 h-8 rounded-full text-muted-foreground hover:text-foreground z-10"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isSending}
+                >
+                  <Paperclip className="w-4 h-4" />
+                  <span className="sr-only">Anexar arquivo</span>
+                </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept=".pdf,.txt"
+                  onChange={handleFileChange}
+                />
                 <Input
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Faça uma pergunta..."
-                  className="flex-1 min-h-[44px] rounded-full pr-12 focus-visible:ring-primary/20"
+                  placeholder="Faça uma pergunta ou envie um documento..."
+                  className="flex-1 min-h-[44px] rounded-full pl-11 pr-12 focus-visible:ring-primary/20 bg-muted/50 border-transparent focus-visible:border-primary/50"
                   disabled={isSending}
                 />
                 <Button
                   size="icon"
                   onClick={handleSend}
-                  disabled={!inputValue.trim() || isSending}
+                  disabled={(!inputValue.trim() && !attachment) || isSending}
                   className="absolute right-1 bottom-1 w-9 h-9 rounded-full transition-transform active:scale-95"
                 >
                   {isSending ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    <Loader2 className="w-4 h-4 animate-spin text-primary-foreground" />
                   ) : (
                     <Send className="w-4 h-4 ml-0.5" />
                   )}
