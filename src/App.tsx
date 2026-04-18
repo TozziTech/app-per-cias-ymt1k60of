@@ -8,6 +8,7 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import { GlobalNotifications } from './components/GlobalNotifications'
 import Index from './pages/Index'
 import Dashboard from './pages/Dashboard'
 import Financeiro from './pages/Financeiro'
@@ -32,6 +33,7 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            <GlobalNotifications />
             <Routes>
               <Route path="/login" element={<Index />} />
               <Route path="/" element={<Navigate to="/dashboard" replace />} />

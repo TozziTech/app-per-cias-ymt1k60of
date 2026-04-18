@@ -16,6 +16,8 @@ import { Pericia } from '@/lib/types'
 import { CustomInput, CustomSelect, ChecklistSection, CustomCheckbox } from './FormFields'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { logFormErrors } from '@/lib/error-logger'
+import { useAuth } from '@/contexts/AuthContext'
 
 function DateFieldInner({
   field,
@@ -259,6 +261,7 @@ export function PericiaForm({
 }) {
   const { addPericia, updatePericia, deletePericia } = usePericias()
   const { toast } = useToast()
+  const { user } = (useAuth ? useAuth() : { user: null }) as any
   const [peritos, setPeritos] = useState<{ id: string; nome: string; tipo: string }[]>([])
 
   useEffect(() => {
@@ -398,12 +401,13 @@ export function PericiaForm({
     }
   }
 
-  const onError = () => {
+  const onError = (errors: any) => {
     toast({
       title: 'Erro de Validação',
       description: 'Verifique os campos preenchidos.',
       variant: 'destructive',
     })
+    logFormErrors('pericia-creation-form', errors, user?.id)
   }
 
   return (

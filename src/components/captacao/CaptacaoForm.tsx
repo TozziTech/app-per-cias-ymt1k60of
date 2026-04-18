@@ -23,6 +23,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { createCaptacao, updateCaptacao, getCaptacoes } from '@/services/captacao'
 import { supabase } from '@/lib/supabase/client'
+import { logFormErrors } from '@/lib/error-logger'
+import { useAuth } from '@/contexts/AuthContext'
 
 const schema = z.object({
   data_contato: z.string().min(1, 'Obrigatório'),
@@ -56,6 +58,7 @@ export function CaptacaoForm({ open, onOpenChange, captacaoId, onSaved }: Captac
   const [loading, setLoading] = useState(false)
   const [peritos, setPeritos] = useState<{ id: string; nome: string }[]>([])
   const { toast } = useToast()
+  const { user } = (useAuth ? useAuth() : { user: null }) as any
 
   const form = useForm<FormData>({ resolver: zodResolver(schema) })
 
@@ -124,7 +127,12 @@ export function CaptacaoForm({ open, onOpenChange, captacaoId, onSaved }: Captac
           <DialogTitle>{captacaoId ? 'Editar Contato' : 'Novo Contato'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit, (err) => {
+              logFormErrors('captacao-form', err, user?.id)
+            })}
+            className="space-y-4"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-18T05:14:39.947Z",
+  "generatedAt": "2026-04-18T11:31:27.786Z",
   "collections": [
     {
       "name": "users",
@@ -781,6 +781,102 @@
         {
           "name": "lida",
           "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "user_dashboard_configs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user = @request.auth.id",
+        "view": "@request.auth.id != '' && user = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "layout_data",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_user_dashboard_configs_user ON user_dashboard_configs (user)"
+      ]
+    },
+    {
+      "name": "error_logs",
+      "type": "base",
+      "apiRules": {
+        "list": null,
+        "view": null,
+        "create": "",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "form_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "field_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "error_type",
+          "type": "text",
           "required": false,
           "system": false
         },

@@ -31,6 +31,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 import { usePericias } from '@/contexts/PericiasContext'
 import { Lancamento } from '@/lib/types'
+import { logFormErrors } from '@/lib/error-logger'
+import { useAuth } from '@/contexts/AuthContext'
 
 const schema = z.object({
   tipo: z.enum(['receita', 'despesa']),
@@ -61,6 +63,7 @@ interface Props {
 
 export function LancamentoForm({ isOpen, onClose, lancamento, onSave }: Props) {
   const { pericias } = usePericias()
+  const { user } = (useAuth ? useAuth() : { user: null }) as any
   const [profiles, setProfiles] = useState<{ id: string; name: string }[]>([])
   const [categorias, setCategorias] = useState<{ nome: string; tipo: string }[]>([])
   const [uploading, setUploading] = useState(false)
@@ -192,7 +195,12 @@ export function LancamentoForm({ isOpen, onClose, lancamento, onSave }: Props) {
           </DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit, (err) => {
+              logFormErrors('lancamento-form', err, user?.id)
+            })}
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="tipo"
