@@ -56,34 +56,14 @@ export const createMessage = async (
 }
 
 export const chatGemini = async (conversationId: string, message: string): Promise<any> => {
-  const token = pb.authStore.token
-  // Resilient native fetch implementation to guarantee proper relative routing
-  // and avoid .internal.goskip.dev resolution errors from the browser.
-  const url = '/backend/v1/chat/gemini'
-
   try {
-    const response = await fetch(url, {
+    return await pb.send('/backend/v1/chat/gemini', {
       method: 'POST',
+      body: JSON.stringify({ conversationId, message }),
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ conversationId, message }),
     })
-
-    if (!response.ok) {
-      let errorMsg = 'Erro ao comunicar com o serviço de IA.'
-      try {
-        const data = await response.json()
-        if (data.message) errorMsg = data.message
-        else if (data.error) errorMsg = data.error
-      } catch {
-        // Fallback for non-JSON responses
-      }
-      throw new Error(errorMsg)
-    }
-
-    return await response.json()
   } catch (error: any) {
     console.error('Network or API Error in chatGemini:', error)
     throw new Error(error.message || 'Falha na conexão ou serviço indisponível.')

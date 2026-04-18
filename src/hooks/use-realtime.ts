@@ -34,7 +34,7 @@ export function useRealtime(
         }
       })
       .catch((err) => {
-        console.warn(`[useRealtime] Silent fail subscribing to ${collectionName}:`, err)
+        console.warn(`[useRealtime] Failed to subscribe to ${collectionName}:`, err)
       })
 
     return () => {
