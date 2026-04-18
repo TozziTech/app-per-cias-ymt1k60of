@@ -13,6 +13,7 @@ import {
   Shield,
   Activity,
   PhoneCall,
+  FileSearch,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -33,6 +34,12 @@ const menuGroups = [
     items: [
       { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, adminOnly: false },
       { title: 'Gerenciamento de Perícias', url: '/pericias', icon: FileText, adminOnly: true },
+      {
+        title: 'Análise de Perícias',
+        url: '/analise-documentos',
+        icon: FileSearch,
+        adminOnly: false,
+      },
       { title: 'Portal do Perito', url: '/portal-perito', icon: Briefcase, adminOnly: false },
       { title: 'Calendário', url: '/calendario', icon: Calendar, adminOnly: false },
       { title: 'Tarefas', url: '/tarefas', icon: CheckSquare, adminOnly: false },
