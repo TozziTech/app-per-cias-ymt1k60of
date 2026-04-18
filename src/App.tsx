@@ -23,7 +23,6 @@ import Tarefas from './pages/Tarefas'
 import Usuarios from './pages/Usuarios'
 import Auditoria from './pages/Auditoria'
 import Captacao from './pages/Captacao'
-import Assistente from './pages/Assistente'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -49,7 +48,6 @@ const App = () => (
                   <Route path="/peritos/:id" element={<PeritoDetalhes />} />
                   <Route path="/captacao" element={<Captacao />} />
                   <Route path="/portal-perito" element={<PortalPerito />} />
-                  <Route path="/assistente" element={<Assistente />} />
                   <Route path="/tarefas" element={<Tarefas />} />
                   <Route path="/usuarios" element={<Usuarios />} />
                   <Route path="/auditoria" element={<Auditoria />} />

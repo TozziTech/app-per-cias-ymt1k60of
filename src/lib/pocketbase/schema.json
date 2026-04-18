@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-18T04:51:33.849Z",
+  "generatedAt": "2026-04-18T04:57:05.033Z",
   "collections": [
     {
       "name": "users",
@@ -50,108 +50,6 @@
         "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
         "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
       ]
-    },
-    {
-      "name": "conversations",
-      "type": "base",
-      "apiRules": {
-        "list": "@request.auth.id != '' && user = @request.auth.id",
-        "view": "@request.auth.id != '' && user = @request.auth.id",
-        "create": "@request.auth.id != '' && user = @request.auth.id",
-        "update": "@request.auth.id != '' && user = @request.auth.id",
-        "delete": "@request.auth.id != '' && user = @request.auth.id"
-      },
-      "fields": [
-        {
-          "name": "user",
-          "type": "relation",
-          "required": true,
-          "system": false,
-          "collectionRef": "users"
-        },
-        {
-          "name": "title",
-          "type": "text",
-          "required": true,
-          "system": false
-        },
-        {
-          "name": "created",
-          "type": "autodate",
-          "required": false,
-          "system": false,
-          "autodateTriggers": ["onCreate"]
-        },
-        {
-          "name": "updated",
-          "type": "autodate",
-          "required": false,
-          "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
-        }
-      ],
-      "indexes": []
-    },
-    {
-      "name": "messages",
-      "type": "base",
-      "apiRules": {
-        "list": "@request.auth.id != '' && conversation.user = @request.auth.id",
-        "view": "@request.auth.id != '' && conversation.user = @request.auth.id",
-        "create": "@request.auth.id != '' && conversation.user = @request.auth.id && user = @request.auth.id",
-        "update": "@request.auth.id != '' && user = @request.auth.id",
-        "delete": "@request.auth.id != '' && user = @request.auth.id"
-      },
-      "fields": [
-        {
-          "name": "conversation",
-          "type": "relation",
-          "required": true,
-          "system": false,
-          "collectionRef": "conversations"
-        },
-        {
-          "name": "user",
-          "type": "relation",
-          "required": true,
-          "system": false,
-          "collectionRef": "users"
-        },
-        {
-          "name": "content",
-          "type": "text",
-          "required": true,
-          "system": false
-        },
-        {
-          "name": "type",
-          "type": "select",
-          "required": true,
-          "system": false,
-          "selectValues": ["usuario", "assistente"]
-        },
-        {
-          "name": "created",
-          "type": "autodate",
-          "required": false,
-          "system": false,
-          "autodateTriggers": ["onCreate"]
-        },
-        {
-          "name": "updated",
-          "type": "autodate",
-          "required": false,
-          "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
-        },
-        {
-          "name": "attachment",
-          "type": "file",
-          "required": false,
-          "system": false
-        }
-      ],
-      "indexes": []
     }
   ]
 }
