@@ -17,7 +17,9 @@ export function useRealtime(
   callbackRef.current = callback
 
   useEffect(() => {
-    if (!enabled) return
+    // Only attempt subscription if explicitly enabled and authenticated
+    // to avoid premature connection attempts that lead to ClientResponseError 0
+    if (!enabled || !pb.authStore.isValid) return
 
     let unsubscribeFn: (() => Promise<void>) | undefined
     let cancelled = false
@@ -31,6 +33,17 @@ export function useRealtime(
           fn().catch(() => {})
         } else {
           unsubscribeFn = fn
+        }
+      })
+      .catch((err: any) => {
+        // Silent Exception Handling: Catch ClientResponseError (status 0) and handle internally
+        if (err?.status === 0 || err?.isAbort) {
+          console.warn(
+            `[useRealtime] Silent connection error for ${collectionName}:`,
+            err?.message || 'Connection closed',
+          )
+        } else {
+          console.error(`[useRealtime] Failed to subscribe to ${collectionName}:`, err)
         }
       })
 
