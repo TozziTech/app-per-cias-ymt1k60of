@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client'
+import pb from '@/lib/pocketbase/client'
 
 export interface AuditFilter {
   startDate?: string
@@ -8,35 +8,29 @@ export interface AuditFilter {
 }
 
 export const getAuditLogs = async (filters: AuditFilter) => {
-  let query = supabase
-    .from('activity_logs')
-    .select(`
-      *,
-      profiles:user_id (name, email)
-    `)
-    .order('created_at', { ascending: false })
+  let filter = []
+  if (filters.startDate) filter.push(`created >= '${filters.startDate} 00:00:00'`)
+  if (filters.endDate) filter.push(`created <= '${filters.endDate} 23:59:59'`)
+  if (filters.userId && filters.userId !== 'all') filter.push(`user_id = '${filters.userId}'`)
+  if (filters.action && filters.action !== 'all') filter.push(`action = '${filters.action}'`)
 
-  if (filters.startDate) {
-    query = query.gte('created_at', `${filters.startDate}T00:00:00Z`)
-  }
-  if (filters.endDate) {
-    query = query.lte('created_at', `${filters.endDate}T23:59:59Z`)
-  }
-  if (filters.userId && filters.userId !== 'all') {
-    query = query.eq('user_id', filters.userId)
-  }
-  if (filters.action && filters.action !== 'all') {
-    query = query.eq('action', filters.action)
-  }
+  const records = await pb.collection('activity_logs').getFullList({
+    filter: filter.join(' && '),
+    sort: '-created',
+    expand: 'user_id',
+  })
 
-  const { data, error } = await query
-  if (error) throw error
-  return data
+  return records.map((r) => ({
+    ...r,
+    profiles: r.expand?.user_id
+      ? { name: r.expand.user_id.name, email: r.expand.user_id.email }
+      : null,
+  }))
 }
 
 export const getAuditUsers = async () => {
-  const { data, error } = await supabase.from('profiles').select('id, name, email').order('name')
-
-  if (error) throw error
-  return data
+  const records = await pb.collection('users').getFullList({
+    sort: 'name',
+  })
+  return records.map((r) => ({ id: r.id, name: r.name, email: r.email }))
 }

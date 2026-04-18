@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client'
+import pb from '@/lib/pocketbase/client'
 
 export interface Mensagem {
   id: string
@@ -13,30 +13,31 @@ export interface Mensagem {
 }
 
 export const getMensagens = async (periciaId: string) => {
-  const { data, error } = await supabase
-    .from('pericia_mensagens')
-    .select(`
-      *,
-      profiles:user_id(name, avatar_url)
-    `)
-    .eq('pericia_id', periciaId)
-    .order('created_at', { ascending: true })
+  const data = await pb.collection('pericia_mensagens').getFullList({
+    filter: `pericia_id = '${periciaId}'`,
+    sort: 'created',
+    expand: 'user_id',
+  })
 
-  if (error) throw error
-  return data
+  return data.map((d: any) => ({
+    ...d,
+    created_at: d.created,
+    profiles: d.expand?.user_id
+      ? {
+          name: d.expand.user_id.name,
+          avatar_url: d.expand.user_id.avatar
+            ? pb.files.getUrl(d.expand.user_id, d.expand.user_id.avatar)
+            : '',
+        }
+      : null,
+  }))
 }
 
 export const sendMensagem = async (periciaId: string, userId: string, mensagem: string) => {
-  const { data, error } = await supabase
-    .from('pericia_mensagens')
-    .insert({
-      pericia_id: periciaId,
-      user_id: userId,
-      mensagem,
-    })
-    .select()
-    .single()
-
-  if (error) throw error
+  const data = await pb.collection('pericia_mensagens').create({
+    pericia_id: periciaId,
+    user_id: userId,
+    mensagem,
+  })
   return data
 }

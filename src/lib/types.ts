@@ -12,6 +12,9 @@ export interface User {
   name: string
   email: string
   role: UserRole
+  avatar?: string
+  created?: string
+  updated?: string
 }
 
 export type PericiaStatus =
@@ -39,7 +42,7 @@ export interface Lancamento {
   categoria: string
   descricao: string
   valor: number
-  pericia_id?: string | null
+  pericia_id?: string | null // Mapped directly for relations compatibility
   status: LancamentoStatus
   created_at?: string
   updated_at?: string
@@ -88,7 +91,7 @@ export interface PericiaAnexo {
   pericia_id: string
   file_name: string
   file_path: string
-  content_type: string
+  content_type?: string
   size: number
   created_at: string
   created_by?: string | null
@@ -128,7 +131,6 @@ export interface Pericia {
   entregaEsclarecimentos?: string
   anexos?: PericiaAnexo[]
   contato_perito_id?: string | null
-  status_pagamento?: string
   statusPagamento?: string
   dataPagamento?: string
   honorariosParcelados?: boolean
@@ -136,5 +138,6 @@ export interface Pericia {
   adiantamentoSolicitado?: boolean
   aceite?: string
   justificativa_recusa?: string
+  created_at?: string
   updated_at?: string
 }

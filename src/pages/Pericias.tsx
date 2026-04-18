@@ -24,6 +24,7 @@ import { differenceInCalendarDays } from 'date-fns'
 
 import { usePericias } from '@/contexts/PericiasContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { usePermissions } from '@/hooks/use-permissions'
 import { useToast } from '@/hooks/use-toast'
 import {
   uploadAnexo,
@@ -87,7 +88,6 @@ import { GeradorPeticoes } from '@/components/GeradorPeticoes'
 import { ChecklistVistoria } from '@/components/ChecklistVistoria'
 import { DashboardProdutividade } from '@/components/DashboardProdutividade'
 import { exportToCsv } from '@/lib/export'
-import { supabase } from '@/lib/supabase/client'
 
 import { Pericia } from '@/lib/types'
 
@@ -119,11 +119,9 @@ export default function Pericias() {
   const [selectedPericia, setSelectedPericia] = useState<Pericia | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const { user } = useAuth()
+  const { isPerito, canEditFinanceiro } = usePermissions()
   const { toast } = useToast()
   const [isUploading, setIsUploading] = useState(false)
-
-  const isPerito = user?.role === 'Perito Associado'
-  const canEditFinanceiro = user?.role === 'Administrador' || user?.role === 'Gerente'
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [logs, setLogs] = useState<any[]>([])
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
@@ -316,8 +314,7 @@ export default function Pericias() {
 
   const updateStatusPagamento = async (id: string, val: string) => {
     try {
-      await supabase.from('pericias').update({ status_pagamento: val }).eq('id', id)
-      updatePericia(id, { statusPagamento: val, status_pagamento: val } as any)
+      await updatePericia(id, { statusPagamento: val })
       toast({ title: 'Sucesso', description: 'Status de pagamento atualizado.' })
       if (selectedPericia?.id === id) fetchLogs(id)
     } catch (e) {
@@ -1597,14 +1594,9 @@ export default function Pericias() {
                         }
                         onValueChange={async (val) => {
                           try {
-                            await supabase
-                              .from('pericias')
-                              .update({ status_pagamento: val })
-                              .eq('id', selectedPericia.id)
+                            await updatePericia(selectedPericia.id, { statusPagamento: val })
                             setSelectedPericia((prev) =>
-                              prev
-                                ? { ...prev, status_pagamento: val, statusPagamento: val }
-                                : prev,
+                              prev ? { ...prev, statusPagamento: val } : prev,
                             )
                             toast({
                               title: 'Sucesso',

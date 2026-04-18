@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client'
+import pb from '@/lib/pocketbase/client'
 
 export interface Notificacao {
   id: string
@@ -11,54 +11,31 @@ export interface Notificacao {
 }
 
 export const getNotificacoes = async () => {
-  const { data, error } = await supabase
-    .from('notificacoes')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(50)
+  if (!pb.authStore.record?.id) return []
 
-  if (error) throw error
-  return data as Notificacao[]
+  const data = await pb.collection('notificacoes').getFullList({
+    filter: `user_id = '${pb.authStore.record.id}'`,
+    sort: '-created',
+    limit: 50,
+  })
+
+  return data.map((d) => ({
+    ...d,
+    created_at: d.created,
+  })) as Notificacao[]
 }
 
 export const markAsRead = async (id: string) => {
-  const { error } = await supabase.from('notificacoes').update({ lida: true }).eq('id', id)
-
-  if (error) throw error
+  await pb.collection('notificacoes').update(id, { lida: true })
 }
 
 export const markAllAsRead = async () => {
-  const { error } = await supabase.from('notificacoes').update({ lida: true }).eq('lida', false)
+  if (!pb.authStore.record?.id) return
+  const unread = await pb.collection('notificacoes').getFullList({
+    filter: `user_id = '${pb.authStore.record.id}' && lida = false`,
+  })
 
-  if (error) throw error
-}
-
-export const subscribeToNotificacoes = (userId: string, callback: () => void) => {
-  return supabase
-    .channel('notificacoes_channel')
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notificacoes',
-        filter: `user_id=eq.${userId}`,
-      },
-      () => {
-        callback()
-      },
-    )
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'notificacoes',
-        filter: `user_id=eq.${userId}`,
-      },
-      () => {
-        callback()
-      },
-    )
-    .subscribe()
+  for (const n of unread) {
+    await pb.collection('notificacoes').update(n.id, { lida: true })
+  }
 }

@@ -1,43 +1,55 @@
-import { supabase } from '@/lib/supabase/client'
+import pb from '@/lib/pocketbase/client'
 import { Pericia } from '@/lib/types'
 
-// Helper para converter de snake_case (DB) para camelCase (App)
 function mapToApp(data: any): Pericia {
+  const anexos =
+    data.expand?.anexos_pericia_via_pericia_id?.map((a: any) => ({
+      id: a.id,
+      pericia_id: a.pericia_id,
+      file_name: a.file_name,
+      file_path: pb.files.getUrl(a, a.file),
+      size: a.size,
+      created_at: a.created,
+      created_by: a.created_by,
+    })) || []
+
   return {
     ...data,
-    codigoInterno: data.codigo_interno ?? data.codigoInterno ?? '',
-    numeroProcesso: data.numero_processo ?? data.numeroProcesso ?? '',
-    advogadoAutora: data.advogado_autora ?? data.advogadoAutora ?? '',
-    advogadoRe: data.advogado_re ?? data.advogadoRe ?? '',
-    assistenteTecnicoAutora: data.assistente_autora ?? data.assistenteTecnicoAutora ?? '',
-    assistenteTecnicoRe: data.assistente_re ?? data.assistenteTecnicoRe ?? '',
-    dataNomeacao: data.data_nomeacao ?? data.dataNomeacao ?? '',
-    dataAceite: data.data_aceite ?? data.dataAceite ?? '',
-    dataPericia: data.data_pericia ?? data.dataPericia ?? '',
-    dataEntregaLaudo: data.data_entrega_laudo ?? data.dataEntregaLaudo ?? '',
-    linkNuvem: data.link_nuvem ?? data.linkNuvem ?? '',
-    justicaGratuita: data.justica_gratuita ?? data.justicaGratuita ?? false,
-    peritoAssociado: data.perito_associado ?? data.peritoAssociado ?? '',
-    descricaoImpugnacao: data.descricao_impugnacao ?? data.descricaoImpugnacao ?? '',
-    dataImpugnacao: data.data_impugnacao ?? data.dataImpugnacao ?? '',
-    diasImpugnacao: data.dias_impugnacao ?? data.diasImpugnacao,
-    prazoEntrega: data.prazo_entrega ?? data.prazoEntrega ?? '',
-    entregaImpugnacao: data.entrega_impugnacao ?? data.entregaImpugnacao ?? '',
-    limitesEsclarecimentos: data.limites_esclarecimentos ?? data.limitesEsclarecimentos ?? '',
-    entregaEsclarecimentos: data.entrega_esclarecimentos ?? data.entregaEsclarecimentos ?? '',
-    statusPagamento: data.status_pagamento ?? data.statusPagamento ?? '',
-    dataPagamento: data.data_pagamento ?? data.dataPagamento ?? '',
-    honorariosParcelados: data.honorarios_parcelados ?? data.honorariosParcelados ?? false,
-    quantidadeParcelas: data.quantidade_parcelas ?? data.quantidadeParcelas,
-    adiantamentoSolicitado: data.adiantamento_solicitado ?? data.adiantamentoSolicitado ?? false,
-    updated_at: data.updated_at,
+    codigoInterno: data.codigo_interno || '',
+    numeroProcesso: data.numero_processo || '',
+    advogadoAutora: data.advogado_autora || '',
+    advogadoRe: data.advogado_re || '',
+    assistenteTecnicoAutora: data.assistente_autora || '',
+    assistenteTecnicoRe: data.assistente_re || '',
+    dataNomeacao: data.data_nomeacao || '',
+    dataAceite: data.data_aceite || '',
+    dataPericia: data.data_pericia || '',
+    dataEntregaLaudo: data.data_entrega_laudo || '',
+    linkNuvem: data.link_nuvem || '',
+    justicaGratuita: data.justica_gratuita || false,
+    peritoAssociado: data.perito_associado || '',
+    descricaoImpugnacao: data.descricao_impugnacao || '',
+    dataImpugnacao: data.data_impugnacao || '',
+    diasImpugnacao: data.dias_impugnacao,
+    prazoEntrega: data.prazo_entrega || '',
+    entregaImpugnacao: data.entrega_impugnacao || '',
+    limitesEsclarecimentos: data.limites_esclarecimentos || '',
+    entregaEsclarecimentos: data.entrega_esclarecimentos || '',
+    statusPagamento: data.status_pagamento || '',
+    dataPagamento: data.data_pagamento || '',
+    honorariosParcelados: data.honorarios_parcelados || false,
+    quantidadeParcelas: data.quantidade_parcelas,
+    adiantamentoSolicitado: data.adiantamento_solicitado || false,
+    created_at: data.created,
+    updated_at: data.updated,
+    checklist: data.checklist || [],
+    peticoes: data.peticoes || [],
+    anexos,
   } as Pericia
 }
 
-// Helper para converter de camelCase (App) para snake_case (DB)
 function mapToDB(data: any): any {
   const mapped: any = { ...data }
-
   if ('codigoInterno' in data) {
     mapped.codigo_interno = data.codigoInterno
     delete mapped.codigoInterno
@@ -139,142 +151,103 @@ function mapToDB(data: any): any {
     delete mapped.adiantamentoSolicitado
   }
 
-  // Clean up any undefined values to avoid overriding defaults incorrectly
-  Object.keys(mapped).forEach((key) => mapped[key] === undefined && delete mapped[key])
+  delete mapped.created_at
+  delete mapped.updated_at
+  delete mapped.anexos
 
+  Object.keys(mapped).forEach((key) => mapped[key] === undefined && delete mapped[key])
   return mapped
 }
 
 export async function getMyPericias(userId?: string): Promise<Pericia[]> {
-  let query = supabase.from('pericias').select('*')
-
-  if (userId) {
-    query = query.eq('perito_id', userId)
-  }
-
-  const { data, error } = await query.order('created_at', { ascending: false })
-
-  if (error) {
-    console.error('Erro ao buscar minhas perícias:', error)
-    throw error
-  }
-
-  return (data || []).map(mapToApp)
+  const filter = userId ? `perito_id = '${userId}'` : ''
+  const data = await pb
+    .collection('pericias')
+    .getFullList({ filter, sort: '-created', expand: 'anexos_pericia_via_pericia_id' })
+  return data.map(mapToApp)
 }
 
 export async function getPericias(): Promise<Pericia[]> {
-  const { data, error } = await supabase
-    .from('pericias')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    console.error('Erro ao buscar perícias:', error)
-    throw error
-  }
-
-  // Retorna apenas dados reais do Supabase, sem dados mockados.
-  return (data || []).map(mapToApp)
+  const data = await pb
+    .collection('pericias')
+    .getFullList({ sort: '-created', expand: 'anexos_pericia_via_pericia_id' })
+  return data.map(mapToApp)
 }
 
 export async function createPericia(pericia: Omit<Pericia, 'id'>): Promise<Pericia> {
   const dbPayload = mapToDB(pericia)
-  const { data, error } = await supabase.from('pericias').insert([dbPayload]).select().single()
-
-  if (error) {
-    console.error('Erro ao criar perícia:', error)
-    throw error
-  }
-
+  const data = await pb.collection('pericias').create(dbPayload)
   return mapToApp(data)
 }
 
 export async function updatePericia(id: string, updates: Partial<Pericia>): Promise<Pericia> {
   const dbPayload = mapToDB(updates)
-  const { data, error } = await supabase
-    .from('pericias')
-    .update(dbPayload)
-    .eq('id', id)
-    .select()
-    .single()
-
-  if (error) {
-    console.error('Erro ao atualizar perícia:', error)
-    throw error
-  }
-
+  const data = await pb.collection('pericias').update(id, dbPayload)
   return mapToApp(data)
 }
 
 export async function deletePericia(id: string): Promise<void> {
-  const { error } = await supabase.from('pericias').delete().eq('id', id)
+  await pb.collection('pericias').delete(id)
+}
 
-  if (error) {
-    console.error('Erro ao excluir perícia:', error)
-    throw error
+export async function uploadAnexo(periciaId: string, file: File, userId?: string): Promise<any> {
+  const formData = new FormData()
+  formData.append('pericia_id', periciaId)
+  formData.append('file', file)
+  formData.append('file_name', file.name)
+  formData.append('size', file.size.toString())
+  if (userId) formData.append('created_by', userId)
+
+  const data = await pb.collection('anexos_pericia').create(formData)
+  return {
+    id: data.id,
+    pericia_id: data.pericia_id,
+    file_name: data.file_name,
+    file_path: pb.files.getUrl(data, data.file),
+    size: data.size,
+    created_at: data.created,
+    created_by: data.created_by,
   }
 }
 
-export async function uploadAnexo(file: File, path: string): Promise<string> {
-  const { data, error } = await supabase.storage.from('anexos').upload(path, file)
-
-  if (error) {
-    console.error('Erro ao fazer upload do anexo:', error)
-    throw error
-  }
-
-  return data.path
+export async function deleteAnexo(
+  anexoId: string,
+  filePath: string,
+  periciaId: string,
+  fileName: string,
+  userId?: string,
+): Promise<void> {
+  await pb.collection('anexos_pericia').delete(anexoId)
 }
 
-export async function deleteAnexo(path: string): Promise<void> {
-  const { error } = await supabase.storage.from('anexos').remove([path])
-
-  if (error) {
-    console.error('Erro ao excluir anexo:', error)
-    throw error
-  }
-}
-
-export function getAnexoUrl(path: string): string {
-  const { data } = supabase.storage.from('anexos').getPublicUrl(path)
-  return data.publicUrl
+export async function getAnexoUrl(filePath: string): Promise<string> {
+  return filePath
 }
 
 export async function logActivity(
-  periciaId: string,
   action: string,
-  details?: string,
+  entityType: string,
+  entityId: string,
+  details?: any,
+  userId?: string,
 ): Promise<void> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const { error } = await supabase.from('activity_logs').insert([
-    {
-      entity_id: periciaId,
-      entity_type: 'perícia',
-      action,
-      details: details ? { descricao: details } : null,
-      user_id: user?.id || null,
-    },
-  ])
-
-  if (error) {
-    console.error('Erro ao registrar atividade:', error)
-    throw error
-  }
+  await pb.collection('activity_logs').create({
+    entity_id: entityId,
+    entity_type: entityType,
+    action,
+    details,
+    user_id: userId || pb.authStore.record?.id,
+  })
 }
 
 export async function getPericiaLogs(periciaId: string): Promise<any[]> {
-  const { data, error } = await supabase
-    .from('activity_logs')
-    .select('*, user:profiles(name)')
-    .eq('entity_id', periciaId)
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    console.error('Erro ao buscar logs da perícia:', error)
-    throw error
-  }
-
-  return data || []
+  const data = await pb.collection('activity_logs').getFullList({
+    filter: `entity_id = '${periciaId}'`,
+    sort: '-created',
+    expand: 'user_id',
+  })
+  return data.map((r) => ({
+    ...r,
+    user: r.expand?.user_id ? { name: r.expand.user_id.name, email: r.expand.user_id.email } : null,
+  }))
 }
