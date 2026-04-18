@@ -13,6 +13,7 @@ import {
   Shield,
   Activity,
   PhoneCall,
+  Bot,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -34,6 +35,7 @@ const menuGroups = [
       { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, adminOnly: false },
       { title: 'Gerenciamento de Perícias', url: '/pericias', icon: FileText, adminOnly: true },
       { title: 'Portal do Perito', url: '/portal-perito', icon: Briefcase, adminOnly: false },
+      { title: 'Assistente Gemini', url: '/assistente', icon: Bot, adminOnly: false },
       { title: 'Calendário', url: '/calendario', icon: Calendar, adminOnly: false },
       { title: 'Tarefas', url: '/tarefas', icon: CheckSquare, adminOnly: false },
       { title: 'Captação', url: '/captacao', icon: PhoneCall, adminOnly: false },
