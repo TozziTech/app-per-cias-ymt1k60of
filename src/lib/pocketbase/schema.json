@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-18T12:09:24.124Z",
+  "generatedAt": "2026-04-18T12:17:55.027Z",
   "collections": [
     {
       "name": "users",
@@ -43,7 +43,16 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["admin", "user"]
+          "selectValues": [
+            "admin",
+            "gerente",
+            "perito",
+            "assistente",
+            "user",
+            "Administrador",
+            "Gestor",
+            "Perito Associado"
+          ]
         }
       ],
       "indexes": [
@@ -89,11 +98,11 @@
       "name": "pericias",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
+        "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.role = 'gerente' || perito_id = @request.auth.id || assistentes ~ @request.auth.id)",
+        "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.role = 'gerente' || perito_id = @request.auth.id || assistentes ~ @request.auth.id)",
         "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.role = 'gerente' || perito_id = @request.auth.id || assistentes ~ @request.auth.id)",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.role = 'gerente')"
       },
       "fields": [
         {
@@ -326,9 +335,72 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "tipo_acao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "parte_autora",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "parte_re",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "assistente_tecnico",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "perito_anterior",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor_proposto_anterior",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor_homologado",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco_objeto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "resumo_objeto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "assistentes",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
-      "indexes": []
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_pericias_num_processo` ON `pericias` (numero_processo) WHERE numero_processo != ''"
+      ]
     },
     {
       "name": "anexos_pericia",
@@ -386,6 +458,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "tipo_documento",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["peticao_inicial", "contestacao", "sentenca", "outro"]
         }
       ],
       "indexes": []
@@ -738,6 +817,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "tipo_mensagem",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["usuario", "assistente"]
         }
       ],
       "indexes": []

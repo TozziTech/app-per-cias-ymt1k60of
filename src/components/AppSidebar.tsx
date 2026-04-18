@@ -71,6 +71,7 @@ export function AppSidebar() {
     user?.role === 'admin' ||
     user?.role === 'Administrador' ||
     user?.role === 'administrador' ||
+    user?.role === 'gerente' ||
     user?.role === 'Gerente' ||
     user?.role === 'Gestor'
 

@@ -53,6 +53,8 @@ import pb from '@/lib/pocketbase/client'
 
 const newPericiaSchema = z.object({
   numeroProcesso: z.string().min(1, 'Número do processo é obrigatório'),
+  vara: z.string().optional(),
+  cidade: z.string().optional(),
   dataPericia: z.date().optional(),
 })
 
@@ -117,7 +119,7 @@ export default function AnaliseDocumentos() {
       const msgs = await getMensagens(id)
       if (msgs.length === 0) {
         const greeting = 'Olá, sou seu assistente de análise. Anexe um PDF para começar.'
-        await sendMensagem(id, null, greeting)
+        await sendMensagem(id, null, greeting, 'assistente')
         const updatedMsgs = await getMensagens(id)
         setMessages(updatedMsgs)
       } else {
@@ -142,13 +144,13 @@ export default function AnaliseDocumentos() {
         finalMsg = `[Arquivo anexado: ${file.name}]\n${text}`
       }
 
-      await sendMensagem(selectedPericia.id, user?.id, finalMsg)
+      await sendMensagem(selectedPericia.id, user?.id, finalMsg, 'usuario')
 
       setTimeout(async () => {
         const reply = file
           ? 'Recebi o documento. Estou analisando o conteúdo para extrair as informações relevantes...'
           : 'Entendido. Como posso ajudar com este caso?'
-        await sendMensagem(selectedPericia.id, null, reply)
+        await sendMensagem(selectedPericia.id, null, reply, 'assistente')
       }, 1500)
     } catch (err) {
       toast.error('Erro ao enviar mensagem.')
@@ -161,6 +163,8 @@ export default function AnaliseDocumentos() {
     try {
       const payload = {
         numeroProcesso: values.numeroProcesso,
+        vara: values.vara,
+        cidade: values.cidade,
         dataPericia: values.dataPericia ? format(values.dataPericia, 'yyyy-MM-dd') : undefined,
         status: 'Pendente',
         perito_id: user?.id,
@@ -331,6 +335,32 @@ export default function AnaliseDocumentos() {
                     </FormLabel>
                     <FormControl>
                       <Input placeholder="Ex: 0000000-00.0000.0.00.0000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="vara"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vara</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: 1ª Vara Cível" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="cidade"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Comarca / Cidade</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: São Paulo - SP" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

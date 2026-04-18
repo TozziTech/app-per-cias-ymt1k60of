@@ -11,16 +11,28 @@ function mapToApp(data: any): Pericia {
       size: a.size,
       created_at: a.created,
       created_by: a.created_by,
+      tipo_documento: a.tipo_documento,
     })) || []
 
   return {
     ...data,
     codigoInterno: data.codigo_interno || '',
     numeroProcesso: data.numero_processo || '',
+    vara: data.vara || '',
+    cidade: data.cidade || '',
+    tipoAcao: data.tipo_acao || '',
+    parteAutora: data.parte_autora || '',
+    parteRe: data.parte_re || '',
     advogadoAutora: data.advogado_autora || '',
     advogadoRe: data.advogado_re || '',
     assistenteTecnicoAutora: data.assistente_autora || '',
     assistenteTecnicoRe: data.assistente_re || '',
+    assistenteTecnico: data.assistente_tecnico || '',
+    peritoAnterior: data.perito_anterior || '',
+    valorPropostoAnterior: data.valor_proposto_anterior || null,
+    valorHomologado: data.valor_homologado || null,
+    enderecoObjeto: data.endereco_objeto || '',
+    resumoObjeto: data.resumo_objeto || '',
     dataNomeacao: data.data_nomeacao || '',
     dataAceite: data.data_aceite || '',
     dataPericia: data.data_pericia || '',
@@ -45,7 +57,7 @@ function mapToApp(data: any): Pericia {
     checklist: data.checklist || [],
     peticoes: data.peticoes || [],
     anexos,
-  } as Pericia
+  } as any
 }
 
 function mapToDB(data: any): any {
@@ -57,6 +69,50 @@ function mapToDB(data: any): any {
   if ('numeroProcesso' in data) {
     mapped.numero_processo = data.numeroProcesso
     delete mapped.numeroProcesso
+  }
+  if ('vara' in data) {
+    mapped.vara = data.vara
+    delete mapped.vara
+  }
+  if ('cidade' in data) {
+    mapped.cidade = data.cidade
+    delete mapped.cidade
+  }
+  if ('tipoAcao' in data) {
+    mapped.tipo_acao = data.tipoAcao
+    delete mapped.tipoAcao
+  }
+  if ('parteAutora' in data) {
+    mapped.parte_autora = data.parteAutora
+    delete mapped.parteAutora
+  }
+  if ('parteRe' in data) {
+    mapped.parte_re = data.parteRe
+    delete mapped.parteRe
+  }
+  if ('assistenteTecnico' in data) {
+    mapped.assistente_tecnico = data.assistenteTecnico
+    delete mapped.assistenteTecnico
+  }
+  if ('peritoAnterior' in data) {
+    mapped.perito_anterior = data.peritoAnterior
+    delete mapped.peritoAnterior
+  }
+  if ('valorPropostoAnterior' in data) {
+    mapped.valor_proposto_anterior = data.valorPropostoAnterior
+    delete mapped.valorPropostoAnterior
+  }
+  if ('valorHomologado' in data) {
+    mapped.valor_homologado = data.valorHomologado
+    delete mapped.valorHomologado
+  }
+  if ('enderecoObjeto' in data) {
+    mapped.endereco_objeto = data.enderecoObjeto
+    delete mapped.enderecoObjeto
+  }
+  if ('resumoObjeto' in data) {
+    mapped.resumo_objeto = data.resumoObjeto
+    delete mapped.resumoObjeto
   }
   if ('advogadoAutora' in data) {
     mapped.advogado_autora = data.advogadoAutora
@@ -160,7 +216,7 @@ function mapToDB(data: any): any {
 }
 
 export async function getMyPericias(userId?: string): Promise<Pericia[]> {
-  const filter = userId ? `perito_id = '${userId}'` : ''
+  const filter = userId ? `perito_id = '${userId}' || assistentes ~ '${userId}'` : ''
   const data = await pb
     .collection('pericias')
     .getFullList({ filter, sort: '-created', expand: 'anexos_pericia_via_pericia_id' })
@@ -190,13 +246,19 @@ export async function deletePericia(id: string): Promise<void> {
   await pb.collection('pericias').delete(id)
 }
 
-export async function uploadAnexo(periciaId: string, file: File, userId?: string): Promise<any> {
+export async function uploadAnexo(
+  periciaId: string,
+  file: File,
+  userId?: string,
+  tipoDocumento?: string,
+): Promise<any> {
   const formData = new FormData()
   formData.append('pericia_id', periciaId)
   formData.append('file', file)
   formData.append('file_name', file.name)
   formData.append('size', file.size.toString())
   if (userId) formData.append('created_by', userId)
+  if (tipoDocumento) formData.append('tipo_documento', tipoDocumento)
 
   const data = await pb.collection('anexos_pericia').create(formData)
   return {
@@ -207,6 +269,7 @@ export async function uploadAnexo(periciaId: string, file: File, userId?: string
     size: data.size,
     created_at: data.created,
     created_by: data.created_by,
+    tipo_documento: data.tipo_documento,
   }
 }
 

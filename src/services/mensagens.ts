@@ -5,6 +5,7 @@ export interface Mensagem {
   pericia_id: string
   user_id: string
   mensagem: string
+  tipo_mensagem?: string
   created_at: string
   profiles?: {
     name: string
@@ -37,11 +38,13 @@ export const sendMensagem = async (
   periciaId: string,
   userId: string | null | undefined,
   mensagem: string,
+  tipoMensagem?: 'usuario' | 'assistente',
 ) => {
   const data = await pb.collection('pericia_mensagens').create({
     pericia_id: periciaId,
     user_id: userId || null,
     mensagem,
+    tipo_mensagem: tipoMensagem || (userId ? 'usuario' : 'assistente'),
   })
   return data
 }
