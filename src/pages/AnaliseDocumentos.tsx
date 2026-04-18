@@ -146,17 +146,37 @@ export default function AnaliseDocumentos() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  useRealtime('pericia_mensagens', (e) => {
-    if (selectedPericia && e.record.pericia_id === selectedPericia.id) {
-      loadMessages(selectedPericia.id, false)
-    }
-  })
+  const handleRealtimeError = (err: any) => {
+    const toastId = 'realtime-error-toast'
+    toast.error('Atualizações ao vivo indisponíveis. Por favor, atualize a página manualmente.', {
+      id: toastId,
+      duration: 5000,
+    })
+  }
 
-  useRealtime('anexos_pericia', (e) => {
-    if (selectedPericia && e.record.pericia_id === selectedPericia.id) {
-      loadPericias()
-    }
-  })
+  const isAuthValid = !!user?.id
+
+  useRealtime(
+    'pericia_mensagens',
+    (e) => {
+      if (selectedPericia && e.record.pericia_id === selectedPericia.id) {
+        loadMessages(selectedPericia.id, false)
+      }
+    },
+    isAuthValid,
+    handleRealtimeError,
+  )
+
+  useRealtime(
+    'anexos_pericia',
+    (e) => {
+      if (selectedPericia && e.record.pericia_id === selectedPericia.id) {
+        loadPericias()
+      }
+    },
+    isAuthValid,
+    handleRealtimeError,
+  )
 
   const handleSelectPericia = (p: any) => {
     setSelectedPericia(p)

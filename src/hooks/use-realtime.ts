@@ -12,9 +12,13 @@ export function useRealtime(
   collectionName: string,
   callback: (data: RecordSubscription<any>) => void,
   enabled: boolean = true,
+  onError?: (err: any) => void,
 ) {
   const callbackRef = useRef(callback)
   callbackRef.current = callback
+
+  const onErrorRef = useRef(onError)
+  onErrorRef.current = onError
 
   useEffect(() => {
     if (!enabled) return
@@ -31,6 +35,12 @@ export function useRealtime(
           fn().catch(() => {})
         } else {
           unsubscribeFn = fn
+        }
+      })
+      .catch((err) => {
+        console.warn(`[useRealtime] Failed to subscribe to ${collectionName}:`, err)
+        if (!cancelled && onErrorRef.current) {
+          onErrorRef.current(err)
         }
       })
 
