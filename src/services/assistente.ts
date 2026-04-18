@@ -50,3 +50,10 @@ export const createMessage = async (
     type,
   })
 }
+
+export const chatGemini = async (conversa_id: string, mensagem: string) => {
+  return pb.send<{ data: { resposta: string } }>('/backend/v1/chat-gemini', {
+    method: 'POST',
+    body: JSON.stringify({ conversa_id, mensagem }),
+  })
+}
