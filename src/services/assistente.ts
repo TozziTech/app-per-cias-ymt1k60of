@@ -32,6 +32,17 @@ export const deleteConversation = async (id: string): Promise<void> => {
   return pb.collection('conversations').delete(id)
 }
 
+export const clearConversationMessages = async (conversationId: string): Promise<void> => {
+  const messages = await getMessages(conversationId)
+  for (const msg of messages) {
+    try {
+      await pb.collection('messages').delete(msg.id)
+    } catch (e) {
+      console.warn('Silent fail deleting message:', e)
+    }
+  }
+}
+
 export const getMessages = async (conversationId: string): Promise<Message[]> => {
   return pb
     .collection('messages')

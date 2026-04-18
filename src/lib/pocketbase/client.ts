@@ -1,13 +1,12 @@
 import PocketBase from 'pocketbase'
 
-const getPbUrl = () => {
-  if (typeof window !== 'undefined' && window.location.origin) {
-    return window.location.origin
-  }
-  return import.meta.env.VITE_POCKETBASE_URL || '/'
+// Use environment variable, but fallback to the public URL if it's the internal one or missing
+let url = import.meta.env.VITE_POCKETBASE_URL
+if (!url || url.includes('.internal.')) {
+  url = 'https://app-pericias-08888.goskip.app'
 }
 
-const pb = new PocketBase(getPbUrl())
+const pb = new PocketBase(url)
 pb.autoCancellation(false)
 
 export default pb

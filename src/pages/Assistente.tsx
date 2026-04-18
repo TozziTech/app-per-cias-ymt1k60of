@@ -27,6 +27,7 @@ import {
   getMessages,
   createMessage,
   chatGemini,
+  clearConversationMessages,
   type Conversation,
   type Message,
 } from '@/services/assistente'
@@ -40,12 +41,25 @@ export default function Assistente() {
   const [isInitializing, setIsInitializing] = useState(true)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [isSending, setIsSending] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [attachment, setAttachment] = useState<File | null>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   const loadConversations = async () => {
     try {
@@ -70,7 +84,7 @@ export default function Assistente() {
     loadConversations()
   }, [])
 
-  useRealtime('conversations', () => {
+  const isConvConnected = useRealtime('conversations', () => {
     loadConversations()
   })
 
@@ -90,16 +104,20 @@ export default function Assistente() {
     loadMsgs()
   }, [activeConv])
 
-  useRealtime('messages', (e) => {
+  const isMsgConnected = useRealtime('messages', (e) => {
     if (activeConv && e.record.conversation === activeConv.id) {
       if (e.action === 'create') {
         setMessages((prev) => {
           if (prev.some((m) => m.id === e.record.id)) return prev
           return [...prev, e.record as Message]
         })
+      } else if (e.action === 'delete') {
+        setMessages((prev) => prev.filter((m) => m.id !== e.record.id))
       }
     }
   })
+
+  const isConnected = isOnline && (isConvConnected || isMsgConnected)
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -143,6 +161,20 @@ export default function Assistente() {
         title: 'Erro',
         description: 'Não foi possível excluir a conversa.',
       })
+    }
+  }
+
+  const handleClearHistory = async () => {
+    if (!activeConv) return
+    setIsClearing(true)
+    try {
+      await clearConversationMessages(activeConv.id)
+      setMessages([])
+      toast({ description: 'Histórico limpo com sucesso.' })
+    } catch (error) {
+      toast({ variant: 'destructive', description: 'Erro ao limpar histórico.' })
+    } finally {
+      setIsClearing(false)
     }
   }
 
@@ -283,28 +315,86 @@ export default function Assistente() {
       </div>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="md:hidden flex items-center p-4 border-b gap-3 bg-card shrink-0">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="-ml-2">
-                <Menu className="w-5 h-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72">
-              <SidebarContent />
-            </SheetContent>
-          </Sheet>
-          <div className="flex items-center gap-2 font-semibold text-lg">
-            <Bot className="w-5 h-5 text-primary" />
-            Assistente Gemini
+        <div className="md:hidden flex items-center justify-between p-4 border-b bg-card shrink-0">
+          <div className="flex items-center gap-3">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="-ml-2">
+                  <Menu className="w-5 h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72">
+                <SidebarContent />
+              </SheetContent>
+            </Sheet>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2 font-semibold text-lg">
+                <Bot className="w-5 h-5 text-primary" />
+                Assistente
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <div
+                  className={cn(
+                    'w-1.5 h-1.5 rounded-full',
+                    isConnected ? 'bg-green-500' : 'bg-amber-500',
+                  )}
+                />
+                {isConnected ? 'Conectado' : 'Desconectado'}
+              </div>
+            </div>
           </div>
+          {activeConv && messages.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClearHistory}
+              disabled={isClearing}
+              className="text-muted-foreground hover:text-destructive h-8 w-8"
+              title="Limpar Histórico"
+            >
+              {isClearing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+            </Button>
+          )}
         </div>
 
-        <div className="hidden md:flex items-center p-4 md:py-6 gap-3 shrink-0 mx-auto w-full max-w-3xl">
-          <div className="p-2 bg-primary/10 text-primary rounded-lg">
-            <Bot className="w-6 h-6" />
+        <div className="hidden md:flex items-center p-4 md:py-6 gap-3 shrink-0 mx-auto w-full max-w-3xl justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 text-primary rounded-lg">
+              <Bot className="w-6 h-6" />
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-bold tracking-tight">Assistente Gemini</h1>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                <div
+                  className={cn(
+                    'w-2 h-2 rounded-full',
+                    isConnected ? 'bg-green-500' : 'bg-amber-500',
+                  )}
+                />
+                {isConnected ? 'Conectado' : 'Desconectado'}
+              </div>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Assistente Gemini</h1>
+          {activeConv && messages.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearHistory}
+              disabled={isClearing}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              {isClearing ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Limpar Histórico
+            </Button>
+          )}
         </div>
 
         <div className="flex-1 flex flex-col w-full max-w-3xl mx-auto md:px-4 pb-4 min-h-0">
