@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { getMyPericias, uploadAnexo } from '@/services/pericias'
+import { getMyPericias, uploadAnexo, createPericia } from '@/services/pericias'
 import { getMensagens, sendMensagem } from '@/services/mensagens'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -15,8 +15,46 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Menu, MessageSquare, AlertCircle, ChevronDown, LogOut } from 'lucide-react'
+import {
+  Menu,
+  MessageSquare,
+  AlertCircle,
+  ChevronDown,
+  LogOut,
+  CalendarIcon,
+  Loader2,
+} from 'lucide-react'
 import { toast } from 'sonner'
+import { z } from 'zod'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { format } from 'date-fns'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
+import pb from '@/lib/pocketbase/client'
+
+const newPericiaSchema = z.object({
+  numeroProcesso: z.string().min(1, 'Número do processo é obrigatório'),
+  dataPericia: z.date().optional(),
+})
 
 export default function AnaliseDocumentos() {
   const { user, signOut } = useAuth()
@@ -29,6 +67,15 @@ export default function AnaliseDocumentos() {
   const [isSending, setIsSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+
+  const [isNewDialogOpen, setIsNewDialogOpen] = useState(false)
+
+  const form = useForm<z.infer<typeof newPericiaSchema>>({
+    resolver: zodResolver(newPericiaSchema),
+    defaultValues: {
+      numeroProcesso: '',
+    },
+  })
 
   useEffect(() => {
     loadPericias()
@@ -69,7 +116,6 @@ export default function AnaliseDocumentos() {
     try {
       const msgs = await getMensagens(id)
       if (msgs.length === 0) {
-        // Create initial greeting to fulfill acceptance criteria
         const greeting = 'Olá, sou seu assistente de análise. Anexe um PDF para começar.'
         await sendMensagem(id, null, greeting)
         const updatedMsgs = await getMensagens(id)
@@ -98,7 +144,6 @@ export default function AnaliseDocumentos() {
 
       await sendMensagem(selectedPericia.id, user?.id, finalMsg)
 
-      // Mock assistant reply after 1.5s
       setTimeout(async () => {
         const reply = file
           ? 'Recebi o documento. Estou analisando o conteúdo para extrair as informações relevantes...'
@@ -112,6 +157,38 @@ export default function AnaliseDocumentos() {
     }
   }
 
+  const onSubmitNewPericia = async (values: z.infer<typeof newPericiaSchema>) => {
+    try {
+      const payload = {
+        numeroProcesso: values.numeroProcesso,
+        dataPericia: values.dataPericia ? format(values.dataPericia, 'yyyy-MM-dd') : undefined,
+        status: 'Pendente',
+        perito_id: user?.id,
+      } as any
+
+      const newPericia = await createPericia(payload)
+
+      toast.success('Perícia criada com sucesso!')
+      setIsNewDialogOpen(false)
+      form.reset()
+
+      setPericias((prev) => [newPericia, ...prev])
+      setSelectedPericia(newPericia)
+    } catch (err: any) {
+      toast.error('Erro ao criar nova perícia. Tente novamente.')
+
+      try {
+        await pb.collection('error_logs').create({
+          user: user?.id,
+          form_id: 'nova_pericia_analise',
+          error_type: err.message || 'Unknown error',
+        })
+      } catch (logErr) {
+        console.error('Failed to log error', logErr)
+      }
+    }
+  }
+
   return (
     <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-background">
       {/* Desktop Sidebar */}
@@ -121,6 +198,7 @@ export default function AnaliseDocumentos() {
           selectedId={selectedPericia?.id}
           onSelect={setSelectedPericia}
           loading={loadingPericias}
+          onNewClick={() => setIsNewDialogOpen(true)}
         />
       </div>
 
@@ -142,6 +220,10 @@ export default function AnaliseDocumentos() {
                   selectedId={selectedPericia?.id}
                   onSelect={setSelectedPericia}
                   loading={loadingPericias}
+                  onNewClick={() => {
+                    setIsSheetOpen(false)
+                    setIsNewDialogOpen(true)
+                  }}
                 />
               </SheetContent>
             </Sheet>
@@ -222,6 +304,102 @@ export default function AnaliseDocumentos() {
         {/* Chat Footer Input */}
         <ChatInput onSend={handleSend} isSending={isSending} disabled={!selectedPericia} />
       </div>
+
+      <Dialog
+        open={isNewDialogOpen}
+        onOpenChange={(open) => {
+          setIsNewDialogOpen(open)
+          if (!open) form.reset()
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Nova Perícia</DialogTitle>
+            <DialogDescription>
+              Crie um novo caso para iniciar a análise de documentos.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmitNewPericia)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="numeroProcesso"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Número do Processo <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: 0000000-00.0000.0.00.0000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="dataPericia"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data da Perícia</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn(
+                              'w-full pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground',
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, 'dd/MM/yyyy')
+                            ) : (
+                              <span>Selecione uma data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className="pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsNewDialogOpen(false)
+                    form.reset()
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Criando...
+                    </>
+                  ) : (
+                    'Criar Perícia'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -11,13 +11,20 @@ interface ChatSidebarProps {
   selectedId?: string
   onSelect: (pericia: any) => void
   loading: boolean
+  onNewClick: () => void
 }
 
-export function ChatSidebar({ pericias, selectedId, onSelect, loading }: ChatSidebarProps) {
+export function ChatSidebar({
+  pericias,
+  selectedId,
+  onSelect,
+  loading,
+  onNewClick,
+}: ChatSidebarProps) {
   return (
     <div className="flex h-full w-full flex-col border-r bg-card/50">
       <div className="border-b p-4">
-        <Button className="h-11 w-full" variant="default">
+        <Button className="h-11 w-full" variant="default" onClick={onNewClick}>
           <Plus className="mr-2 h-4 w-4" /> Nova Perícia
         </Button>
       </div>
