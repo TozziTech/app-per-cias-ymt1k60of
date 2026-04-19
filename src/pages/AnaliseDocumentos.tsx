@@ -109,6 +109,7 @@ export default function AnaliseDocumentos() {
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [error, setError] = useState(false)
   const [isSending, setIsSending] = useState(false)
+  const [isAiTyping, setIsAiTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [isAnexosSheetOpen, setIsAnexosSheetOpen] = useState(false)
@@ -144,7 +145,7 @@ export default function AnaliseDocumentos() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, isAiTyping])
 
   const handleRealtimeError = (err: any) => {
     const toastId = 'realtime-error-toast'
@@ -216,6 +217,23 @@ export default function AnaliseDocumentos() {
     }
   }
 
+  const handleSendChatGeminiOnly = async (periciaId: string, msg: string) => {
+    setIsAiTyping(true)
+    try {
+      await sendChatGemini(periciaId, msg)
+    } catch (err: any) {
+      toast.error(err.message || 'O assistente está indisponível no momento', {
+        action: {
+          label: 'Tentar Novamente',
+          onClick: () => handleSendChatGeminiOnly(periciaId, msg),
+        },
+        duration: 10000,
+      })
+    } finally {
+      setIsAiTyping(false)
+    }
+  }
+
   const handleSend = async (text: string, file?: File | null) => {
     if (!selectedPericia) return
     setIsSending(true)
@@ -229,6 +247,8 @@ export default function AnaliseDocumentos() {
       }
 
       await sendMensagem(selectedPericia.id, user?.id, finalMsg, 'usuario')
+      setIsSending(false)
+      setIsAiTyping(true)
 
       try {
         await sendChatGemini(selectedPericia.id, finalMsg)
@@ -237,12 +257,19 @@ export default function AnaliseDocumentos() {
           aiError.response?.message ||
           aiError.message ||
           'O assistente está indisponível no momento'
-        toast.error(errorMessage)
+        toast.error(errorMessage, {
+          action: {
+            label: 'Tentar Novamente',
+            onClick: () => handleSendChatGeminiOnly(selectedPericia.id, finalMsg),
+          },
+          duration: 10000,
+        })
         console.error(aiError)
+      } finally {
+        setIsAiTyping(false)
       }
     } catch (err) {
       toast.error('Falha ao enviar arquivo ou mensagem')
-    } finally {
       setIsSending(false)
     }
   }
@@ -408,6 +435,29 @@ export default function AnaliseDocumentos() {
               {messages.map((m) => (
                 <ChatMessage key={m.id} message={m} />
               ))}
+              {isAiTyping && (
+                <div className="flex w-full gap-3 justify-start animate-in fade-in duration-300">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                  <div className="flex flex-col gap-1 max-w-[80%] rounded-2xl rounded-tl-sm px-4 py-3 bg-card border text-foreground">
+                    <div className="flex space-x-1 h-5 items-center">
+                      <div
+                        className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce"
+                        style={{ animationDelay: '0ms' }}
+                      />
+                      <div
+                        className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce"
+                        style={{ animationDelay: '150ms' }}
+                      />
+                      <div
+                        className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce"
+                        style={{ animationDelay: '300ms' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} className="h-1" />
             </div>
           )}

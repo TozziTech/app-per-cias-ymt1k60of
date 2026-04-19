@@ -50,10 +50,22 @@ export const sendMensagem = async (
 }
 
 export const sendChatGemini = async (periciaId: string, mensagem: string) => {
-  const res = await pb.send('/backend/v1/chat-gemini', {
+  const publicUrl = 'https://app-pericias-08888.goskip.app/backend/v1/chat-gemini'
+  const token = pb.authStore.token
+
+  const res = await fetch(publicUrl, {
     method: 'POST',
     body: JSON.stringify({ pericia_id: periciaId, mensagem }),
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: token ? `Bearer ${token}` : '',
+    },
   })
-  return res
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    throw new Error(errorData.message || 'Erro ao comunicar com o assistente')
+  }
+
+  return res.json()
 }
