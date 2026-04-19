@@ -28,23 +28,16 @@ export function useRealtime(
       })
       .then((fn) => {
         if (cancelled) {
-          fn().catch((err) =>
-            console.warn(`Error unsubscribing (cancelled) for ${collectionName}:`, err),
-          )
+          fn().catch(() => {})
         } else {
           unsubscribeFn = fn
         }
-      })
-      .catch((err) => {
-        console.warn(`Failed to subscribe to realtime for ${collectionName}:`, err)
       })
 
     return () => {
       cancelled = true
       if (unsubscribeFn) {
-        unsubscribeFn().catch((err) =>
-          console.warn(`Error unsubscribing from ${collectionName}:`, err),
-        )
+        unsubscribeFn().catch(() => {})
       }
     }
   }, [collectionName, enabled])
