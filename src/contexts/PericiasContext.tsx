@@ -6,7 +6,7 @@ import {
   updatePericia as updatePericiaService,
 } from '@/services/pericias'
 import { useToast } from '@/hooks/use-toast'
-import { supabase } from '@/lib/supabase/client'
+import pb from '@/lib/pocketbase/client'
 
 import { deletePericia as deletePericiaService } from '@/services/pericias'
 
@@ -39,16 +39,14 @@ export function PericiasProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    const unsubscribe = pb.authStore.onChange(() => {
       refresh()
     })
 
     refresh()
 
     return () => {
-      subscription.unsubscribe()
+      unsubscribe()
     }
   }, [])
 
