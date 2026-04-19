@@ -1,6 +1,11 @@
 import PocketBase from 'pocketbase'
 
-const pb = new PocketBase(import.meta.env.VITE_POCKETBASE_URL)
+let pbUrl = import.meta.env.VITE_POCKETBASE_URL || 'https://app-pericias-08888.goskip.app'
+if (pbUrl.includes('.internal.goskip.')) {
+  pbUrl = 'https://app-pericias-08888.goskip.app'
+}
+
+const pb = new PocketBase(pbUrl)
 pb.autoCancellation(false)
 
 export default pb
