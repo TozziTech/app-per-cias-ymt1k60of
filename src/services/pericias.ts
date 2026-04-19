@@ -7,7 +7,7 @@ function mapToApp(data: any): Pericia {
       id: a.id,
       pericia_id: a.pericia_id,
       file_name: a.file_name,
-      file_path: pb.files.getUrl(a, a.file),
+      file_path: pb.files.getUrl(a, a.file).replace('.internal.goskip.dev', '.goskip.app'),
       size: a.size,
       created_at: a.created,
       created_by: a.created_by,
@@ -265,7 +265,7 @@ export async function uploadAnexo(
     id: data.id,
     pericia_id: data.pericia_id,
     file_name: data.file_name,
-    file_path: pb.files.getUrl(data, data.file),
+    file_path: pb.files.getUrl(data, data.file).replace('.internal.goskip.dev', '.goskip.app'),
     size: data.size,
     created_at: data.created,
     created_by: data.created_by,
@@ -284,7 +284,7 @@ export async function deleteAnexo(
 }
 
 export async function getAnexoUrl(filePath: string): Promise<string> {
-  return filePath
+  return filePath.replace('.internal.goskip.dev', '.goskip.app')
 }
 
 export async function logActivity(
